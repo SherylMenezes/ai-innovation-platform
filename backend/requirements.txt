@@ -10,3 +10,5 @@ twilio
 sendgrid
 pytest
 httpx
+openai
+python-dotenv
