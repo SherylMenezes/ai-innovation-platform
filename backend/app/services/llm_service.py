@@ -6,12 +6,10 @@ load_dotenv()
 
 def generate_5whys_analysis(problem_statement: str) -> dict:
     """
-    Day 1 Task: 5-Whys root-cause prompt scaffolding.
-    Provides automatic fallback to structured mock data if an OpenAI key is missing or invalid.
+    Task 1 & 2: 5-Whys root-cause prompt scaffolding.
     """
     api_key = os.getenv("OPENAI_API_KEY", "")
     
-    # Fallback mock for local development and testing without an active paid key
     if not api_key.startswith("sk-"):
         return {
             "whys": [
@@ -22,7 +20,7 @@ def generate_5whys_analysis(problem_statement: str) -> dict:
                 },
                 {
                     "level": 2,
-                    "question": "Why do users lack access to integrated tooling and real-time guidance?",
+                    "question": "Why do users lack access to guidance?",
                     "answer": "Current workflows rely on disconnected resources and ad-hoc practices."
                 },
                 {
@@ -60,11 +58,11 @@ Requirements:
 3. Return the response strictly as valid JSON matching this structure:
 {{
   "whys": [
-    {{"level": 1, "question": "Why is this happening?", "answer": "..."}},
-    {{"level": 2, "question": "Why?", "answer": "..."}},
-    {{"level": 3, "question": "Why?", "answer": "..."}},
-    {{"level": 4, "question": "Why?", "answer": "..."}},
-    {{"level": 5, "question": "Why?", "answer": "..."}}
+    {{"level": 1, "question": "...", "answer": "..."}},
+    {{"level": 2, "question": "...", "answer": "..."}},
+    {{"level": 3, "question": "...", "answer": "..."}},
+    {{"level": 4, "question": "...", "answer": "..."}},
+    {{"level": 5, "question": "...", "answer": "..."}}
   ],
   "root_cause": "..."
 }}
@@ -73,12 +71,81 @@ Requirements:
     response = client.chat.completions.create(
         model=model_name,
         messages=[
-            {"role": "system", "content": "You are an expert design thinking coach. Always return valid, unformatted raw JSON."},
+            {"role": "system", "content": "You are an expert design thinking coach. Return valid JSON only."},
             {"role": "user", "content": prompt}
         ],
         response_format={"type": "json_object"},
         temperature=0.7,
     )
+    return json.loads(response.choices[0].message.content)
 
-    raw_content = response.choices[0].message.content
-    return json.loads(raw_content)
+
+def generate_hmw_statements(problem_statement: str, root_cause: str) -> dict:
+    """
+    Task 3: Prompt-tuned generation of 'How Might We' (HMW) statements.
+    """
+    api_key = os.getenv("OPENAI_API_KEY", "")
+
+    if not api_key.startswith("sk-"):
+        return {
+            "root_cause": root_cause,
+            "hmw_statements": [
+                {
+                    "id": "hmw-1",
+                    "focus_area": "Ecosystem & Mentorship",
+                    "statement": "How might we connect students directly with industry mentors through real-world problem sets?"
+                },
+                {
+                    "id": "hmw-2",
+                    "focus_area": "Curriculum Alignment",
+                    "statement": "How might we embed active industry project challenges directly into university course credit?"
+                },
+                {
+                    "id": "hmw-3",
+                    "focus_area": "Gamification & Motivation",
+                    "statement": "How might we gamify project milestones to encourage consistent team execution?"
+                },
+                {
+                    "id": "hmw-4",
+                    "focus_area": "Career & Proof-of-Work",
+                    "statement": "How might we turn student project deliverables into verified competency profiles for recruiters?"
+                }
+            ]
+        }
+
+    from openai import OpenAI
+    client = OpenAI(api_key=api_key)
+    model_name = os.getenv("LLM_MODEL", "gpt-4o-mini")
+
+    prompt = f"""
+Given the initial problem and its synthesized root cause, generate 4 distinct, high-impact 'How Might We' (HMW) statements.
+
+Problem Statement:
+"{problem_statement}"
+
+Root Cause:
+"{root_cause}"
+
+Return strictly valid JSON matching this schema:
+{{
+  "root_cause": "{root_cause}",
+  "hmw_statements": [
+    {{
+      "id": "hmw-1",
+      "focus_area": "Category Name",
+      "statement": "How might we...?"
+    }}
+  ]
+}}
+"""
+
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[
+            {"role": "system", "content": "You are an expert design thinking coach. Return raw JSON only."},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.75,
+    )
+    return json.loads(response.choices[0].message.content)
