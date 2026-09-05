@@ -1,6 +1,6 @@
-from typing import Literal
-
+from typing import Literal, Optional
 from pydantic import BaseModel
+from app.models.user import AcademicTier
 
 Channel = Literal["email", "phone"]
 Purpose = Literal["registration", "login"]
@@ -38,6 +38,8 @@ class RegisterRequest(BaseModel):
     phone: str | None = None
     channel: Channel
     code: str
+    academic_tier: Optional[AcademicTier] = AcademicTier.GRADUATE
+    institution_name: Optional[str] = None
 
 
 class RegisterResponse(BaseModel):
@@ -47,6 +49,8 @@ class RegisterResponse(BaseModel):
     phone: str | None
     role: str
     is_verified: bool
+    academic_tier: str
+    institution_name: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

@@ -50,6 +50,7 @@ def test_full_signup_login_rbac_flow():
     register_body = register_resp.json()
     assert register_body["email"] == email
     assert register_body["role"] == "student"
+    assert register_body["academic_tier"] == "Graduate"
     assert register_body["is_verified"] is True
 
     login_gen_resp = client.post(
@@ -77,6 +78,7 @@ def test_full_signup_login_rbac_flow():
     rbac_body = rbac_resp.json()
     assert rbac_body["user_id"] == register_body["user_id"]
     assert rbac_body["role"] == "student"
+    assert rbac_body["academic_tier"] == "Graduate"
     assert "project:view" in rbac_body["permissions"]
 
 
@@ -98,3 +100,67 @@ def test_wrong_otp_is_rejected():
 def test_rbac_without_token_returns_401():
     resp = client.get("/api/user/rbac")
     assert resp.status_code == 401
+
+# Day 5 Test Case for Epic 1.2 (Tier Selection & Profile Update)
+def test_tier_selection_and_profile_update_flow():
+    email = _unique_email()
+
+    gen_resp = client.post(
+        "/api/auth/otp/generate",
+        json={"identifier": email, "channel": "email", "purpose": "registration"},
+    )
+    code = gen_resp.json()["debug_code"]
+
+    client.post(
+        "/api/auth/otp/verify",
+        json={"identifier": email, "channel": "email", "purpose": "registration", "code": code},
+    )
+
+    reg_resp = client.post(
+        "/api/auth/register",
+        json={
+            "name": "Sheryl Menezes",
+            "email": email,
+            "phone": None,
+            "channel": "email",
+            "code": code,
+            "academic_tier": "Grade 8-10",
+            "institution_name": "Sharada Mandir School"
+        },
+    )
+    assert reg_resp.status_code == 200, reg_resp.text
+    reg_body = reg_resp.json()
+    assert reg_body["academic_tier"] == "Grade 8-10"
+    assert reg_body["institution_name"] == "Sharada Mandir School"
+
+    login_gen = client.post(
+        "/api/auth/otp/generate",
+        json={"identifier": email, "channel": "email", "purpose": "login"},
+    )
+    login_code = login_gen.json()["debug_code"]
+
+    login_resp = client.post(
+        "/api/auth/login",
+        json={"identifier": email, "channel": "email", "code": login_code},
+    )
+    token = login_resp.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    rbac_resp = client.get("/api/user/rbac", headers=headers)
+    assert rbac_resp.status_code == 200, rbac_resp.text
+    assert rbac_resp.json()["academic_tier"] == "Grade 8-10"
+
+    update_resp = client.put(
+        "/api/user/profile",
+        headers=headers,
+        json={"academic_tier": "Professional", "institution_name": "Persistent Goa"},
+    )
+    assert update_resp.status_code == 200, update_resp.text
+    updated_body = update_resp.json()
+    assert updated_body["academic_tier"] == "Professional"
+    assert updated_body["institution_name"] == "Persistent Goa"
+
+    get_profile_resp = client.get("/api/user/profile", headers=headers)
+    assert get_profile_resp.status_code == 200, get_profile_resp.text
+    assert get_profile_resp.json()["academic_tier"] == "Professional"
+    assert get_profile_resp.json()["institution_name"] == "Persistent Goa"

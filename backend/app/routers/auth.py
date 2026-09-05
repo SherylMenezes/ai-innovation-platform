@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
 from app.core.database import get_db
 from app.integrations.email import send_otp_email
 from app.integrations.sms import send_otp_sms
@@ -100,11 +99,15 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     ) as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
 
+    tier_value = payload.academic_tier.value if payload.academic_tier else "Graduate"
+
     user = User(
         name=payload.name,
         email=payload.email,
         phone=payload.phone,
         role="student",
+        academic_tier=tier_value,
+        institution_name=payload.institution_name,
         is_verified=True,
         hashed_password=None,
     )
@@ -118,6 +121,8 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         email=user.email,
         phone=user.phone,
         role=user.role,
+        academic_tier=user.academic_tier,
+        institution_name=user.institution_name,
         is_verified=user.is_verified,
     )
 
