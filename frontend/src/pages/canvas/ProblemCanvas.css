@@ -1,0 +1,1964 @@
+/* =========================
+   WHOLE PAGE
+   ========================= */
+
+.workspace {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 0% 35%, #dbeafe 0, transparent 28%),
+    radial-gradient(circle at 100% 90%, #dbeafe 0, transparent 25%),
+    #f5f9ff;
+
+  padding: 32px 60px 60px;
+}
+
+
+/* =========================
+   WORKSPACE HEADER
+   ========================= */
+
+.workspace-header {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.workspace-label {
+  margin: 0 0 7px;
+
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 2px;
+
+  color: #64748b;
+}
+
+.workspace-header h1 {
+  margin: 0;
+
+  font-size: 30px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+
+/* =========================
+   NAVIGATION TABS
+   ========================= */
+
+.workspace-tabs {
+  max-width: 1100px;
+
+  margin: 28px auto 0;
+  padding: 6px;
+
+  display: flex;
+  gap: 8px;
+
+  background: #edf4ff;
+
+  border: 1px solid #e0eaff;
+  border-radius: 12px;
+}
+
+.workspace-tabs button {
+  background: transparent;
+
+  border: none;
+  border-radius: 8px;
+
+  padding: 11px 22px;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  color: #64748b;
+
+  transition: all 0.2s ease;
+}
+
+.workspace-tabs button:hover {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.workspace-tabs .active-tab {
+  background: #2563eb;
+  color: white;
+
+  font-weight: 600;
+
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.workspace-tabs .active-tab:hover {
+  background: #1d4ed8;
+  color: white;
+}
+
+
+/* =========================
+   MAIN CANVAS
+   ========================= */
+
+.canvas-content {
+  max-width: 1100px;
+  margin: 48px auto;
+}
+
+
+/* =========================
+   CANVAS INTRODUCTION
+   ========================= */
+
+.canvas-intro {
+  margin-bottom: 28px;
+
+  padding: 12px 6px;
+}
+
+.section-label {
+  margin: 0 0 10px;
+
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+
+  color: #2563eb;
+}
+
+.canvas-intro h2 {
+  margin: 0 0 10px;
+
+  font-size: 30px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.canvas-intro > p:last-child {
+  margin: 0;
+
+  font-size: 16px;
+  line-height: 1.6;
+
+  color: #64748b;
+}
+
+
+/* =========================
+   DEFINE PROBLEM CARD
+   ========================= */
+
+.problem-card {
+  margin-top: 24px;
+  padding: 38px 40px;
+
+  background: rgba(255, 255, 255, 0.95);
+
+  border: 1px solid #dbe5f3;
+  border-radius: 18px;
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.06),
+    0 2px 8px rgba(37, 99, 235, 0.04);
+}
+
+
+/* =========================
+   STEP HEADING
+   ========================= */
+
+.step-heading {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 18px;
+
+  margin-bottom: 30px;
+}
+
+.step-number {
+  flex-shrink: 0;
+
+  background: #0f172a;
+  color: white;
+
+  padding: 11px 13px;
+
+  border-radius: 10px;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  box-shadow: 0 5px 12px rgba(15, 23, 42, 0.15);
+}
+
+.step-heading h3 {
+  margin: 0 0 6px;
+
+  font-size: 22px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.step-heading p {
+  margin: 0;
+
+  font-size: 15px;
+  line-height: 1.6;
+
+  color: #64748b;
+}
+
+
+/* =========================
+   LABEL
+   ========================= */
+
+.problem-card label {
+  display: block;
+
+  margin-bottom: 10px;
+
+  font-size: 15px;
+  font-weight: 600;
+
+  color: #0f172a;
+}
+
+
+/* =========================
+   TEXTAREA
+   ========================= */
+
+.problem-card textarea {
+  width: 100%;
+  min-height: 160px;
+
+  padding: 18px;
+
+  background: #ffffff;
+
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+
+  color: #0f172a;
+
+  resize: vertical;
+
+  box-sizing: border-box;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.problem-card textarea::placeholder {
+  color: #94a3b8;
+}
+
+.problem-card textarea:hover {
+  border-color: #93c5fd;
+}
+
+.problem-card textarea:focus {
+  outline: none;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+
+/* =========================
+   ANALYZE AI BUTTON
+   ========================= */
+
+.analyze-button {
+  display: block;
+
+  margin-left: auto;
+  margin-top: 20px;
+
+  padding: 13px 22px;
+
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #0b5be7
+  );
+
+  color: white;
+
+  border: none;
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.analyze-button:hover {
+  background: linear-gradient(
+    135deg,
+    #1d4ed8,
+    #084cc5
+  );
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 9px 20px rgba(37, 99, 235, 0.3);
+}
+
+.analyze-button:active {
+  transform: translateY(0);
+}
+
+
+/* =========================
+   RESPONSIVE DESIGN
+   ========================= */
+
+@media (max-width: 768px) {
+
+  .workspace {
+    padding: 24px 18px 40px;
+  }
+
+  .workspace-tabs {
+    overflow-x: auto;
+  }
+
+  .workspace-tabs button {
+    padding: 10px 16px;
+    white-space: nowrap;
+  }
+
+  .canvas-content {
+    margin-top: 32px;
+  }
+
+  .canvas-intro h2 {
+    font-size: 24px;
+  }
+
+  .problem-card {
+    padding: 26px 22px;
+  }
+
+  .step-heading {
+    gap: 12px;
+  }
+
+  .analyze-button {
+    width: 100%;
+  }
+}
+/* =========================
+   5 WHYS CARD
+   ========================= */
+
+.whys-card {
+  margin-top: 24px;
+  padding: 38px 40px;
+
+  background: rgba(255, 255, 255, 0.95);
+
+  border: 1px solid #dbe5f3;
+  border-radius: 18px;
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.06),
+    0 2px 8px rgba(37, 99, 235, 0.04);
+}
+
+
+/* Original problem shown on Screen 2 */
+
+.original-problem {
+  margin-bottom: 30px;
+  padding: 18px 20px;
+
+  background: #eff6ff;
+
+  border-left: 4px solid #2563eb;
+  border-radius: 10px;
+}
+
+.original-problem span {
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+
+  color: #2563eb;
+}
+
+.original-problem p {
+  margin: 7px 0 0;
+
+  font-size: 15px;
+  line-height: 1.5;
+
+  color: #0f172a;
+}
+
+
+/* =========================
+   WHY INPUTS
+   ========================= */
+
+.whys-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 18px;
+}
+
+.why-item label {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.why-item input {
+  width: 100%;
+
+  padding: 14px 16px;
+
+  background: white;
+
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+
+  box-sizing: border-box;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  color: #0f172a;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.why-item input::placeholder {
+  color: #94a3b8;
+}
+
+.why-item input:hover {
+  border-color: #93c5fd;
+}
+
+.why-item input:focus {
+  outline: none;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+
+/* =========================
+   5 WHYS BUTTONS
+   ========================= */
+
+.whys-actions {
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 30px;
+}
+
+
+/* Back button */
+
+.back-button {
+  padding: 12px 20px;
+
+  background: white;
+
+  color: #334155;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background: #f1f5f9;
+
+  border-color: #94a3b8;
+}
+
+
+/* Continue button */
+
+.continue-button {
+  padding: 12px 20px;
+
+  background: #2563eb;
+
+  color: white;
+
+  border: none;
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 5px 14px rgba(37, 99, 235, 0.22);
+
+  transition: all 0.2s ease;
+}
+
+.continue-button:hover {
+  background: #1d4ed8;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================
+   MOBILE
+   ========================= */
+
+@media (max-width: 768px) {
+
+  .whys-card {
+    padding: 26px 22px;
+  }
+
+  .whys-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .back-button,
+  .continue-button {
+    width: 100%;
+  }
+}
+
+.why-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.why-number {
+  flex-shrink: 0;
+
+  padding: 5px 8px;
+
+  background: #eff6ff;
+  color: #2563eb;
+
+  border-radius: 6px;
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.why-heading label {
+  margin: 0 0 4px;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.why-hint {
+  margin: 0;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: #64748b;
+}
+.error-message {
+  margin-top: 10px;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  color: #dc2626;
+}
+/* =========================
+   REFRAME CARD
+   ========================= */
+
+.reframe-card {
+  margin-top: 24px;
+  padding: 38px 40px;
+
+  background: rgba(255, 255, 255, 0.95);
+
+  border: 1px solid #dbe5f3;
+  border-radius: 18px;
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.06),
+    0 2px 8px rgba(37, 99, 235, 0.04);
+}
+
+.root-cause-box {
+  margin-top: 28px;
+}
+
+.root-cause-box label,
+.hmw-section label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.field-hint {
+  margin: 0 0 10px;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: #64748b;
+}
+
+.root-cause-box textarea,
+.hmw-section textarea {
+  width: 100%;
+  min-height: 110px;
+
+  padding: 16px;
+
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+
+  box-sizing: border-box;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  resize: vertical;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.root-cause-box textarea:focus,
+.hmw-section textarea:focus {
+  outline: none;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+
+/* =========================
+   HOW MIGHT WE SECTION
+   ========================= */
+
+.hmw-section {
+  margin-top: 32px;
+
+  padding: 26px;
+
+  background: #eff6ff;
+
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+}
+
+.hmw-label {
+  margin: 0 0 8px;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+
+  color: #2563eb;
+}
+
+.hmw-section h3 {
+  margin: 0 0 6px;
+
+  font-size: 19px;
+
+  color: #0f172a;
+}
+.hmw-example {
+  margin-top: 12px;
+  padding: 12px 14px;
+
+  background: white;
+
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: #475569;
+}
+
+.hmw-example strong {
+  color: #2563eb;
+} 
+/* =========================
+   CREATIVE IDEATION BOARD
+   ========================= */
+
+.ideas-card {
+  margin-top: 24px;
+  padding: 38px 40px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  border: 1px solid #dbe5f3;
+  border-radius: 18px;
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.06),
+    0 2px 8px rgba(37, 99, 235, 0.04);
+}
+
+
+/* =========================
+   IDEATION METHODS
+   ========================= */
+
+.ideation-tools {
+  margin-top: 30px;
+  padding: 24px;
+
+  background: #f8fbff;
+
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+}
+
+.ideation-tools-heading {
+  margin-bottom: 18px;
+}
+
+.ideation-tools-heading h3 {
+  margin: 6px 0 0;
+
+  font-size: 18px;
+
+  color: #0f172a;
+}
+
+.method-tabs {
+  display: flex;
+  gap: 10px;
+}
+
+.method-tabs button {
+  padding: 10px 18px;
+
+  background: white;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+
+  color: #475569;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.method-tabs button:hover {
+  border-color: #93c5fd;
+  color: #2563eb;
+}
+
+.method-tabs .method-active {
+  background: #2563eb;
+  border-color: #2563eb;
+
+  color: white;
+
+  box-shadow:
+    0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.method-tabs .method-active:hover {
+  color: white;
+}
+
+.method-description {
+  margin-top: 16px;
+  padding: 14px 16px;
+
+  background: #eff6ff;
+
+  border-radius: 9px;
+}
+
+.method-description p {
+  margin: 0;
+
+  font-size: 13px;
+  line-height: 1.6;
+
+  color: #475569;
+}
+
+
+/* =========================
+   IDEA SUGGESTIONS
+   ========================= */
+
+.ideas-section {
+  margin-top: 34px;
+}
+
+.ideas-heading {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.idea-placeholder-label {
+  margin: 0;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+
+  color: #2563eb;
+}
+
+.ideas-heading h3 {
+  margin: 8px 0;
+
+  font-size: 21px;
+
+  color: #0f172a;
+}
+
+.ideas-heading > p:last-child {
+  max-width: 600px;
+
+  margin: 0 auto;
+
+  font-size: 14px;
+  line-height: 1.6;
+
+  color: #64748b;
+}
+
+
+/* =========================
+   IDEA CARD GRID
+   ========================= */
+
+.idea-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 18px;
+}
+
+.idea-card {
+  display: flex;
+  flex-direction: column;
+
+  padding: 22px;
+
+  background: white;
+
+  border: 1px solid #dbe5f3;
+  border-radius: 14px;
+
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.05);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.idea-card:hover {
+  transform: translateY(-4px);
+
+  box-shadow:
+    0 12px 26px rgba(37, 99, 235, 0.13);
+}
+
+.idea-number {
+  align-self: flex-start;
+
+  padding: 5px 8px;
+
+  background: #eff6ff;
+  color: #2563eb;
+
+  border-radius: 6px;
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.idea-card h4 {
+  margin: 16px 0 8px;
+
+  font-size: 17px;
+
+  color: #0f172a;
+}
+
+.idea-card p {
+  flex-grow: 1;
+
+  margin: 0 0 20px;
+
+  font-size: 13px;
+  line-height: 1.6;
+
+  color: #64748b;
+}
+
+.explore-idea-button {
+  width: 100%;
+
+  padding: 11px 14px;
+
+  background: #eff6ff;
+  color: #2563eb;
+
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.explore-idea-button:hover {
+  background: #2563eb;
+  color: white;
+}
+
+
+/* =========================
+   IDEATION ACTIONS
+   ========================= */
+
+.ideation-actions {
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 30px;
+}
+
+.generate-more-button {
+  padding: 12px 20px;
+
+  background: #2563eb;
+  color: white;
+
+  border: none;
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 5px 14px rgba(37, 99, 235, 0.22);
+
+  transition: 0.2s ease;
+}
+
+.generate-more-button:hover {
+  background: #1d4ed8;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================
+   RESPONSIVE IDEATION BOARD
+   ========================= */
+
+@media (max-width: 800px) {
+
+  .idea-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .method-tabs {
+    flex-direction: column;
+  }
+
+  .ideation-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ideation-actions button {
+    width: 100%;
+  }
+}
+/* =========================================
+   IDEATION METHOD INTRODUCTION
+   ========================================= */
+
+.ideation-tools-heading > p:last-child {
+  margin: 8px 0 0;
+
+  font-size: 13px;
+  line-height: 1.6;
+
+  color: #64748b;
+}
+
+
+/* =========================================
+   METHOD INFORMATION
+   ========================================= */
+
+.method-info {
+  margin: 26px 0 18px;
+}
+
+.method-info h4 {
+  margin: 0 0 6px;
+
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.method-info p {
+  max-width: 750px;
+
+  margin: 0;
+
+  font-size: 13px;
+  line-height: 1.6;
+
+  color: #64748b;
+}
+
+
+/* =========================================
+   SCAMPER
+   ========================================= */
+
+.scamper-section {
+  margin-top: 20px;
+}
+
+.scamper-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 16px;
+}
+
+.scamper-card {
+  padding: 18px;
+
+  background: white;
+
+  border: 1px solid #dbe5f3;
+  border-radius: 12px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.scamper-card:hover {
+  border-color: #93c5fd;
+
+  box-shadow:
+    0 6px 16px rgba(37, 99, 235, 0.08);
+}
+
+.scamper-heading {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  margin-bottom: 12px;
+}
+
+.scamper-letter {
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  flex-shrink: 0;
+
+  width: 34px;
+  height: 34px;
+
+  background: #2563eb;
+  color: white;
+
+  border-radius: 8px;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  box-shadow:
+    0 4px 10px rgba(37, 99, 235, 0.18);
+}
+
+.scamper-heading h4 {
+  margin: 0 0 4px;
+
+  font-size: 15px;
+
+  color: #0f172a;
+}
+
+.scamper-heading p {
+  margin: 0;
+
+  font-size: 12px;
+  line-height: 1.5;
+
+  color: #64748b;
+}
+
+.scamper-card textarea {
+  width: 100%;
+  min-height: 95px;
+
+  padding: 12px 14px;
+
+  box-sizing: border-box;
+
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: #0f172a;
+
+  background: #f8fbff;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+
+  resize: vertical;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.scamper-card textarea:focus {
+  outline: none;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+
+/* =========================================
+   MIND MAP
+   ========================================= */
+
+.mindmap-section {
+  margin-top: 20px;
+}
+
+.mindmap-board {
+  padding: 26px;
+
+  background:
+    radial-gradient(
+      circle at center,
+      #eff6ff,
+      #f8fbff 65%
+    );
+
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+}
+
+.mindmap-center {
+  max-width: 600px;
+
+  margin: 0 auto 26px;
+
+  padding: 20px;
+
+  text-align: center;
+
+  background: #2563eb;
+  color: white;
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 7px 18px rgba(37, 99, 235, 0.2);
+}
+
+.mindmap-center span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+
+  opacity: 0.85;
+}
+
+.mindmap-center p {
+  margin: 8px 0 0;
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mindmap-branches {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, 1fr);
+
+  gap: 16px;
+}
+
+.mindmap-branch {
+  padding: 16px;
+
+  background: white;
+
+  border: 1px solid #dbe5f3;
+  border-radius: 12px;
+}
+
+.mindmap-branch label {
+  display: block;
+
+  margin-bottom: 9px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.mindmap-branch textarea {
+  width: 100%;
+  min-height: 100px;
+
+  padding: 12px;
+
+  box-sizing: border-box;
+
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: #0f172a;
+
+  background: #f8fbff;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+
+  resize: vertical;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.mindmap-branch textarea:focus {
+  outline: none;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+
+/* =========================================
+   MOBILE — IDEATION TOOLS
+   ========================================= */
+
+@media (max-width: 800px) {
+
+  .scamper-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mindmap-branches {
+    grid-template-columns: 1fr;
+  }
+
+  .mindmap-board {
+    padding: 18px;
+  }
+}
+.selected-idea {
+  border: 2px solid #2563eb;
+
+  box-shadow:
+    0 10px 24px rgba(37, 99, 235, 0.15);
+}
+
+.selected-idea .explore-idea-button {
+  background: #2563eb;
+  color: white;
+}
+/* =========================================================
+   DAY 5 — FINAL RESPONSIVE & UX POLISH
+   ========================================================= */
+
+
+/* ---------------------------------------------------------
+   GLOBAL SAFETY
+   Prevent elements from becoming wider than their container
+   --------------------------------------------------------- */
+
+.workspace *,
+.workspace *::before,
+.workspace *::after {
+  box-sizing: border-box;
+}
+
+
+/* ---------------------------------------------------------
+   ACCESSIBILITY — KEYBOARD FOCUS
+   Makes buttons clearly visible when using Tab
+   --------------------------------------------------------- */
+
+.workspace button:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.3);
+  outline-offset: 3px;
+}
+
+.workspace textarea:focus-visible,
+.workspace input:focus-visible {
+  outline: none;
+}
+
+
+/* ---------------------------------------------------------
+   BUTTON INTERACTION
+   --------------------------------------------------------- */
+
+.workspace button {
+  font-family: inherit;
+}
+
+.back-button:active,
+.continue-button:active,
+.generate-more-button:active,
+.explore-idea-button:active,
+.method-tabs button:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  /* PAGE */
+
+  .workspace {
+    padding: 28px 28px 48px;
+  }
+
+
+  /* MAIN CONTENT */
+
+  .canvas-content {
+    margin: 36px auto;
+  }
+
+
+  /* NAVIGATION */
+
+  .workspace-tabs {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .workspace-tabs button {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+
+  /* MAIN CARDS */
+
+  .problem-card,
+  .whys-card,
+  .reframe-card,
+  .ideas-card {
+    padding: 32px;
+  }
+
+
+  /* IDEA CARDS
+     Desktop = 3 columns
+     Tablet = 2 columns
+  */
+
+  .idea-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+
+  /* SCAMPER */
+
+  .scamper-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+
+  /* MIND MAP */
+
+  .mindmap-branches {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  /* -------------------------------------------------------
+     PAGE
+     ------------------------------------------------------- */
+
+  .workspace {
+    padding: 20px 14px 36px;
+  }
+
+
+  /* -------------------------------------------------------
+     HEADER
+     ------------------------------------------------------- */
+
+  .workspace-label {
+    font-size: 14px;
+    letter-spacing: 1.5px;
+  }
+
+
+  /* -------------------------------------------------------
+     NAVIGATION
+
+     Keep tabs in one row and allow horizontal scrolling
+     instead of squeezing all five tabs.
+     ------------------------------------------------------- */
+
+  .workspace-tabs {
+    margin-top: 18px;
+
+    padding: 5px;
+
+    gap: 5px;
+
+    overflow-x: auto;
+
+    border-radius: 10px;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .workspace-tabs::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .workspace-tabs button {
+    flex: 0 0 auto;
+
+    min-height: 42px;
+
+    padding: 9px 14px;
+
+    font-size: 13px;
+
+    white-space: nowrap;
+  }
+
+
+  /* -------------------------------------------------------
+     MAIN CONTENT
+     ------------------------------------------------------- */
+
+  .canvas-content {
+    margin: 28px auto 0;
+  }
+
+
+  /* -------------------------------------------------------
+     INTRO
+     ------------------------------------------------------- */
+
+  .canvas-intro {
+    margin-bottom: 20px;
+
+    padding: 6px 2px;
+  }
+
+  .section-label {
+    margin-bottom: 8px;
+
+    font-size: 10px;
+
+    letter-spacing: 1.5px;
+  }
+
+  .canvas-intro h2 {
+    font-size: 23px;
+    line-height: 1.25;
+  }
+
+  .canvas-intro > p:last-child {
+    font-size: 14px;
+    line-height: 1.55;
+  }
+
+
+  /* -------------------------------------------------------
+     ALL MAIN CARDS
+     ------------------------------------------------------- */
+
+  .problem-card,
+  .whys-card,
+  .reframe-card,
+  .ideas-card {
+    margin-top: 18px;
+
+    padding: 22px 18px;
+
+    border-radius: 14px;
+  }
+
+
+  /* -------------------------------------------------------
+     STEP HEADING
+     ------------------------------------------------------- */
+
+  .step-heading {
+    gap: 12px;
+
+    margin-bottom: 24px;
+  }
+
+  .step-number {
+    padding: 9px 10px;
+
+    border-radius: 8px;
+
+    font-size: 12px;
+  }
+
+  .step-heading h3 {
+    font-size: 19px;
+    line-height: 1.3;
+  }
+
+  .step-heading p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+
+  /* -------------------------------------------------------
+     DEFINE PROBLEM
+     ------------------------------------------------------- */
+
+  .problem-card label {
+    font-size: 14px;
+  }
+
+  .problem-card textarea {
+    min-height: 140px;
+
+    padding: 14px;
+
+    font-size: 14px;
+  }
+
+  .analyze-button {
+    width: 100%;
+
+    min-height: 46px;
+
+    margin-top: 16px;
+  }
+
+
+  /* -------------------------------------------------------
+     ORIGINAL PROBLEM / HMW BOX
+     ------------------------------------------------------- */
+
+  .original-problem {
+    margin-bottom: 24px;
+
+    padding: 15px 16px;
+  }
+
+  .original-problem p {
+    font-size: 14px;
+
+    overflow-wrap: anywhere;
+  }
+
+
+  /* -------------------------------------------------------
+     5 WHYS
+     ------------------------------------------------------- */
+
+  .whys-list {
+    gap: 16px;
+  }
+
+  .why-heading {
+    gap: 9px;
+  }
+
+  .why-heading label {
+    font-size: 14px;
+  }
+
+  .why-hint {
+    font-size: 12px;
+  }
+
+  .why-item input {
+    min-height: 46px;
+
+    padding: 12px 13px;
+
+    font-size: 14px;
+  }
+
+
+  /* -------------------------------------------------------
+     ACTION BUTTONS
+     ------------------------------------------------------- */
+
+  .whys-actions,
+  .ideation-actions {
+    flex-direction: column;
+
+    gap: 10px;
+
+    margin-top: 24px;
+  }
+
+  .back-button,
+  .continue-button,
+  .generate-more-button {
+    width: 100%;
+
+    min-height: 46px;
+  }
+
+
+  /* -------------------------------------------------------
+     REFRAME SCREEN
+     ------------------------------------------------------- */
+
+  .root-cause-box {
+    margin-top: 22px;
+  }
+
+  .root-cause-box textarea,
+  .hmw-section textarea {
+    min-height: 105px;
+
+    padding: 14px;
+
+    font-size: 14px;
+  }
+
+  .hmw-section {
+    margin-top: 24px;
+
+    padding: 20px 16px;
+  }
+
+  .hmw-section h3 {
+    font-size: 17px;
+  }
+
+  .hmw-example {
+    padding: 11px 12px;
+
+    font-size: 12px;
+  }
+
+
+  /* -------------------------------------------------------
+     IDEATION TOOLS
+     ------------------------------------------------------- */
+
+  .ideation-tools {
+    margin-top: 24px;
+
+    padding: 18px 14px;
+  }
+
+  .ideation-tools-heading h3 {
+    font-size: 17px;
+    line-height: 1.35;
+  }
+
+  .ideation-tools-heading > p:last-child {
+    font-size: 12px;
+  }
+
+
+  /* -------------------------------------------------------
+     SCAMPER / MIND MAP TABS
+     ------------------------------------------------------- */
+
+  .method-tabs {
+    flex-direction: row;
+
+    width: 100%;
+
+    gap: 8px;
+  }
+
+  .method-tabs button {
+    flex: 1;
+
+    min-height: 44px;
+
+    padding: 9px 10px;
+  }
+
+
+  /* -------------------------------------------------------
+     SCAMPER
+     ------------------------------------------------------- */
+
+  .scamper-grid {
+    grid-template-columns: 1fr;
+
+    gap: 12px;
+  }
+
+  .scamper-card {
+    padding: 15px;
+  }
+
+  .scamper-card textarea {
+    min-height: 90px;
+  }
+
+  .scamper-letter {
+    width: 32px;
+    height: 32px;
+  }
+
+
+  /* -------------------------------------------------------
+     MIND MAP
+     ------------------------------------------------------- */
+
+  .mindmap-board {
+    padding: 14px;
+  }
+
+  .mindmap-center {
+    margin-bottom: 18px;
+
+    padding: 16px;
+  }
+
+  .mindmap-center p {
+    font-size: 13px;
+
+    overflow-wrap: anywhere;
+  }
+
+  .mindmap-branches {
+    grid-template-columns: 1fr;
+
+    gap: 12px;
+  }
+
+  .mindmap-branch {
+    padding: 14px;
+  }
+
+
+  /* -------------------------------------------------------
+     AI IDEA SUGGESTIONS
+     ------------------------------------------------------- */
+
+  .ideas-section {
+    margin-top: 28px;
+  }
+
+  .ideas-heading {
+    margin-bottom: 18px;
+  }
+
+  .ideas-heading h3 {
+    font-size: 18px;
+  }
+
+  .ideas-heading > p:last-child {
+    font-size: 12px;
+  }
+
+  .idea-grid {
+    grid-template-columns: 1fr;
+
+    gap: 14px;
+  }
+
+  .idea-card {
+    padding: 18px;
+  }
+
+  .idea-card h4 {
+    margin-top: 13px;
+
+    font-size: 16px;
+  }
+
+  .explore-idea-button {
+    min-height: 44px;
+  }
+
+
+  /* -------------------------------------------------------
+     SELECTED IDEA
+     ------------------------------------------------------- */
+
+  .selected-idea {
+    border-width: 2px;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+  .workspace {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .problem-card,
+  .whys-card,
+  .reframe-card,
+  .ideas-card {
+    padding: 19px 14px;
+  }
+
+  .canvas-intro h2 {
+    font-size: 21px;
+  }
+
+  .step-heading {
+    gap: 9px;
+  }
+
+  .step-heading h3 {
+    font-size: 18px;
+  }
+
+  .method-tabs {
+    flex-direction: column;
+  }
+
+  .method-tabs button {
+    width: 100%;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION ACCESSIBILITY
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .workspace *,
+  .workspace *::before,
+  .workspace *::after {
+    scroll-behavior: auto !important;
+
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
