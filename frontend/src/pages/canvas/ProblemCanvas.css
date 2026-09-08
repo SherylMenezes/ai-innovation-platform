@@ -98,6 +98,16 @@
   color: white;
 }
 
+.workspace-tabs .tab-disabled {
+  color: #b8c3d4;
+  cursor: not-allowed;
+}
+
+.workspace-tabs .tab-disabled:hover {
+  color: #b8c3d4;
+  background: transparent;
+}
+
 
 /* =========================
    MAIN CANVAS
@@ -329,6 +339,146 @@
 
 .analyze-button:active {
   transform: translateY(0);
+}
+
+.analyze-button:disabled,
+.continue-button:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+
+  cursor: not-allowed;
+
+  box-shadow: none;
+  transform: none;
+}
+
+.analyze-button:disabled:hover,
+.continue-button:disabled:hover {
+  background: #cbd5e1;
+  transform: none;
+  box-shadow: none;
+}
+
+
+/* =========================
+   LIVE SCORE INDICATOR
+   ========================= */
+
+.score-indicator {
+  margin-top: 14px;
+  padding: 12px 14px;
+
+  background: #f8fafc;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+
+  transition: border-color 0.2s ease;
+}
+
+.score-indicator-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 8px;
+}
+
+.score-indicator-label {
+  font-size: 12.5px;
+  font-weight: 700;
+
+  letter-spacing: 0.2px;
+}
+
+.score-bar-track {
+  width: 100%;
+  height: 6px;
+
+  background: #e2e8f0;
+  border-radius: 999px;
+
+  overflow: hidden;
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+
+  transition: width 0.25s ease, background 0.25s ease;
+}
+
+.score-tip-chips {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-top: 10px;
+}
+
+.score-tip-chip {
+  padding: 4px 10px;
+
+  background: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+
+  font-size: 11.5px;
+  font-weight: 500;
+
+  color: #475569;
+}
+
+/* Score levels */
+
+.score-low .score-indicator-label {
+  color: #dc2626;
+}
+
+.score-low .score-bar-fill {
+  background: #dc2626;
+}
+
+.score-medium .score-indicator-label {
+  color: #d97706;
+}
+
+.score-medium .score-bar-fill {
+  background: #d97706;
+}
+
+.score-high .score-indicator-label {
+  color: #16a34a;
+}
+
+.score-high .score-bar-fill {
+  background: #16a34a;
+}
+
+
+/* =========================
+   STEP TRANSITION
+   ========================= */
+
+.problem-card,
+.whys-card,
+.reframe-card,
+.ideas-card {
+  animation: step-fade-in 0.3s ease;
+}
+
+@keyframes step-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 
@@ -1701,6 +1851,23 @@
     padding: 12px 13px;
 
     font-size: 14px;
+  }
+
+
+  /* -------------------------------------------------------
+     SCORE INDICATOR
+     ------------------------------------------------------- */
+
+  .score-indicator {
+    padding: 10px 12px;
+  }
+
+  .score-indicator-label {
+    font-size: 12px;
+  }
+
+  .score-tip-chip {
+    font-size: 11px;
   }
 
 

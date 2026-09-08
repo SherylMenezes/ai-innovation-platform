@@ -1,0 +1,382 @@
+/* =========================
+   IDEATION BOARD PAGE
+   ========================= */
+
+.ideation-board {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 0% 35%, #dbeafe 0, transparent 28%),
+    radial-gradient(circle at 100% 90%, #dbeafe 0, transparent 25%),
+    #f5f9ff;
+
+  padding: 32px 60px 60px;
+
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.ideation-board *,
+.ideation-board *::before,
+.ideation-board *::after {
+  box-sizing: border-box;
+}
+
+
+/* =========================
+   HEADER
+   ========================= */
+
+.board-header {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.board-label {
+  margin: 0 0 10px;
+
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+
+  color: #2563eb;
+}
+
+.board-header h2 {
+  margin: 0 0 10px;
+
+  font-size: 30px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.board-subtitle {
+  margin: 0;
+
+  max-width: 640px;
+
+  font-size: 16px;
+  line-height: 1.6;
+
+  color: #64748b;
+}
+
+
+/* =========================
+   TOOLBAR
+   ========================= */
+
+.board-toolbar {
+  max-width: 1100px;
+
+  margin: 24px auto 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+}
+
+.add-note-button {
+  padding: 12px 20px;
+
+  background: linear-gradient(135deg, #2563eb, #0b5be7);
+  color: white;
+
+  border: none;
+  border-radius: 10px;
+
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+
+  cursor: pointer;
+
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.add-note-button:hover {
+  background: linear-gradient(135deg, #1d4ed8, #084cc5);
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 9px 20px rgba(37, 99, 235, 0.3);
+}
+
+.add-note-button:active {
+  transform: translateY(0);
+}
+
+.note-count-badge {
+  padding: 7px 14px;
+
+  background: white;
+  color: #64748b;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+}
+
+
+/* =========================
+   BOARD SURFACE
+   ========================= */
+
+.ideation-board-surface {
+  position: relative;
+
+  max-width: 1100px;
+  margin: 20px auto 0;
+
+  min-height: 560px;
+
+  background-color: rgba(255, 255, 255, 0.55);
+  background-size: 24px 24px;
+  background-image: radial-gradient(circle, #e2e8f0 1.5px, transparent 1.5px);
+
+  border: 1px solid #dbe5f3;
+  border-radius: 18px;
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.06),
+    0 2px 8px rgba(37, 99, 235, 0.04);
+
+  overflow: hidden;
+}
+
+
+/* =========================
+   EMPTY STATE
+   ========================= */
+
+.board-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: min(360px, 80%);
+
+  padding: 40px 30px;
+  text-align: center;
+
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.board-empty-icon {
+  width: 48px;
+  height: 48px;
+
+  margin: 0 auto 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #eff6ff;
+
+  border-radius: 999px;
+
+  font-size: 20px;
+}
+
+.board-empty-state h3 {
+  margin: 0 0 6px;
+
+  font-size: 16px;
+  font-weight: 700;
+
+  color: #334155;
+}
+
+.board-empty-state p {
+  margin: 0 0 18px;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  color: #94a3b8;
+}
+
+.board-empty-state .add-note-button {
+  margin: 0 auto;
+}
+
+
+/* =========================
+   STICKY NOTES
+   ========================= */
+
+.sticky-note {
+  position: absolute;
+
+  width: 220px;
+
+  border: 1.5px solid;
+  border-radius: 12px;
+
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+
+  transition: box-shadow 0.15s ease;
+
+  user-select: none;
+}
+
+.sticky-note-dragging {
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+  z-index: 5;
+}
+
+.sticky-note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 6px;
+
+  padding: 8px 8px 6px;
+
+  cursor: grab;
+}
+
+.sticky-note-dragging .sticky-note-header {
+  cursor: grabbing;
+}
+
+.sticky-note-grip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+
+  opacity: 0.5;
+}
+
+.sticky-note-grip span {
+  width: 14px;
+  height: 2px;
+
+  border-radius: 999px;
+
+  background: #0f172a;
+}
+
+.sticky-note-colors {
+  display: flex;
+  gap: 4px;
+
+  flex: 1;
+
+  justify-content: center;
+}
+
+.color-dot {
+  width: 14px;
+  height: 14px;
+
+  padding: 0;
+
+  border: 1.5px solid;
+  border-radius: 999px;
+
+  cursor: pointer;
+}
+
+.color-dot-active {
+  outline: 2px solid #0f172a;
+  outline-offset: 1px;
+}
+
+.sticky-note-delete {
+  width: 20px;
+  height: 20px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+
+  background: rgba(255, 255, 255, 0.6);
+  color: #64748b;
+
+  border: none;
+  border-radius: 6px;
+
+  font-size: 14px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.sticky-note-delete:hover {
+  background: rgba(255, 255, 255, 0.9);
+  color: #dc2626;
+}
+
+.sticky-note-textarea {
+  width: 100%;
+  min-height: 110px;
+
+  padding: 4px 12px 12px;
+
+  background: transparent;
+
+  border: none;
+  outline: none;
+  resize: vertical;
+
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+
+  color: #0f172a;
+
+  cursor: text;
+}
+
+.sticky-note-textarea::placeholder {
+  color: rgba(15, 23, 42, 0.4);
+}
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 768px) {
+
+  .ideation-board {
+    padding: 24px 18px 40px;
+  }
+
+  .board-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ideation-board-surface {
+    min-height: 460px;
+  }
+
+  .sticky-note {
+    width: 180px;
+  }
+}

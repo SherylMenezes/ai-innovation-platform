@@ -1,5 +1,48 @@
 import { useState } from "react";
 import "./ProblemCanvas.css";
+import {
+  scoreProblemStatement,
+  scoreWhyAnswers,
+  scoreHMW
+} from "../../utils/scoreProblem";
+
+// Minimum score required before a step's Continue button unlocks.
+const PASS_THRESHOLD = 40;
+
+// Compact clarity/quality indicator shown next to a scored field.
+function ScoreIndicator({ label, score, tips }) {
+  const level =
+    score >= 75 ? "high" : score >= PASS_THRESHOLD ? "medium" : "low";
+
+  return (
+    <div className={`score-indicator score-${level}`}>
+
+      <div className="score-indicator-top">
+        <span className="score-indicator-label">
+          {label}: {score}%
+        </span>
+      </div>
+
+      <div className="score-bar-track">
+        <div
+          className="score-bar-fill"
+          style={{ width: `${score}%` }}
+        />
+      </div>
+
+      {tips.length > 0 && (
+        <div className="score-tip-chips">
+          {tips.slice(0, 3).map((tip, i) => (
+            <span className="score-tip-chip" key={i}>
+              {tip}
+            </span>
+          ))}
+        </div>
+      )}
+
+    </div>
+  );
+}
 
 function ProblemCanvas() {
   // Problem entered by the student
@@ -22,6 +65,11 @@ function ProblemCanvas() {
 
   // How Might We statement
   const [hmw, setHmw] = useState("");
+
+  // Live heuristic scores for the scored fields
+  const [problemScore, setProblemScore] = useState({ score: 0, tips: [] });
+  const [whysScore, setWhysScore] = useState({ score: 0, tips: [] });
+  const [hmwScore, setHmwScore] = useState({ score: 0, tips: [] });
 
   // Current ideation method
   const [ideationMethod, setIdeationMethod] = useState("SCAMPER");
@@ -158,6 +206,7 @@ function ProblemCanvas() {
     const updatedWhys = [...whys];
     updatedWhys[index] = value;
     setWhys(updatedWhys);
+    setWhysScore(scoreWhyAnswers(updatedWhys));
   };
 
   // Step 1 → Step 2
@@ -272,25 +321,27 @@ function ProblemCanvas() {
 
         <button
           className={step <= 3 ? "active-tab" : ""}
+          onClick={() => setStep(1)}
         >
           Canvas
         </button>
 
         <button
           className={step === 4 ? "active-tab" : ""}
+          onClick={() => setStep(4)}
         >
           Ideate
         </button>
 
-        <button>
+        <button className="tab-disabled" disabled title="Coming soon">
           Evaluate
         </button>
 
-        <button>
+        <button className="tab-disabled" disabled title="Coming soon">
           Tech
         </button>
 
-        <button>
+        <button className="tab-disabled" disabled title="Coming soon">
           Plan
         </button>
 
@@ -380,9 +431,16 @@ function ProblemCanvas() {
               value={problem}
               onChange={(e) => {
                 setProblem(e.target.value);
+                setProblemScore(scoreProblemStatement(e.target.value));
                 setError("");
               }}
               placeholder="Describe the challenge here..."
+            />
+
+            <ScoreIndicator
+              label="Clarity"
+              score={problemScore.score}
+              tips={problemScore.tips}
             />
 
 
@@ -396,6 +454,12 @@ function ProblemCanvas() {
             <button
               className="analyze-button"
               onClick={handleAnalyze}
+              disabled={problemScore.score < PASS_THRESHOLD}
+              title={
+                problemScore.score < PASS_THRESHOLD
+                  ? "Add more detail to reach at least 40% clarity before continuing."
+                  : undefined
+              }
             >
               ✦ Analyze Problem with AI →
             </button>
@@ -497,6 +561,12 @@ function ProblemCanvas() {
 
             </div>
 
+            <ScoreIndicator
+              label="Depth of analysis"
+              score={whysScore.score}
+              tips={whysScore.tips}
+            />
+
 
             {error && (
               <p className="error-message">
@@ -521,6 +591,12 @@ function ProblemCanvas() {
               <button
                 className="continue-button"
                 onClick={handleContinueToReframe}
+                disabled={whysScore.score < PASS_THRESHOLD}
+                title={
+                  whysScore.score < PASS_THRESHOLD
+                    ? "Answer the Whys with more depth to reach at least 40% before continuing."
+                    : undefined
+                }
               >
                 Continue to Reframe →
               </button>
@@ -620,9 +696,16 @@ function ProblemCanvas() {
                 value={hmw}
                 onChange={(e) => {
                   setHmw(e.target.value);
+                  setHmwScore(scoreHMW(e.target.value));
                   setError("");
                 }}
                 placeholder="How might we help [user/group] achieve [goal] despite [challenge]?"
+              />
+
+              <ScoreIndicator
+                label="HMW quality"
+                score={hmwScore.score}
+                tips={hmwScore.tips}
               />
 
 
@@ -664,6 +747,15 @@ function ProblemCanvas() {
               <button
                 className="continue-button"
                 onClick={handleGenerateIdeas}
+                disabled={
+                  rootCause.trim() === "" ||
+                  hmwScore.score < PASS_THRESHOLD
+                }
+                title={
+                  hmwScore.score < PASS_THRESHOLD
+                    ? "Sharpen your How Might We statement to reach at least 40% before continuing."
+                    : undefined
+                }
               >
                 Generate Ideas →
               </button>
