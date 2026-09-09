@@ -1,46 +1,63 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter
 from app.schemas.ai import (
     ProblemRefineRequest,
     ProblemRefineResponse,
-    HmwGenerateRequest,
-    HmwGenerateResponse
+    HMWGenerateRequest,
+    HMWGenerateResponse,
+    ProblemScoreRequest,
+    ProblemScoreResponse,
+    ScamperPromptRequest,
+    ScamperPromptResponse,
+    MindMapRequest,
+    MindMapResponse,
+    IdeaEvaluationRequest,
+    IdeaEvaluationResponse,
+    GenerateIdeasRequest,
+    GenerateIdeasResponse,
+    RemixIdeasRequest,
+    RemixIdeasResponse,
 )
 from app.services.llm_service import (
-    generate_5whys_analysis,
-    generate_hmw_statements
+    refine_problem_statement,
+    generate_hmw_statements,
+    score_problem_statement,
+    generate_scamper_prompts,
+    generate_mind_map_nodes,
+    evaluate_ideation_list,
+    generate_divergent_ideas,
+    remix_ideas,
 )
 
-router = APIRouter(
-    prefix="/api/ai",
-    tags=["AI Ideation Engine"]
-)
+router = APIRouter(prefix="/api/ai", tags=["AI"])
 
-@router.post(
-    "/problem-refine",
-    response_model=ProblemRefineResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Generate 5-Whys root cause analysis"
-)
+@router.post("/problem-refine", response_model=ProblemRefineResponse)
 async def refine_problem(payload: ProblemRefineRequest):
-    try:
-        return generate_5whys_analysis(payload.problem_statement)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to refine problem statement: {str(exc)}"
-        )
+    return await refine_problem_statement(payload.problem_statement)
 
-@router.post(
-    "/hmw-generate",
-    response_model=HmwGenerateResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Generate How-Might-We statements from root cause"
-)
-async def create_hmw_statements(payload: HmwGenerateRequest):
-    try:
-        return generate_hmw_statements(payload.problem_statement, payload.root_cause)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to generate HMW statements: {str(exc)}"
-        )
+@router.post("/hmw-generate", response_model=HMWGenerateResponse)
+async def generate_hmw(payload: HMWGenerateRequest):
+    return await generate_hmw_statements(payload.root_cause)
+
+@router.post("/problem-score", response_model=ProblemScoreResponse)
+async def score_problem(payload: ProblemScoreRequest):
+    return await score_problem_statement(payload.problem_statement)
+
+@router.post("/scamper-prompts", response_model=ScamperPromptResponse)
+async def get_scamper_prompts(payload: ScamperPromptRequest):
+    return await generate_scamper_prompts(payload.hmw_statement)
+
+@router.post("/mindmap-generate", response_model=MindMapResponse)
+async def get_mindmap_nodes(payload: MindMapRequest):
+    return await generate_mind_map_nodes(payload.concept)
+
+@router.post("/evaluate-ideas", response_model=IdeaEvaluationResponse)
+async def evaluate_ideas(payload: IdeaEvaluationRequest):
+    return await evaluate_ideation_list(payload.ideas)
+
+@router.post("/generate-ideas", response_model=GenerateIdeasResponse)
+async def get_divergent_ideas(payload: GenerateIdeasRequest):
+    return await generate_divergent_ideas(payload.problem_or_hmw, payload.count)
+
+@router.post("/remix-ideas", response_model=RemixIdeasResponse)
+async def get_remixed_ideas(payload: RemixIdeasRequest):
+    return await remix_ideas(payload.idea_descriptions)
