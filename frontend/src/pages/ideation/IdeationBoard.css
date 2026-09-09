@@ -76,6 +76,63 @@
   justify-content: space-between;
 
   gap: 12px;
+
+  flex-wrap: wrap;
+}
+
+
+/* =========================
+   VIEW MODE TOGGLE
+   ========================= */
+
+.view-mode-toggle {
+  display: flex;
+  gap: 6px;
+
+  padding: 5px;
+
+  background: #edf4ff;
+
+  border: 1px solid #e0eaff;
+  border-radius: 11px;
+}
+
+.view-mode-toggle button {
+  background: transparent;
+
+  border: none;
+  border-radius: 7px;
+
+  padding: 8px 16px;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+
+  cursor: pointer;
+
+  color: #64748b;
+
+  transition: all 0.2s ease;
+}
+
+.view-mode-toggle button:hover {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.view-mode-toggle .active-tab {
+  background: #2563eb;
+  color: white;
+
+  font-weight: 600;
+
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+.view-mode-toggle .active-tab:hover {
+  background: #1d4ed8;
+  color: white;
 }
 
 .add-note-button {
@@ -155,6 +212,35 @@
   overflow: hidden;
 }
 
+.board-surface-scamper {
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  min-height: 620px;
+}
+
+.board-mode-content {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+
+  animation: mode-fade-in 0.25s ease;
+}
+
+@keyframes mode-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 /* =========================
    EMPTY STATE
@@ -222,8 +308,6 @@
    ========================= */
 
 .sticky-note {
-  position: absolute;
-
   width: 220px;
 
   border: 1.5px solid;
@@ -234,6 +318,29 @@
   transition: box-shadow 0.15s ease;
 
   user-select: none;
+}
+
+.sticky-note-absolute {
+  position: absolute;
+}
+
+.sticky-note-flow {
+  position: relative;
+
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.sticky-note-flow:last-child {
+  margin-bottom: 0;
+}
+
+.sticky-note-mindmap {
+  z-index: 2;
+}
+
+.sticky-note-mindmap .sticky-note-header {
+  cursor: default;
 }
 
 .sticky-note-dragging {
@@ -358,6 +465,144 @@
 
 
 /* =========================
+   SCAMPER VIEW
+   ========================= */
+
+.scamper-board {
+  display: flex;
+  gap: 16px;
+
+  padding: 20px;
+
+  height: 100%;
+  min-height: 580px;
+
+  align-items: flex-start;
+}
+
+.scamper-column {
+  flex: 0 0 220px;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 14px;
+
+  background: rgba(255, 255, 255, 0.85);
+
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+
+  min-height: 100%;
+}
+
+.scamper-column-unsorted {
+  background: rgba(248, 250, 252, 0.9);
+  border: 1.5px dashed #cbd5e1;
+}
+
+.scamper-column-header {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.scamper-column-header h4 {
+  margin: 0 0 4px;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  color: #2563eb;
+}
+
+.scamper-column-unsorted .scamper-column-header h4 {
+  color: #64748b;
+}
+
+.scamper-column-header p {
+  margin: 0;
+
+  font-size: 11.5px;
+  line-height: 1.4;
+
+  color: #94a3b8;
+}
+
+.scamper-column-notes {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  min-height: 60px;
+}
+
+
+/* =========================
+   MIND MAP VIEW
+   ========================= */
+
+.mindmap-canvas {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+}
+
+.mindmap-center-node {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  z-index: 3;
+
+  width: 220px;
+
+  padding: 14px 18px;
+  text-align: center;
+
+  background: #2563eb;
+  color: white;
+
+  border: none;
+  border-radius: 999px;
+
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.3);
+}
+
+.mindmap-center-node::placeholder {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.mindmap-center-node:focus {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+}
+
+.mindmap-connector {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  height: 2px;
+
+  background: #bfdbfe;
+
+  transform-origin: 0 0;
+
+  z-index: 1;
+}
+
+
+/* =========================
    RESPONSIVE
    ========================= */
 
@@ -378,5 +623,19 @@
 
   .sticky-note {
     width: 180px;
+  }
+
+  .view-mode-toggle button {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .scamper-column {
+    flex-basis: 180px;
+  }
+
+  .mindmap-center-node {
+    width: 160px;
+    font-size: 12px;
   }
 }

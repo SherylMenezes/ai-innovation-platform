@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./IdeationBoard.css";
+import AiIdeaDrawer from "./AiIdeaDrawer";
 
 // Sticky note color palette. Backgrounds/borders only — note text always
 // stays the app's standard dark slate for readability across all colors.
@@ -12,12 +13,28 @@ const NOTE_COLORS = [
 ];
 
 // Kept in sync with the CSS .sticky-note width / approximate height so
-// drag clamping keeps notes on the board.
+// freeform drag clamping keeps notes on the board.
 const NOTE_WIDTH = 220;
 const NOTE_HEIGHT = 170;
 
 const STAGGER_STEP = 28;
 const STAGGER_WRAP_AFTER = 6;
+
+// Technique names match backend/app/schemas/ai.py's ScamperSuggestion.technique
+// exactly, so Day 5 can assign notes straight from the API response without
+// a remapping layer. Prompts here are static placeholders standing in for
+// the per-HMW prompt_question the real endpoint will eventually return.
+const SCAMPER_TECHNIQUES = [
+  { name: "Substitute", prompt: "What could be substituted or swapped out?" },
+  { name: "Combine", prompt: "What ideas, features, or steps could be combined?" },
+  { name: "Adapt", prompt: "What else is like this? What could be adapted?" },
+  { name: "Modify", prompt: "What could be emphasized, minimized, or changed?" },
+  { name: "Put to another use", prompt: "How else could this be used?" },
+  { name: "Eliminate", prompt: "What could be removed or simplified?" },
+  { name: "Reverse", prompt: "What could be reversed or done in the opposite order?" }
+];
+
+const MIND_MAP_RADIUS = 220;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -27,15 +44,71 @@ function getColor(name) {
   return NOTE_COLORS.find((c) => c.name === name) || NOTE_COLORS[0];
 }
 
+// Shared note card. The parent controls positioning (via style/className)
+// and how dragging is initiated (via headerDragProps) so the same card
+// markup works across freeform (absolute + mouse drag), SCAMPER (flow +
+// HTML5 drag-and-drop into a column) and Mind Map (absolute, no drag).
+function NoteCard({ note, style, className, headerDragProps, onTextChange, onColorChange, onDelete }) {
+  const color = getColor(note.color);
+
+  return (
+    <div
+      className={`sticky-note${className ? ` ${className}` : ""}`}
+      style={{ ...style, background: color.bg, borderColor: color.border }}
+    >
+      <div className="sticky-note-header" {...headerDragProps}>
+        <div className="sticky-note-grip" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </div>
+
+        <div className="sticky-note-colors">
+          {NOTE_COLORS.map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              className={`color-dot${note.color === c.name ? " color-dot-active" : ""}`}
+              style={{ background: c.bg, borderColor: c.border }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={() => onColorChange(note.id, c.name)}
+              aria-label={`Set note color to ${c.name}`}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="sticky-note-delete"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={() => onDelete(note.id)}
+          aria-label="Delete note"
+        >
+          ×
+        </button>
+      </div>
+
+      <textarea
+        className="sticky-note-textarea"
+        value={note.text}
+        onChange={(e) => onTextChange(note.id, e.target.value)}
+        placeholder="Type your idea..."
+      />
+    </div>
+  );
+}
+
 function IdeationBoard() {
   const [notes, setNotes] = useState([]);
   const [nextId, setNextId] = useState(1);
   const [draggingId, setDraggingId] = useState(null);
+  const [viewMode, setViewMode] = useState("freeform"); // "freeform" | "scamper" | "mindmap"
+  const [mindMapCenter, setMindMapCenter] = useState("");
 
   const boardRef = useRef(null);
   const dragInfo = useRef(null); // { id, offsetX, offsetY }
 
-  const handleAddNote = () => {
+  const handleAddNote = (initialText = "") => {
     const board = boardRef.current;
     const boardWidth = board ? board.clientWidth : 900;
     const boardHeight = board ? board.clientHeight : 520;
@@ -45,7 +118,7 @@ function IdeationBoard() {
     const y = clamp(24 + step * STAGGER_STEP, 0, Math.max(0, boardHeight - NOTE_HEIGHT));
     const color = NOTE_COLORS[notes.length % NOTE_COLORS.length].name;
 
-    setNotes((prev) => [...prev, { id: nextId, text: "", color, x, y }]);
+    setNotes((prev) => [...prev, { id: nextId, text: initialText, color, x, y, technique: null }]);
     setNextId((prev) => prev + 1);
   };
 
@@ -61,6 +134,11 @@ function IdeationBoard() {
     setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, color: colorName } : note)));
   };
 
+  const handleAssignTechnique = (id, technique) => {
+    setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, technique } : note)));
+  };
+
+  // ---- Freeform drag (mouse-based, pixel positions) ----
   // Stable across renders (empty dep arrays) so the mousedown that adds
   // these listeners and the mouseup that removes them always agree on
   // which function reference is attached to `window`.
@@ -114,14 +192,33 @@ function IdeationBoard() {
     window.addEventListener("mouseup", handlePointerUp);
   };
 
-  // Release listeners if the board unmounts mid-drag (e.g. the App-level
-  // page toggle switches away from Ideation Board while dragging).
+  // Release listeners if the board unmounts mid-drag (e.g. switching the
+  // App-level page toggle away from Ideation Board while dragging).
   useEffect(() => {
     return () => {
       window.removeEventListener("mousemove", handlePointerMove);
       window.removeEventListener("mouseup", handlePointerUp);
     };
   }, [handlePointerMove, handlePointerUp]);
+
+  // ---- SCAMPER drag (native HTML5 drag-and-drop, column assignment) ----
+  const handleNoteDragStart = (e, noteId) => {
+    e.dataTransfer.setData("text/plain", String(noteId));
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleColumnDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleColumnDrop = (e, technique) => {
+    e.preventDefault();
+    const noteId = Number(e.dataTransfer.getData("text/plain"));
+    if (!Number.isNaN(noteId)) {
+      handleAssignTechnique(noteId, technique);
+    }
+  };
 
   return (
     <div className="ideation-board">
@@ -130,95 +227,181 @@ function IdeationBoard() {
         <p className="board-label">IDEATION BOARD</p>
         <h2>Collect and arrange your ideas</h2>
         <p className="board-subtitle">
-          Add sticky notes for every direction worth exploring, then drag
-          them around to group related ideas together.
+          Add sticky notes for every direction worth exploring, then switch
+          views to organize them with SCAMPER or a mind map.
         </p>
       </header>
 
       <div className="board-toolbar">
-        <button type="button" className="add-note-button" onClick={handleAddNote}>
+        <button type="button" className="add-note-button" onClick={() => handleAddNote()}>
           + Add Note
         </button>
+
+        <div className="view-mode-toggle">
+          <button
+            type="button"
+            className={viewMode === "freeform" ? "active-tab" : ""}
+            onClick={() => setViewMode("freeform")}
+          >
+            Freeform
+          </button>
+          <button
+            type="button"
+            className={viewMode === "scamper" ? "active-tab" : ""}
+            onClick={() => setViewMode("scamper")}
+          >
+            SCAMPER
+          </button>
+          <button
+            type="button"
+            className={viewMode === "mindmap" ? "active-tab" : ""}
+            onClick={() => setViewMode("mindmap")}
+          >
+            Mind Map
+          </button>
+        </div>
 
         <span className="note-count-badge">
           {notes.length} {notes.length === 1 ? "Note" : "Notes"}
         </span>
       </div>
 
-      <main className="ideation-board-surface" ref={boardRef}>
+      <main className={`ideation-board-surface board-surface-${viewMode}`} ref={boardRef}>
+        <div key={viewMode} className="board-mode-content">
 
-        {notes.length === 0 && (
-          <div className="board-empty-state">
-            <div className="board-empty-icon">📝</div>
-            <h3>No sticky notes yet</h3>
-            <p>Add your first idea to start filling the board.</p>
-            <button type="button" className="add-note-button" onClick={handleAddNote}>
-              + Add Note
-            </button>
-          </div>
-        )}
-
-        {notes.map((note) => {
-          const color = getColor(note.color);
-          const isDragging = draggingId === note.id;
-
-          return (
-            <div
-              key={note.id}
-              className={`sticky-note${isDragging ? " sticky-note-dragging" : ""}`}
-              style={{
-                left: note.x,
-                top: note.y,
-                background: color.bg,
-                borderColor: color.border
-              }}
-            >
-              <div
-                className="sticky-note-header"
-                onMouseDown={(e) => handlePointerDown(e, note)}
-              >
-                <div className="sticky-note-grip" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
+          {/* ===== FREEFORM ===== */}
+          {viewMode === "freeform" && (
+            <>
+              {notes.length === 0 && (
+                <div className="board-empty-state">
+                  <div className="board-empty-icon">📝</div>
+                  <h3>No sticky notes yet</h3>
+                  <p>Add your first idea to start filling the board.</p>
+                  <button type="button" className="add-note-button" onClick={() => handleAddNote()}>
+                    + Add Note
+                  </button>
                 </div>
+              )}
 
-                <div className="sticky-note-colors">
-                  {NOTE_COLORS.map((c) => (
-                    <button
-                      key={c.name}
-                      type="button"
-                      className={`color-dot${note.color === c.name ? " color-dot-active" : ""}`}
-                      style={{ background: c.bg, borderColor: c.border }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={() => handleColorChange(note.id, c.name)}
-                      aria-label={`Set note color to ${c.name}`}
+              {notes.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  style={{ left: note.x, top: note.y }}
+                  className={`sticky-note-absolute${draggingId === note.id ? " sticky-note-dragging" : ""}`}
+                  headerDragProps={{ onMouseDown: (e) => handlePointerDown(e, note) }}
+                  onTextChange={handleTextChange}
+                  onColorChange={handleColorChange}
+                  onDelete={handleDeleteNote}
+                />
+              ))}
+            </>
+          )}
+
+          {/* ===== SCAMPER ===== */}
+          {viewMode === "scamper" && (
+            <div className="scamper-board">
+
+              <div
+                className="scamper-column scamper-column-unsorted"
+                onDragOver={handleColumnDragOver}
+                onDrop={(e) => handleColumnDrop(e, null)}
+              >
+                <div className="scamper-column-header">
+                  <h4>Unsorted</h4>
+                  <p>Drag a note into a technique to sort it.</p>
+                </div>
+                <div className="scamper-column-notes">
+                  {notes.filter((n) => !n.technique).map((note) => (
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      className="sticky-note-flow"
+                      headerDragProps={{ draggable: true, onDragStart: (e) => handleNoteDragStart(e, note.id) }}
+                      onTextChange={handleTextChange}
+                      onColorChange={handleColorChange}
+                      onDelete={handleDeleteNote}
                     />
                   ))}
                 </div>
-
-                <button
-                  type="button"
-                  className="sticky-note-delete"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => handleDeleteNote(note.id)}
-                  aria-label="Delete note"
-                >
-                  ×
-                </button>
               </div>
 
-              <textarea
-                className="sticky-note-textarea"
-                value={note.text}
-                onChange={(e) => handleTextChange(note.id, e.target.value)}
-                placeholder="Type your idea..."
-              />
-            </div>
-          );
-        })}
+              {SCAMPER_TECHNIQUES.map((tech) => (
+                <div
+                  key={tech.name}
+                  className="scamper-column"
+                  onDragOver={handleColumnDragOver}
+                  onDrop={(e) => handleColumnDrop(e, tech.name)}
+                >
+                  <div className="scamper-column-header">
+                    <h4>{tech.name}</h4>
+                    <p>{tech.prompt}</p>
+                  </div>
+                  <div className="scamper-column-notes">
+                    {notes.filter((n) => n.technique === tech.name).map((note) => (
+                      <NoteCard
+                        key={note.id}
+                        note={note}
+                        className="sticky-note-flow"
+                        headerDragProps={{ draggable: true, onDragStart: (e) => handleNoteDragStart(e, note.id) }}
+                        onTextChange={handleTextChange}
+                        onColorChange={handleColorChange}
+                        onDelete={handleDeleteNote}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
 
+            </div>
+          )}
+
+          {/* ===== MIND MAP ===== */}
+          {viewMode === "mindmap" && (
+            <div className="mindmap-canvas">
+
+              <input
+                type="text"
+                className="mindmap-center-node"
+                value={mindMapCenter}
+                onChange={(e) => setMindMapCenter(e.target.value)}
+                placeholder="Central idea or HMW statement..."
+              />
+
+              {notes.map((note, index) => {
+                const angle = (2 * Math.PI * index) / notes.length - Math.PI / 2;
+                const x = MIND_MAP_RADIUS * Math.cos(angle);
+                const y = MIND_MAP_RADIUS * Math.sin(angle);
+                const distance = Math.sqrt(x * x + y * y);
+                const angleDeg = (Math.atan2(y, x) * 180) / Math.PI;
+
+                return (
+                  <div key={note.id}>
+                    <div
+                      className="mindmap-connector"
+                      style={{ width: `${distance}px`, transform: `rotate(${angleDeg}deg)` }}
+                    />
+                    <NoteCard
+                      note={note}
+                      style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }}
+                      className="sticky-note-absolute sticky-note-mindmap"
+                      headerDragProps={{}}
+                      onTextChange={handleTextChange}
+                      onColorChange={handleColorChange}
+                      onDelete={handleDeleteNote}
+                    />
+                  </div>
+                );
+              })}
+
+            </div>
+          )}
+
+        </div>
       </main>
+
+      <AiIdeaDrawer notes={notes} onAddNoteFromIdea={(text) => handleAddNote(text)} />
+
     </div>
   );
 }

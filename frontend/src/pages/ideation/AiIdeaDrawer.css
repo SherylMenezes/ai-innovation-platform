@@ -1,0 +1,425 @@
+/* =========================
+   FLOATING TRIGGER
+   ========================= */
+
+.ai-drawer-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+
+  z-index: 40;
+
+  padding: 14px 22px;
+
+  background: linear-gradient(135deg, #2563eb, #0b5be7);
+  color: white;
+
+  border: none;
+  border-radius: 999px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.ai-drawer-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.4);
+}
+
+
+/* =========================
+   BACKDROP
+   ========================= */
+
+.ai-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+
+  z-index: 45;
+
+  background: rgba(15, 23, 42, 0.35);
+}
+
+
+/* =========================
+   DRAWER
+   ========================= */
+
+.ai-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+
+  z-index: 50;
+
+  width: min(380px, 100vw);
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 22px;
+
+  background: #ffffff;
+
+  border-left: 1px solid #dbe5f3;
+
+  box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12);
+
+  overflow-y: auto;
+  box-sizing: border-box;
+
+  text-align: left;
+
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.ai-drawer-open {
+  transform: translateX(0);
+}
+
+.ai-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 4px;
+}
+
+.ai-drawer-header h3 {
+  margin: 0;
+
+  font-size: 17px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.ai-drawer-close {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #f1f5f9;
+  color: #64748b;
+
+  border: none;
+  border-radius: 8px;
+
+  font-size: 16px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.ai-drawer-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.ai-drawer-disclaimer {
+  margin: 4px 0 20px;
+  padding: 8px 12px;
+
+  background: #fef3c7;
+  color: #92400e;
+
+  border-radius: 8px;
+
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+
+/* =========================
+   SECTIONS
+   ========================= */
+
+.ai-drawer-section {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+
+  border-bottom: 1px solid #eef2f7;
+}
+
+.ai-drawer-section:last-child {
+  border-bottom: none;
+}
+
+.ai-drawer-section h4 {
+  margin: 0 0 4px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  color: #0f172a;
+}
+
+.ai-drawer-hint {
+  margin: 0 0 12px;
+
+  font-size: 12px;
+  line-height: 1.5;
+
+  color: #64748b;
+}
+
+.ai-drawer-textarea {
+  width: 100%;
+  min-height: 80px;
+
+  padding: 10px 12px;
+
+  background: white;
+
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+
+  box-sizing: border-box;
+
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+
+  resize: vertical;
+}
+
+.ai-drawer-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.ai-drawer-count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 10px;
+}
+
+.ai-drawer-count-row label {
+  font-size: 12.5px;
+  font-weight: 600;
+
+  color: #334155;
+}
+
+.ai-drawer-count-row input {
+  width: 60px;
+
+  padding: 6px 8px;
+
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 13px;
+  text-align: center;
+}
+
+
+/* =========================
+   ACTION BUTTON
+   ========================= */
+
+.ai-drawer-action-button {
+  width: 100%;
+
+  margin-top: 14px;
+  padding: 11px 16px;
+
+  background: #2563eb;
+  color: white;
+
+  border: none;
+  border-radius: 10px;
+
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.22);
+
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.ai-drawer-action-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.ai-drawer-action-button:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+/* =========================
+   RESULTS
+   ========================= */
+
+.ai-drawer-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  margin-top: 16px;
+}
+
+.ai-idea-card {
+  padding: 14px;
+
+  background: #f8fbff;
+
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+}
+
+.ai-idea-category {
+  display: inline-block;
+
+  margin-bottom: 6px;
+  padding: 3px 8px;
+
+  background: #eff6ff;
+  color: #2563eb;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
+.ai-idea-card h5 {
+  margin: 0 0 6px;
+
+  font-size: 13.5px;
+
+  color: #0f172a;
+}
+
+.ai-idea-card p {
+  margin: 0;
+
+  font-size: 12.5px;
+  line-height: 1.5;
+
+  color: #475569;
+}
+
+.ai-idea-add-button {
+  margin-top: 10px;
+  padding: 7px 12px;
+
+  background: white;
+  color: #2563eb;
+
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.15s ease;
+}
+
+.ai-idea-add-button:hover {
+  background: #2563eb;
+  color: white;
+}
+
+.ai-remix-card {
+  margin-top: 16px;
+}
+
+
+/* =========================
+   REMIX NOTE SELECTION
+   ========================= */
+
+.ai-drawer-note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  max-height: 220px;
+
+  margin-bottom: 4px;
+  padding-right: 4px;
+
+  overflow-y: auto;
+}
+
+.ai-drawer-empty {
+  margin: 0;
+
+  font-size: 12px;
+
+  color: #94a3b8;
+}
+
+.ai-drawer-note-option {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 8px;
+  padding: 8px 10px;
+
+  background: #f8fafc;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+
+  font-size: 12.5px;
+  line-height: 1.4;
+
+  color: #334155;
+
+  cursor: pointer;
+}
+
+.ai-drawer-note-option input {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+
+/* =========================
+   RESPONSIVE
+   ========================= */
+
+@media (max-width: 480px) {
+
+  .ai-drawer-fab {
+    right: 16px;
+    bottom: 16px;
+
+    padding: 12px 18px;
+    font-size: 13px;
+  }
+}
