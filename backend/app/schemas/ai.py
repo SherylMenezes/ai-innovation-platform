@@ -39,7 +39,7 @@ class ProblemScoreResponse(BaseModel):
     improvements: List[str]
 
 class ScamperSuggestion(BaseModel):
-    technique: str  # Substitute, Combine, Adapt, Modify, Put to another use, Eliminate, Reverse
+    technique: str
     prompt_question: str
     idea_seed: str
 
@@ -103,3 +103,62 @@ class RemixIdeasResponse(BaseModel):
     remixed_title: str
     remixed_concept: str
     combined_elements: List[str]
+
+# --- Week 3: Evaluation, SWOT, Risk & Mentor Schemas ---
+
+class IdeaScoreRequest(BaseModel):
+    title: str = Field(..., min_length=3, description="Idea title")
+    description: str = Field(..., min_length=10, description="Detailed concept description")
+
+class IdeaScoreBreakdown(BaseModel):
+    feasibility_notes: str
+    impact_notes: str
+    complexity_notes: str
+
+class IdeaScoreResponse(BaseModel):
+    title: str
+    feasibility: int = Field(..., ge=1, le=10, description="1-10 technical feasibility score")
+    impact: int = Field(..., ge=1, le=10, description="1-10 market or user impact score")
+    complexity: int = Field(..., ge=1, le=10, description="1-10 execution complexity score")
+    quadrant: str
+    breakdown: IdeaScoreBreakdown
+
+class RiskItem(BaseModel):
+    category: str
+    severity: str
+    description: str
+    mitigation: str
+
+class RiskAnalysisResponse(BaseModel):
+    idea_title: str
+    overall_risk_level: str
+    risks: List[RiskItem]
+
+class SWOTAnalysisRequest(BaseModel):
+    title: str = Field(..., min_length=3, description="Idea or project title")
+    description: str = Field(..., min_length=10, description="Idea context and mechanism")
+
+class SWOTAnalysisResponse(BaseModel):
+    title: str
+    strengths: List[str]
+    weaknesses: List[str]
+    opportunities: List[str]
+    threats: List[str]
+    strategic_recommendation: str
+
+class MentorCoachRequest(BaseModel):
+    workspace_context: str = Field(..., min_length=5, description="Current user problem, idea, or active task")
+    user_query: str = Field(..., min_length=2, description="Student's prompt or question")
+    current_stage: str = Field(default="Ideation", description="Sprint stage")
+
+class MentorCoachResponse(BaseModel):
+    coach_response: str
+    socratic_questions: List[str]
+    recommended_action: str
+
+# --- Week 4 Day 1: Streaming Mentor Schema ---
+
+class MentorStreamRequest(BaseModel):
+    workspace_context: str = Field(..., min_length=3, description="Active workspace brief or canvas data")
+    user_query: str = Field(..., min_length=2, description="Student's prompt or question")
+    current_stage: str = Field(default="Ideation", description="Sprint phase: Problem Framing, Ideation, Evaluation, Submission")

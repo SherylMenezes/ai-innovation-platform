@@ -1,5 +1,6 @@
 import json
-from typing import List
+import asyncio
+from typing import List, AsyncGenerator
 from app.schemas.ai import (
     ProblemRefineResponse,
     HMWGenerateResponse,
@@ -17,10 +18,15 @@ from app.schemas.ai import (
     GeneratedIdea,
     GenerateIdeasResponse,
     RemixIdeasResponse,
+    IdeaScoreResponse,
+    IdeaScoreBreakdown,
+    RiskItem,
+    RiskAnalysisResponse,
+    SWOTAnalysisResponse,
+    MentorCoachResponse,
 )
 
 async def refine_problem_statement(problem_statement: str) -> ProblemRefineResponse:
-    """Generates a 5-Whys root cause analysis for the problem statement."""
     return ProblemRefineResponse(
         synthesized_root_cause="Absence of a unified, guided platform directly bridging user intent with structured execution frameworks.",
         five_whys=[
@@ -33,7 +39,6 @@ async def refine_problem_statement(problem_statement: str) -> ProblemRefineRespo
     )
 
 async def generate_hmw_statements(root_cause: str) -> HMWGenerateResponse:
-    """Generates 4 categorized How-Might-We suggestion cards from the root cause."""
     cards = [
         HMWCard(
             id="hmw-1",
@@ -59,7 +64,6 @@ async def generate_hmw_statements(root_cause: str) -> HMWGenerateResponse:
     return HMWGenerateResponse(cards=cards)
 
 async def score_problem_statement(problem_statement: str) -> ProblemScoreResponse:
-    """Evaluates problem statement quality and returns criteria scores."""
     words = problem_statement.strip().split()
     word_count = len(words)
 
@@ -94,7 +98,6 @@ SCAMPER_PROMPTS = {
 }
 
 async def generate_scamper_prompts(hmw_statement: str) -> ScamperPromptResponse:
-    """Generates structured SCAMPER ideation seeds mapped to the user's HMW statement."""
     seeds = [
         ScamperSuggestion(
             technique="Substitute",
@@ -135,7 +138,6 @@ async def generate_scamper_prompts(hmw_statement: str) -> ScamperPromptResponse:
     return ScamperPromptResponse(hmw_statement=hmw_statement, suggestions=seeds)
 
 async def generate_mind_map_nodes(concept: str) -> MindMapResponse:
-    """Generates structured mind-mapping nodes from the core concept."""
     nodes = [
         MindMapNode(id="root", label=concept[:40] + "...", parent_id=None, category="core"),
         MindMapNode(id="branch-1", label="Curriculum Integration", parent_id="root", category="education"),
@@ -151,7 +153,6 @@ async def generate_mind_map_nodes(concept: str) -> MindMapResponse:
     return MindMapResponse(root_concept=concept, nodes=nodes)
 
 async def evaluate_ideation_list(ideas: list) -> IdeaEvaluationResponse:
-    """Evaluates an ideation list across feasibility and impact."""
     results = []
     for item in ideas:
         feasibility = 8 if any(k in item.title.lower() for k in ["canvas", "card", "tree"]) else 6
@@ -174,7 +175,6 @@ async def evaluate_ideation_list(ideas: list) -> IdeaEvaluationResponse:
     return IdeaEvaluationResponse(evaluated_ideas=results)
 
 async def generate_divergent_ideas(context: str, count: int = 5) -> GenerateIdeasResponse:
-    """Generates divergent ideas with basic deduplication filtering."""
     base_ideas = [
         GeneratedIdea(id="idea-d1", title="AI Project Matching Canvas", description="Matches student profiles with live company problem backlogs.", category="Platform"),
         GeneratedIdea(id="idea-d2", title="Automated Peer Review Sprints", description="Micro-milestones evaluated by automated test runners and peers.", category="Workflow"),
@@ -193,7 +193,6 @@ async def generate_divergent_ideas(context: str, count: int = 5) -> GenerateIdea
     return GenerateIdeasResponse(ideas=deduped)
 
 async def remix_ideas(descriptions: list) -> RemixIdeasResponse:
-    """Combines multiple ideas into a novel hybrid concept."""
     combined_title = "Gamified Project Sprints with Verified Skill Badges"
     combined_concept = f"A blended approach combining: '{descriptions[0]}' and '{descriptions[1]}' into an integrated execution loop."
     return RemixIdeasResponse(
@@ -201,3 +200,167 @@ async def remix_ideas(descriptions: list) -> RemixIdeasResponse:
         remixed_concept=combined_concept,
         combined_elements=[descriptions[0][:40], descriptions[1][:40]]
     )
+
+# --- Week 3 Implementations ---
+
+async def calculate_idea_score(title: str, description: str) -> IdeaScoreResponse:
+    text = f"{title} {description}".lower()
+
+    feasibility = 8 if any(k in text for k in ["api", "template", "workflow", "canvas", "dashboard"]) else 6
+    if "hardware" in text or "blockchain" in text:
+        feasibility = 4
+
+    impact = 9 if any(k in text for k in ["recruiter", "mentor", "industry", "career", "grade", "portfolio"]) else 7
+    complexity = 4 if ("simple" in text or "template" in text) else (8 if any(k in text for k in ["ai", "ml", "real-time", "distributed"]) else 6)
+
+    if feasibility >= 7 and impact >= 7:
+        quadrant = "Quick Win"
+    elif feasibility < 7 and impact >= 7:
+        quadrant = "Major Project"
+    elif feasibility >= 7 and impact < 7:
+        quadrant = "Fill-in"
+    else:
+        quadrant = "Thankless Task"
+
+    return IdeaScoreResponse(
+        title=title,
+        feasibility=feasibility,
+        impact=impact,
+        complexity=complexity,
+        quadrant=quadrant,
+        breakdown=IdeaScoreBreakdown(
+            feasibility_notes=f"Estimated technical feasibility: {feasibility}/10 based on standard architecture requirements.",
+            impact_notes=f"Anticipated value delivery: {impact}/10 for targeted student/industry stakeholders.",
+            complexity_notes=f"Execution complexity: {complexity}/10 considering implementation surface area."
+        )
+    )
+
+async def analyze_idea_risks(title: str, description: str = "") -> RiskAnalysisResponse:
+    combined = f"{title} {description}".lower()
+
+    risks = [
+        RiskItem(
+            category="Technical",
+            severity="Medium" if ("ai" in combined or "ml" in combined) else "Low",
+            description="Latency and model variance when handling real-time unstructured inputs.",
+            mitigation="Implement deterministic heuristic fallbacks and local cache layers."
+        ),
+        RiskItem(
+            category="Adoption",
+            severity="High" if ("mentor" in combined or "recruiter" in combined) else "Medium",
+            description="Friction in engaging external professional participants consistently.",
+            mitigation="Incentivize participation using asynchronous review queues and gamified points."
+        ),
+        RiskItem(
+            category="Execution",
+            severity="Medium",
+            description="Complex scope across multi-disciplinary user roles delaying initial MVP test.",
+            mitigation="Focus current release slice strictly on the core automated evaluation loops."
+        )
+    ]
+
+    has_high = any(r.severity == "High" for r in risks)
+    overall_level = "Elevated" if has_high else "Moderate"
+
+    return RiskAnalysisResponse(
+        idea_title=title,
+        overall_risk_level=overall_level,
+        risks=risks
+    )
+
+async def generate_swot_analysis(title: str, description: str) -> SWOTAnalysisResponse:
+    text = f"{title} {description}".lower()
+
+    strengths = [
+        "Strong direct alignment with user pain points in student-industry coordination.",
+        "Modular microservice structure allowing independent evaluation and scoring."
+    ]
+    weaknesses = [
+        "Initial dependency on consistent input quality for high-accuracy scoring.",
+        "Requires active participant engagement to fully realize network effects."
+    ]
+    opportunities = [
+        "Integration into accredited university curriculum capstone programs.",
+        "Monetizable candidate discovery funnel for engineering recruiting partners."
+    ]
+    threats = [
+        "Generic LLM wrapper saturation in the edtech productivity market.",
+        "Mentor time constraints causing latency in collaborative feedback loops."
+    ]
+
+    recommendation = (
+        "Focus first on standardizing the automated rubric scoring before expanding to multi-party mentor syncs."
+        if "mentor" in text else
+        "Ship the core scoring matrix as a self-serve student workspace widget to drive immediate adoption."
+    )
+
+    return SWOTAnalysisResponse(
+        title=title,
+        strengths=strengths,
+        weaknesses=weaknesses,
+        opportunities=opportunities,
+        threats=threats,
+        strategic_recommendation=recommendation
+    )
+
+async def run_mentor_coach(workspace_context: str, user_query: str, stage: str) -> MentorCoachResponse:
+    q_lower = user_query.lower()
+
+    if "how do i" in q_lower or "how to" in q_lower:
+        coach_response = (
+            f"You're currently exploring solutions in the '{stage}' stage. "
+            f"Rather than jumping straight to implementation, let's dissect the operational bottleneck in: '{workspace_context[:60]}...'."
+        )
+        questions = [
+            "What is the single highest-risk assumption in your current architecture?",
+            "How could we validate this concept with mock data before writing full persistence models?",
+            "What telemetry will prove that users are succeeding with this flow?"
+        ]
+        action = "Define a minimal acceptance criteria checklist for this feature."
+    else:
+        coach_response = (
+            f"In the context of '{workspace_context[:50]}...', your thought highlights an important design trade-off. "
+            "A solid engineering solution balances feasibility with immediate user utility."
+        )
+        questions = [
+            "Does this feature belong in the 'Quick Win' quadrant or is it an ambitious 'Major Project'?",
+            "What can be eliminated from this specification without reducing value?"
+        ]
+        action = "Run this concept through the /api/ai/score-idea endpoint to evaluate its quadrant."
+
+    return MentorCoachResponse(
+        coach_response=coach_response,
+        socratic_questions=questions,
+        recommended_action=action
+    )
+
+# --- Week 4 Day 1 Implementation ---
+
+async def stream_socratic_mentor(workspace_context: str, user_query: str, current_stage: str) -> AsyncGenerator[str, None]:
+    """Week 4 Day 1: Streaming Socratic Mentor Coach."""
+    intro = f"[AI Mentor | Stage: {current_stage}]\n\n"
+    for chunk in intro.split(" "):
+        yield f"{chunk} "
+        await asyncio.sleep(0.04)
+
+    q_lower = user_query.lower()
+    if any(k in q_lower for k in ["give me", "write it for me", "tell me the answer", "code it"]):
+        dialogue = (
+            "As your engineering coach, I won't write the direct solution for you. "
+            f"Let's break down your challenge in the {current_stage} stage instead:\n\n"
+            f"1. What is the fundamental operational constraint in: '{workspace_context[:60]}...'?\n"
+            "2. If you had to build a trivial manual prototype first, what single capability must work?\n"
+            "3. What trade-offs exist between building this yourself versus leveraging existing libraries?"
+        )
+    else:
+        dialogue = (
+            f"That's a relevant design query for the {current_stage} milestone. "
+            f"Looking at your active work ('{workspace_context[:50]}...'), consider these hints:\n\n"
+            "• Hint 1: Focus on your core data flow before adding edge-case handling.\n"
+            "• Hint 2: Check whether this belongs in the 'Quick Win' quadrant or requires high infrastructure overhead.\n"
+            "• Prompt: How will your target users immediately notice if this step succeeds or fails?"
+        )
+
+    for word in dialogue.split(" "):
+        yield f"{word} "
+        await asyncio.sleep(0.04)
