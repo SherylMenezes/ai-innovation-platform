@@ -1,38 +1,6 @@
 import { useState } from "react";
 import "./AiIdeaDrawer.css";
-
-// Placeholder idea bank standing in for POST /api/ai/generate-ideas
-// (backend/app/routers/ai.py) until Day 5 wires the real call. Shapes
-// match GeneratedIdea: { id, title, description, category }.
-const MOCK_IDEA_TEMPLATES = [
-  {
-    title: "Smart Demand Forecasting",
-    description: "Predict expected demand ahead of time so preparation better matches actual need.",
-    category: "Data & Prediction"
-  },
-  {
-    title: "Community Sharing Network",
-    description: "Connect surplus directly with people or groups who can use it nearby.",
-    category: "Logistics"
-  },
-  {
-    title: "Incentivized Pre-Commitment",
-    description: "Let people commit early in exchange for a small reward, improving planning accuracy.",
-    category: "Behavioral"
-  },
-  {
-    title: "Transparent Feedback Loop",
-    description: "Show the real-time impact of a choice back to the person making it.",
-    category: "Engagement"
-  },
-  {
-    title: "Tiered Flexible Options",
-    description: "Offer several smaller options instead of one fixed one, reducing excess.",
-    category: "Product Design"
-  }
-];
-
-const MOCK_DELAY_MS = 700;
+import { generateIdeas, remixIdeas } from "../../api/aiClient";
 
 function AiIdeaDrawer({ notes, onAddNoteFromIdea }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,10 +8,12 @@ function AiIdeaDrawer({ notes, onAddNoteFromIdea }) {
   const [count, setCount] = useState(5);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedIdeas, setGeneratedIdeas] = useState([]);
+  const [generateError, setGenerateError] = useState("");
 
   const [selectedNoteIds, setSelectedNoteIds] = useState(() => new Set());
   const [isRemixing, setIsRemixing] = useState(false);
   const [remixResult, setRemixResult] = useState(null);
+  const [remixError, setRemixError] = useState("");
 
   const toggleNoteSelected = (id) => {
     setSelectedNoteIds((prev) => {
@@ -54,42 +24,45 @@ function AiIdeaDrawer({ notes, onAddNoteFromIdea }) {
     });
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!contextText.trim() || isGenerating) return;
 
     setIsGenerating(true);
+    setGenerateError("");
     setGeneratedIdeas([]);
 
-    // Simulated response only — POST /api/ai/generate-ideas wiring lands Day 5.
-    setTimeout(() => {
-      const ideas = Array.from({ length: count }, (_, i) => ({
-        id: `mock-gen-${Date.now()}-${i}`,
-        ...MOCK_IDEA_TEMPLATES[i % MOCK_IDEA_TEMPLATES.length]
-      }));
-      setGeneratedIdeas(ideas);
+    try {
+      const response = await generateIdeas(contextText.trim(), count);
+      setGeneratedIdeas(response.ideas);
+      if (response.ideas.length === 0) {
+        setGenerateError("The AI service didn't return any ideas for this prompt.");
+      }
+    } catch (err) {
+      setGenerateError(err.message);
+    } finally {
       setIsGenerating(false);
-    }, MOCK_DELAY_MS);
+    }
   };
 
-  const handleRemix = () => {
+  const handleRemix = async () => {
     if (selectedNoteIds.size < 2 || isRemixing) return;
 
     setIsRemixing(true);
+    setRemixError("");
     setRemixResult(null);
 
-    // Simulated response only — POST /api/ai/remix-ideas wiring lands Day 5.
-    setTimeout(() => {
-      const selectedTexts = notes
-        .filter((n) => selectedNoteIds.has(n.id))
-        .map((n) => n.text.trim() || "Untitled idea");
+    const selected = notes.filter((n) => selectedNoteIds.has(n.id));
+    const ideaIds = selected.map((n) => String(n.id));
+    const ideaDescriptions = selected.map((n) => n.text.trim() || "Untitled idea");
 
-      setRemixResult({
-        remixed_title: "Combined Concept (preview)",
-        remixed_concept: `A blended direction pulling elements from: ${selectedTexts.join(" + ")}.`,
-        combined_elements: selectedTexts
-      });
+    try {
+      const response = await remixIdeas(ideaIds, ideaDescriptions);
+      setRemixResult(response);
+    } catch (err) {
+      setRemixError(err.message);
+    } finally {
       setIsRemixing(false);
-    }, MOCK_DELAY_MS);
+    }
   };
 
   return (
@@ -118,10 +91,6 @@ function AiIdeaDrawer({ notes, onAddNoteFromIdea }) {
             ×
           </button>
         </div>
-
-        <p className="ai-drawer-disclaimer">
-          Sample preview only — live AI generation connects on Day 5.
-        </p>
 
         <section className="ai-drawer-section">
           <h4>Generate Ideas</h4>
@@ -154,6 +123,8 @@ function AiIdeaDrawer({ notes, onAddNoteFromIdea }) {
           >
             {isGenerating ? "Generating..." : "Generate Ideas"}
           </button>
+
+          {generateError && <p className="ai-drawer-error">{generateError}</p>}
 
           {generatedIdeas.length > 0 && (
             <div className="ai-drawer-results">
@@ -202,6 +173,8 @@ function AiIdeaDrawer({ notes, onAddNoteFromIdea }) {
           >
             {isRemixing ? "Remixing..." : "Remix Selected"}
           </button>
+
+          {remixError && <p className="ai-drawer-error">{remixError}</p>}
 
           {remixResult && (
             <div className="ai-idea-card ai-remix-card">

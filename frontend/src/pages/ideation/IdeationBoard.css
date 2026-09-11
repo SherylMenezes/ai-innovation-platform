@@ -320,6 +320,12 @@
   user-select: none;
 }
 
+.sticky-note:focus-within {
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.35),
+    0 4px 14px rgba(15, 23, 42, 0.08);
+}
+
 .sticky-note-absolute {
   position: absolute;
 }
@@ -501,6 +507,19 @@
   border: 1.5px dashed #cbd5e1;
 }
 
+.scamper-column {
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.scamper-column-dragover {
+  border-color: #2563eb;
+  background: rgba(219, 234, 254, 0.5);
+  transform: scale(1.02);
+}
+
 .scamper-column-header {
   margin-bottom: 12px;
   padding-bottom: 10px;
@@ -637,5 +656,41 @@
   .mindmap-center-node {
     width: 160px;
     font-size: 12px;
+  }
+}
+
+
+/* =========================================================
+   ACCESSIBILITY — KEYBOARD FOCUS
+   ========================================================= */
+
+.ideation-board button:focus-visible,
+.ideation-board input:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.3);
+  outline-offset: 3px;
+}
+
+.ideation-board textarea:focus-visible {
+  outline: none;
+}
+
+.ideation-board .color-dot:focus-visible {
+  outline-offset: 1px;
+}
+
+
+/* =========================================================
+   REDUCED MOTION ACCESSIBILITY
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ideation-board *,
+  .ideation-board *::before,
+  .ideation-board *::after {
+    scroll-behavior: auto !important;
+
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

@@ -34,8 +34,6 @@ const SCAMPER_TECHNIQUES = [
   { name: "Reverse", prompt: "What could be reversed or done in the opposite order?" }
 ];
 
-const MIND_MAP_RADIUS = 220;
-
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -98,15 +96,29 @@ function NoteCard({ note, style, className, headerDragProps, onTextChange, onCol
   );
 }
 
+const UNSORTED_KEY = "__unsorted__";
+
 function IdeationBoard() {
   const [notes, setNotes] = useState([]);
   const [nextId, setNextId] = useState(1);
   const [draggingId, setDraggingId] = useState(null);
   const [viewMode, setViewMode] = useState("freeform"); // "freeform" | "scamper" | "mindmap"
   const [mindMapCenter, setMindMapCenter] = useState("");
+  const [dragOverKey, setDragOverKey] = useState(null); // SCAMPER column currently being dragged over
+  const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
 
   const boardRef = useRef(null);
   const dragInfo = useRef(null); // { id, offsetX, offsetY }
+
+  // Mind Map's radial layout scales down on narrow viewports so satellite
+  // notes stay reachable instead of running off-screen.
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const mindMapRadius = viewportWidth < 480 ? 110 : viewportWidth < 768 ? 150 : 220;
 
   const handleAddNote = (initialText = "") => {
     const board = boardRef.current;
@@ -212,8 +224,21 @@ function IdeationBoard() {
     e.dataTransfer.dropEffect = "move";
   };
 
-  const handleColumnDrop = (e, technique) => {
+  const handleColumnDragEnter = (e, key) => {
     e.preventDefault();
+    setDragOverKey(key);
+  };
+
+  const handleColumnDragLeave = (e, key) => {
+    // dragleave also fires when moving between a column's own children —
+    // only clear the highlight once we've actually left the column itself.
+    if (e.currentTarget.contains(e.relatedTarget)) return;
+    setDragOverKey((prev) => (prev === key ? null : prev));
+  };
+
+  const handleColumnDrop = (e, technique, key) => {
+    e.preventDefault();
+    setDragOverKey((prev) => (prev === key ? null : prev));
     const noteId = Number(e.dataTransfer.getData("text/plain"));
     if (!Number.isNaN(noteId)) {
       handleAssignTechnique(noteId, technique);
@@ -303,9 +328,11 @@ function IdeationBoard() {
             <div className="scamper-board">
 
               <div
-                className="scamper-column scamper-column-unsorted"
+                className={`scamper-column scamper-column-unsorted${dragOverKey === UNSORTED_KEY ? " scamper-column-dragover" : ""}`}
                 onDragOver={handleColumnDragOver}
-                onDrop={(e) => handleColumnDrop(e, null)}
+                onDragEnter={(e) => handleColumnDragEnter(e, UNSORTED_KEY)}
+                onDragLeave={(e) => handleColumnDragLeave(e, UNSORTED_KEY)}
+                onDrop={(e) => handleColumnDrop(e, null, UNSORTED_KEY)}
               >
                 <div className="scamper-column-header">
                   <h4>Unsorted</h4>
@@ -317,7 +344,11 @@ function IdeationBoard() {
                       key={note.id}
                       note={note}
                       className="sticky-note-flow"
-                      headerDragProps={{ draggable: true, onDragStart: (e) => handleNoteDragStart(e, note.id) }}
+                      headerDragProps={{
+                        draggable: true,
+                        onDragStart: (e) => handleNoteDragStart(e, note.id),
+                        onDragEnd: () => setDragOverKey(null)
+                      }}
                       onTextChange={handleTextChange}
                       onColorChange={handleColorChange}
                       onDelete={handleDeleteNote}
@@ -329,9 +360,11 @@ function IdeationBoard() {
               {SCAMPER_TECHNIQUES.map((tech) => (
                 <div
                   key={tech.name}
-                  className="scamper-column"
+                  className={`scamper-column${dragOverKey === tech.name ? " scamper-column-dragover" : ""}`}
                   onDragOver={handleColumnDragOver}
-                  onDrop={(e) => handleColumnDrop(e, tech.name)}
+                  onDragEnter={(e) => handleColumnDragEnter(e, tech.name)}
+                  onDragLeave={(e) => handleColumnDragLeave(e, tech.name)}
+                  onDrop={(e) => handleColumnDrop(e, tech.name, tech.name)}
                 >
                   <div className="scamper-column-header">
                     <h4>{tech.name}</h4>
@@ -343,7 +376,11 @@ function IdeationBoard() {
                         key={note.id}
                         note={note}
                         className="sticky-note-flow"
-                        headerDragProps={{ draggable: true, onDragStart: (e) => handleNoteDragStart(e, note.id) }}
+                        headerDragProps={{
+                          draggable: true,
+                          onDragStart: (e) => handleNoteDragStart(e, note.id),
+                          onDragEnd: () => setDragOverKey(null)
+                        }}
                         onTextChange={handleTextChange}
                         onColorChange={handleColorChange}
                         onDelete={handleDeleteNote}
@@ -370,8 +407,8 @@ function IdeationBoard() {
 
               {notes.map((note, index) => {
                 const angle = (2 * Math.PI * index) / notes.length - Math.PI / 2;
-                const x = MIND_MAP_RADIUS * Math.cos(angle);
-                const y = MIND_MAP_RADIUS * Math.sin(angle);
+                const x = mindMapRadius * Math.cos(angle);
+                const y = mindMapRadius * Math.sin(angle);
                 const distance = Math.sqrt(x * x + y * y);
                 const angleDeg = (Math.atan2(y, x) * 180) / Math.PI;
 
