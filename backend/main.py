@@ -4,14 +4,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.models import otp, user  # noqa: F401 — import so tables register on Base
+from app.models import evaluation, gamification, otp, user  # noqa: F401 — import so tables register on Base
 from app.routers import ai as ai_router
 from app.routers import auth, user as user_router
+from app.routers import evaluation as evaluation_router
+from app.routers import gamification as gamification_router
+from app.services.gamification_listeners import register_gamification_listeners
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    register_gamification_listeners()
     yield
 
 
@@ -29,6 +33,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(user_router.router)
 app.include_router(ai_router.router)
+app.include_router(gamification_router.router)
+app.include_router(evaluation_router.router)
 
 
 @app.get("/health")
