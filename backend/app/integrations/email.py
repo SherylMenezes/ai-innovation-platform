@@ -2,7 +2,7 @@
 Email integration. Keep send_email()'s signature stable — swapping the
 underlying provider (SendGrid -> AWS SES, etc.) should only touch this file.
 """
-from config import settings
+from app.config import settings
 
 
 def send_email(to: str, subject: str, body: str) -> None:

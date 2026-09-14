@@ -13,7 +13,7 @@ from typing import Awaitable, Callable
 import redis.exceptions
 
 from app.core.redis_client import redis_client
-from config import settings
+from app.config import settings
 
 logger = logging.getLogger(__name__)
 

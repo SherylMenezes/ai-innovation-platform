@@ -6,11 +6,11 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///./test_evaluation.db")
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.database import Base, SessionLocal, engine
+from app.database import Base, SessionLocal, engine
 from app.models.evaluation import EvaluationJob
 from app.models.user import User
-from main import app
-from security import create_access_token
+from app.main import app
+from app.security import create_access_token
 
 client = TestClient(app)
 

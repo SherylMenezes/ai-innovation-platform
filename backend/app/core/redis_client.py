@@ -9,7 +9,7 @@ that and degrading gracefully to the database as source of truth.
 """
 import redis.asyncio as redis
 
-from config import settings
+from app.config import settings
 
 redis_client: redis.Redis = redis.from_url(
     settings.redis_url,

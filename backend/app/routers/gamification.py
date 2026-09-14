@@ -10,11 +10,11 @@ challenge submissions, etc.), not a direct call to this endpoint.
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.database import get_db
 from app.models.user import User
 from app.schemas.gamification import AwardXpRequest, AwardXpResponse
 from app.services.gamification_service import UserNotFoundError, award_xp
-from security import require_role
+from app.security import require_role
 
 router = APIRouter(prefix="/api/gamification", tags=["gamification"])
 

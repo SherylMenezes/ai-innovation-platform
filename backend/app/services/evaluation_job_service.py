@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
+from app.database import SessionLocal
 from app.models.evaluation import EvaluationJob, EvaluationJobStatus
 from app.services.llm_service import (
     analyze_idea_risks,

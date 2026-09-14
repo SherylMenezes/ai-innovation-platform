@@ -1,16 +1,18 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+from app.database import get_db
 from app.models.user import User
 from app.schemas.user import RbacResponse, UserProfileResponse, UserProfileUpdate
-from security import get_current_user, get_permissions
+from app.security import get_current_user, get_permissions
 
 router = APIRouter(prefix="/api/user", tags=["user"])
 
+# Fetches the profile of the current user
 @router.get("/profile", response_model=UserProfileResponse)
 def get_profile(current_user: User = Depends(get_current_user)):
     return current_user
 
+# Updates user name, academic tier, institution
 @router.put("/profile", response_model=UserProfileResponse)
 def update_profile(
     payload: UserProfileUpdate,
@@ -20,7 +22,11 @@ def update_profile(
     if payload.name is not None:
         current_user.name = payload.name
     if payload.academic_tier is not None:
-        current_user.academic_tier = payload.academic_tier.value
+        current_user.academic_tier = (
+            payload.academic_tier.value 
+            if hasattr(payload.academic_tier, "value") 
+            else payload.academic_tier
+        )
     if payload.institution_name is not None:
         current_user.institution_name = payload.institution_name
 

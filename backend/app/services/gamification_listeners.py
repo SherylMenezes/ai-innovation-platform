@@ -7,7 +7,7 @@ import-order side effects.
 """
 import logging
 
-from app.core.database import SessionLocal
+from app.database import SessionLocal
 from app.services.event_broker import GamificationEvent, event_broker
 from app.services.gamification_service import (
     UserNotFoundError,

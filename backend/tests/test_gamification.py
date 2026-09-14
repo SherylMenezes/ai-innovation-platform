@@ -7,7 +7,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///./test_gamification.db")
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.database import Base, SessionLocal, engine
+from app.database import Base, SessionLocal, engine
 from app.core.redis_client import redis_client
 from app.models.gamification import UserGamificationProfile
 from app.models.user import User
@@ -18,8 +18,8 @@ from app.services.gamification_service import (
     award_xp,
     record_streak_checkin,
 )
-from main import app
-from security import create_access_token
+from app.main import app
+from app.security import create_access_token
 
 # Explicit, idempotent registration — TestClient() without a `with` block
 # doesn't run FastAPI's lifespan, so main.py's own registration call never

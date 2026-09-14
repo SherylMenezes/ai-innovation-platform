@@ -2,7 +2,7 @@
 SMS integration. Keep send_sms()'s signature stable — swapping the
 underlying provider (Twilio -> AWS SNS, etc.) should only touch this file.
 """
-from config import settings
+from app.config import settings
 
 
 def send_sms(to: str, body: str) -> None:

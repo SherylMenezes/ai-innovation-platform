@@ -4,7 +4,7 @@ from datetime import date, datetime, timezone
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from app.database import Base
 
 
 class XPTransaction(Base):

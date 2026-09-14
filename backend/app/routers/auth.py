@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+from app.database import get_db
 from app.integrations.email import send_otp_email
 from app.integrations.sms import send_otp_sms
 from app.models.otp import OtpChannel, OtpPurpose
@@ -17,8 +17,8 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.services import otp_service
-from config import settings
-from security import create_access_token, create_refresh_token
+from app.config import settings
+from app.security import create_access_token, create_refresh_token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 

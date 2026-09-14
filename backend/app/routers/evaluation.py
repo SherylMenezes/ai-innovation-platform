@@ -7,7 +7,7 @@ status/result is visible to the user who requested it, or admin/mentor.
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.database import get_db
+from app.database import get_db
 from app.models.user import User
 from app.schemas.evaluation import (
     EvaluationJobRequest,
@@ -20,7 +20,7 @@ from app.services.evaluation_job_service import (
     get_evaluation_job,
     run_evaluation_job,
 )
-from security import get_current_user
+from app.security import get_current_user
 
 router = APIRouter(prefix="/api/evaluation", tags=["evaluation"])
 

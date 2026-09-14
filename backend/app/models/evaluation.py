@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from app.database import Base
 
 
 class EvaluationJobStatus(str, enum.Enum):
