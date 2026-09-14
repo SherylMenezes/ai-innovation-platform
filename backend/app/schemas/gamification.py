@@ -1,7 +1,8 @@
-from typing import Any
+from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
+from datetime import datetime
 
 class AwardXpRequest(BaseModel):
     user_id: str = Field(..., min_length=1, description="Target user's id")
@@ -22,3 +23,22 @@ class AwardXpResponse(BaseModel):
     longest_streak: int
     source_event: str
     transaction_id: str
+
+
+class StreakCheckInResponse(BaseModel):
+    current_streak: int
+    longest_streak: int
+    xp_awarded: int
+    message: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserStatsResponse(BaseModel):
+    user_id: int
+    xp: int
+    current_streak: int
+    longest_streak: int
+    last_check_in: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)

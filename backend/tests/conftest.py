@@ -17,11 +17,5 @@ def client():
 
 @pytest.fixture(scope="function")
 def auth_headers():
-    test_user_payload = {
-        "sub": "testuser@example.com",
-        "user_id": 1,
-        "role": "student",
-        "tier": "Graduate"
-    }
-    token = create_access_token(data=test_user_payload)
+    token = create_access_token(user_id="testuser@example.com")
     return {"Authorization": f"Bearer {token}"}

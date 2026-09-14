@@ -9,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.database import Base, SessionLocal, engine
 from app.core.redis_client import redis_client
-from app.models.gamification import UserGamificationProfile
+from app.models.gamification import UserGamificationProfile, UserGamification
 from app.models.user import User
 from app.services.event_broker import GamificationEvent, event_broker
 from app.services.gamification_listeners import register_gamification_listeners
@@ -293,3 +293,28 @@ def test_event_for_unknown_user_does_not_crash_the_broker():
     # A malformed/unknown user_id should be logged and skipped, not raise
     # out of emit() and take down whatever code path triggered the event.
     _run_async(event_broker.emit(GamificationEvent.TASK_COMPLETED, {"user_id": "ghost-user"}))
+
+
+# Multiple user check-in scenarios
+def test_streak_daily_reset_and_progression(client, auth_headers):
+    # 1. Initial Check-in
+    res1 = client.post("/api/gamification/streak/check-in", headers=auth_headers)
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert data1["current_streak"] == 1
+    assert data1["xp_awarded"] == 10
+
+    # 2. Duplicate Check-in on Same Day
+    res2 = client.post("/api/gamification/streak/check-in", headers=auth_headers)
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["current_streak"] == 1
+    assert data2["xp_awarded"] == 0
+    assert "Already checked in" in data2["message"]
+
+    # 3. Retrieve User Stats
+    res_stats = client.get("/api/gamification/user-stats", headers=auth_headers)
+    assert res_stats.status_code == 200
+    stats = res_stats.json()
+    assert stats["xp"] == 10
+    assert stats["current_streak"] == 1

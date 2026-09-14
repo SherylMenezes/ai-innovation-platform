@@ -1,11 +1,10 @@
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, String, Column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-
 
 class XPTransaction(Base):
     """Append-only audit ledger of every XP award — lets an admin
@@ -42,3 +41,30 @@ class UserGamificationProfile(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+
+class UserGamification(Base):
+    __tablename__ = "user_gamification"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
+    xp = Column(Integer, default=0, nullable=False)
+    current_streak = Column(Integer, default=0, nullable=False)
+    longest_streak = Column(Integer, default=0, nullable=False)
+    last_check_in = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class XPHistory(Base):
+    __tablename__ = "xp_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    amount = Column(Integer, nullable=False)
+    reason = Column(String(255), nullable=False)  # e.g., 'daily_check_in', 'submission'
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
