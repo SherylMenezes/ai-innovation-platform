@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.core.database import Base
+from app.database import Base
 
 class AcademicTier(str, enum.Enum):
     GRADE_8_10 = "Grade 8-10"

@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     sendgrid_api_key: str = ""
     sendgrid_from_email: str = ""
 
+    # --- Gamification: Redis cache ---
+    # 127.0.0.1, not localhost — on Windows, async DNS resolution can
+    # prefer localhost's IPv6 (::1) record while Redis-compatible servers
+    # (Memurai included) typically only listen on IPv4, causing every
+    # connection from redis.asyncio to silently fail and fall back to the
+    # degraded (DB-only) path even when the server is genuinely running.
+    redis_url: str = "redis://127.0.0.1:6379/0"
+    xp_cache_ttl_seconds: int = 172800  # 48h
+    streak_cache_ttl_seconds: int = 172800  # 48h
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 

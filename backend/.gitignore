@@ -1,6 +1,18 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
 .env
 *.db
 .pytest_cache/
+
+# Local file upload directory
+uploads/
+
+# IDE / Editor folders
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db

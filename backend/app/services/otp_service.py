@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.otp import OtpChannel, OtpCode, OtpPurpose
-from config import settings
+from app.config import settings
 
 
 class OtpCooldownError(Exception):

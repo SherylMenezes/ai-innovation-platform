@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from app.models.user import User
 from app.schemas.dashboard import DashboardOverviewResponse
 from app.services.dashboard_service import build_dashboard_overview
-from security import get_current_user
+from app.security import get_current_user
 
 
 router = APIRouter(
