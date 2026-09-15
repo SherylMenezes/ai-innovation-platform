@@ -7,6 +7,7 @@ import os
 from app.routers.ai import router as ai_router
 from app.routers.auth import router as auth_router
 from app.routers.user import router as user_router
+from app.routers.dashboard import router as dashboard_router
 
 app = FastAPI(
     title="AI Innovation Platform API",
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(ai_router)
+app.include_router(dashboard_router)
 
 # Mount frontend directory
 frontend_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend")
