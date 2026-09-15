@@ -4,13 +4,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.models import challenge, evaluation, gamification, otp, user 
+from app.models import challenge, evaluation, gamification, otp, user, notification
+
 from app.routers import ai as ai_router
 from app.routers import auth
-from app.routers import challenges as challenges_router  
+from app.routers import challenges as challenges_router
 from app.routers import evaluation as evaluation_router
 from app.routers import gamification as gamification_router
 from app.routers import user as user_router
+from app.routers import dashboard as dashboard_router
+from app.routers import notification as notification_router
+
 from app.services.gamification_listeners import register_gamification_listeners
 
 
@@ -35,7 +39,9 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(user_router.router)
 app.include_router(ai_router.router)
-app.include_router(challenges_router.router) 
+app.include_router(dashboard_router.router)
+app.include_router(notification_router.router)
+app.include_router(challenges_router.router)
 app.include_router(gamification_router.router)
 app.include_router(evaluation_router.router)
 

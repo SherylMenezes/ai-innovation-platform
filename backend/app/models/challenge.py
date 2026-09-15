@@ -21,7 +21,7 @@ class Enrollment(Base):
     __tablename__ = "enrollments"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
     status = Column(String(50), default="active")              # active, completed, abandoned
     enrolled_at = Column(DateTime, default=datetime.utcnow)
