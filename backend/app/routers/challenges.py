@@ -7,6 +7,7 @@ from app.models.challenge import Challenge, Enrollment
 from app.models.user import User
 from app.schemas.challenge import ChallengeResponse, EnrollmentResponse
 from app.services.storage_service import storage_service
+from app.services.recommendation_service import get_recommended_challenges
 from app.security import get_current_user
 
 router = APIRouter(prefix="/api/challenges", tags=["challenges"])
@@ -32,6 +33,24 @@ def get_challenges(
             Challenge.title.ilike(f"%{search}%") | Challenge.description.ilike(f"%{search}%")
         )
     return query.all()
+
+# Day 3: Personalized challenge recommendation feed
+@router.get("/recommended", response_model=List[ChallengeResponse])
+def get_recommended_challenge_feed(
+    limit: int = Query(
+        10,
+        ge=1,
+        le=50,
+        description="Maximum number of recommendations",
+    ),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return get_recommended_challenges(
+        db=db,
+        user=current_user,
+        limit=limit,
+    )
 
 # Day 2: GET /api/challenges/{id} (detail + constraints)
 @router.get("/{id}", response_model=ChallengeResponse)
