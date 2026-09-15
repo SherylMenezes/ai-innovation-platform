@@ -6,8 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.database import Base, engine  
-from app.models import challenge, evaluation, gamification, otp, user 
+from app.database import Base, engine
+from app.models import challenge, evaluation, gamification, ideation, otp, user
 
 from app.routers import (
     ai as ai_router,
@@ -15,6 +15,7 @@ from app.routers import (
     challenges as challenges_router,
     evaluation as evaluation_router,
     gamification as gamification_router,
+    ideation as ideation_router,
     user as user_router,
 )
 from app.services.gamification_listeners import register_gamification_listeners
@@ -52,6 +53,7 @@ app.include_router(ai_router.router)
 app.include_router(challenges_router.router)
 app.include_router(gamification_router.router)
 app.include_router(evaluation_router.router)
+app.include_router(ideation_router.router)
 
 # Optional: Serve built frontend if present
 frontend_dist_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")

@@ -1,3 +1,13 @@
+import os
+
+# Must run before any `app.*` import: app.config's `settings` singleton
+# (and the SQLAlchemy `engine` bound to it in app.database) is created on
+# first import and never re-reads the environment afterward. Without this,
+# every test file's own DATABASE_URL override is a no-op — the whole
+# suite silently runs against the real dev database, and test_gamification
+# .py's per-test drop_all/create_all wipes it on every run.
+os.environ.setdefault("DATABASE_URL", "sqlite:///./test.db")
+
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app

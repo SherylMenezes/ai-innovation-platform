@@ -12,16 +12,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
+from app.models.gamification import UserGamificationProfile
 from app.schemas.gamification import AwardXpRequest, AwardXpResponse, StreakCheckInResponse, UserStatsResponse
-from app.services.gamification_service import UserNotFoundError, award_xp
-from app.security import require_role, decode_token
-
-from datetime import datetime, timezone, timedelta
-from app.models.gamification import UserGamification, XPHistory
-from fastapi.security import OAuth2PasswordBearer
+from app.services.gamification_service import UserNotFoundError, award_xp, record_streak_checkin
+from app.security import require_role, get_current_user
 
 router = APIRouter(prefix="/api/gamification", tags=["gamification"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 @router.post("/award-xp", response_model=AwardXpResponse)
 async def award_xp_endpoint(
@@ -53,82 +49,45 @@ async def award_xp_endpoint(
     )
 
 
-def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
-    payload = decode_token(token)
-    if not payload or "sub" not in payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
-    return payload.get("user_id", 1)
-
-
 @router.post("/streak/check-in", response_model=StreakCheckInResponse)
-def streak_check_in(
-    user_id: int = Depends(get_current_user_id),
+async def streak_check_in(
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    record = (
-        db.query(UserGamification).filter(UserGamification.user_id == user_id).first()
-    )
-    if not record:
-        record = UserGamification(user_id=user_id, xp=0, current_streak=0, longest_streak=0)
-        db.add(record)
-        db.commit()
-        db.refresh(record)
+    result = await record_streak_checkin(db, current_user.id)
 
-    now = datetime.now(timezone.utc)
-    xp_to_award = 10
-
-    if record.last_check_in:
-        last_date = record.last_check_in.date()
-        today = now.date()
-
-        if last_date == today:
-            return StreakCheckInResponse(
-                current_streak=record.current_streak,
-                longest_streak=record.longest_streak,
-                xp_awarded=0,
-                message="Already checked in today.",
-            )
-        elif last_date == today - timedelta(days=1):
-            record.current_streak += 1
-        else:
-            record.current_streak = 1
-    else:
-        record.current_streak = 1
-
-    if record.current_streak > record.longest_streak:
-        record.longest_streak = record.current_streak
-
-    record.xp += xp_to_award
-    record.last_check_in = now
-
-    history = XPHistory(user_id=user_id, amount=xp_to_award, reason="daily_check_in")
-    db.add(history)
-    db.commit()
-    db.refresh(record)
+    xp_awarded = 0
+    message = "Already checked in today."
+    if result.extended:
+        award = await award_xp(db, current_user.id, 10, "STREAK_CHECKIN")
+        xp_awarded = award.points_awarded
+        message = "Check-in successful!"
 
     return StreakCheckInResponse(
-        current_streak=record.current_streak,
-        longest_streak=record.longest_streak,
-        xp_awarded=xp_to_award,
-        message="Check-in successful!",
+        current_streak=result.current_streak,
+        longest_streak=result.longest_streak,
+        xp_awarded=xp_awarded,
+        message=message,
     )
 
 @router.get("/user-stats", response_model=UserStatsResponse)
 def get_user_stats(
-    user_id: int = Depends(get_current_user_id),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    record = (
-        db.query(UserGamification).filter(UserGamification.user_id == user_id).first()
-    )
-    if not record:
+    profile = db.get(UserGamificationProfile, current_user.id)
+    if profile is None:
         return UserStatsResponse(
-            user_id=user_id,
+            user_id=current_user.id,
             xp=0,
             current_streak=0,
             longest_streak=0,
             last_check_in=None,
         )
-    return record
+    return UserStatsResponse(
+        user_id=profile.user_id,
+        xp=profile.total_xp,
+        current_streak=profile.current_streak,
+        longest_streak=profile.longest_streak,
+        last_check_in=profile.last_checkin_date,
+    )

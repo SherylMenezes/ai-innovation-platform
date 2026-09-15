@@ -2,9 +2,21 @@ import { useState } from "react";
 import "./App.css";
 import ProblemCanvas from "./pages/canvas/ProblemCanvas";
 import IdeationBoard from "./pages/ideation/IdeationBoard";
+import GamificationPanel from "./pages/gamification/GamificationPanel";
+import AuthPage from "./pages/auth/AuthPage";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-function App() {
+function AppShell() {
   const [page, setPage] = useState("canvas");
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+
+  if (isLoading) {
+    return <div className="app-loading">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
 
   return (
     <div className="app-shell">
@@ -25,12 +37,36 @@ function App() {
         >
           Ideation Board
         </button>
+
+        <button
+          type="button"
+          className={page === "progress" ? "active-tab" : ""}
+          onClick={() => setPage("progress")}
+        >
+          My Progress
+        </button>
+
+        <div className="app-nav-spacer" />
+
+        <span className="app-current-user">{user?.name}</span>
+        <button type="button" onClick={logout}>
+          Log out
+        </button>
       </nav>
 
       {page === "canvas" && <ProblemCanvas />}
       {page === "ideation" && <IdeationBoard />}
+      {page === "progress" && <GamificationPanel />}
 
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }
 
