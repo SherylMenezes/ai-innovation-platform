@@ -1,29 +1,29 @@
-from typing import Optional
-
 from pydantic import BaseModel
+from typing import List, Optional
 
 
-class QuickLink(BaseModel):
-    label: str
-    path: str
+class XPData(BaseModel):
+    current_xp: int
+    next_level_xp: int
+    level: int
+    progress_percent: float
 
 
-class ActiveProject(BaseModel):
-    id: str
-    title: str
-    status: str
-
-
-class DashboardOverviewResponse(BaseModel):
-    user_id: str
+class BadgeData(BaseModel):
     name: str
-    academic_tier: str
+    description: str
+    earned: bool
 
-    active_project: Optional[ActiveProject] = None
 
-    notifications_count: int
+class DashboardOverview(BaseModel):
+    user_id: str
 
-    xp: int
-    badges: list[str]
+    active_projects: int
+    completed_projects: int
 
-    quick_links: list[QuickLink]
+    xp: XPData
+    badges: List[BadgeData]
+
+    unread_notifications: int
+
+    quick_links: List[str]
