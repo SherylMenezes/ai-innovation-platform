@@ -4,9 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import Base, engine
-from app.models import otp, user  # noqa: F401 — import so tables register on Base
+from app.models import otp, user, notification # noqa: F401 — import so tables register on Base
 from app.routers import ai as ai_router
 from app.routers import auth, user as user_router
+from app.routers import dashboard as dashboard_router
+from app.routers import notification as notification_router
 
 
 @asynccontextmanager
@@ -29,6 +31,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(user_router.router)
 app.include_router(ai_router.router)
+app.include_router(dashboard_router.router)
+app.include_router(notification_router.router)
 
 
 @app.get("/health")
