@@ -6,6 +6,31 @@
   min-height: 100svh;
 }
 
+.app-loading {
+  min-height: 100svh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #64748b;
+  font-size: 14px;
+}
+
+.app-nav-spacer {
+  flex: 1;
+}
+
+.app-current-user {
+  align-self: center;
+
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+
+  padding: 0 4px;
+}
+
 .app-page-tabs {
   max-width: 1100px;
 

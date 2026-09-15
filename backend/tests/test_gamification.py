@@ -1,8 +1,5 @@
 import asyncio
-import os
 from datetime import datetime, timedelta, timezone
-
-os.environ.setdefault("DATABASE_URL", "sqlite:///./test_gamification.db")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -296,16 +293,19 @@ def test_event_for_unknown_user_does_not_crash_the_broker():
 
 
 # Multiple user check-in scenarios
-def test_streak_daily_reset_and_progression(client, auth_headers):
+def test_streak_daily_reset_and_progression():
+    user = _create_user()
+    headers = _auth_headers(user)
+
     # 1. Initial Check-in
-    res1 = client.post("/api/gamification/streak/check-in", headers=auth_headers)
+    res1 = _post("/api/gamification/streak/check-in", headers=headers)
     assert res1.status_code == 200
     data1 = res1.json()
     assert data1["current_streak"] == 1
     assert data1["xp_awarded"] == 10
 
     # 2. Duplicate Check-in on Same Day
-    res2 = client.post("/api/gamification/streak/check-in", headers=auth_headers)
+    res2 = _post("/api/gamification/streak/check-in", headers=headers)
     assert res2.status_code == 200
     data2 = res2.json()
     assert data2["current_streak"] == 1
@@ -313,8 +313,24 @@ def test_streak_daily_reset_and_progression(client, auth_headers):
     assert "Already checked in" in data2["message"]
 
     # 3. Retrieve User Stats
-    res_stats = client.get("/api/gamification/user-stats", headers=auth_headers)
+    res_stats = client.get("/api/gamification/user-stats", headers=headers)
     assert res_stats.status_code == 200
     stats = res_stats.json()
     assert stats["xp"] == 10
     assert stats["current_streak"] == 1
+    assert stats["user_id"] == user.id
+
+
+def test_streak_check_in_is_isolated_per_user():
+    # The bug this guards against: check-in/user-stats used to resolve to
+    # a hardcoded user_id, so every account silently shared one counter.
+    alice = _create_user(name="Alice")
+    bob = _create_user(name="Bob")
+
+    _post("/api/gamification/streak/check-in", headers=_auth_headers(alice))
+    _post("/api/gamification/streak/check-in", headers=_auth_headers(alice))
+
+    bob_stats = client.get("/api/gamification/user-stats", headers=_auth_headers(bob)).json()
+    assert bob_stats["xp"] == 0
+    assert bob_stats["current_streak"] == 0
+    assert bob_stats["user_id"] == bob.id

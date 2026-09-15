@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./IdeationBoard.css";
 import AiIdeaDrawer from "./AiIdeaDrawer";
+import { useAuth } from "../../context/AuthContext";
+import { listNotes, createNote, updateNote, deleteNote } from "../../api/ideationClient";
 
 // Sticky note color palette. Backgrounds/borders only — note text always
 // stays the app's standard dark slate for readability across all colors.
@@ -99,8 +101,10 @@ function NoteCard({ note, style, className, headerDragProps, onTextChange, onCol
 const UNSORTED_KEY = "__unsorted__";
 
 function IdeationBoard() {
+  const { accessToken } = useAuth();
   const [notes, setNotes] = useState([]);
-  const [nextId, setNextId] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [saveError, setSaveError] = useState("");
   const [draggingId, setDraggingId] = useState(null);
   const [viewMode, setViewMode] = useState("freeform"); // "freeform" | "scamper" | "mindmap"
   const [mindMapCenter, setMindMapCenter] = useState("");
@@ -109,6 +113,30 @@ function IdeationBoard() {
 
   const boardRef = useRef(null);
   const dragInfo = useRef(null); // { id, offsetX, offsetY }
+  // Mirrors `notes` synchronously so drag-end (a stable callback with no
+  // `notes` in its closure) can read each note's just-dropped position
+  // without waiting for a re-render.
+  const notesRef = useRef(notes);
+  useEffect(() => {
+    notesRef.current = notes;
+  }, [notes]);
+  // Same staleness problem as notesRef, for the same reason: handlePointerUp
+  // is declared once (empty dep array) but needs the current accessToken.
+  const updateNoteRef = useRef(() => Promise.resolve());
+  useEffect(() => {
+    updateNoteRef.current = (id, patch) => updateNote(accessToken, id, patch);
+  }, [accessToken]);
+  // Per-note debounce so fast typing doesn't fire a PATCH per keystroke.
+  const textSaveTimers = useRef({});
+
+  useEffect(() => {
+    if (!accessToken) return;
+    setIsLoading(true);
+    listNotes(accessToken)
+      .then(setNotes)
+      .catch((err) => setSaveError(err.message))
+      .finally(() => setIsLoading(false));
+  }, [accessToken]);
 
   // Mind Map's radial layout scales down on narrow viewports so satellite
   // notes stay reachable instead of running off-screen.
@@ -120,7 +148,7 @@ function IdeationBoard() {
 
   const mindMapRadius = viewportWidth < 480 ? 110 : viewportWidth < 768 ? 150 : 220;
 
-  const handleAddNote = (initialText = "") => {
+  const handleAddNote = async (initialText = "") => {
     const board = boardRef.current;
     const boardWidth = board ? board.clientWidth : 900;
     const boardHeight = board ? board.clientHeight : 520;
@@ -130,24 +158,37 @@ function IdeationBoard() {
     const y = clamp(24 + step * STAGGER_STEP, 0, Math.max(0, boardHeight - NOTE_HEIGHT));
     const color = NOTE_COLORS[notes.length % NOTE_COLORS.length].name;
 
-    setNotes((prev) => [...prev, { id: nextId, text: initialText, color, x, y, technique: null }]);
-    setNextId((prev) => prev + 1);
+    try {
+      const created = await createNote(accessToken, { text: initialText, color, x, y, technique: null });
+      setNotes((prev) => [...prev, created]);
+    } catch (err) {
+      setSaveError(err.message);
+    }
   };
 
   const handleDeleteNote = (id) => {
     setNotes((prev) => prev.filter((note) => note.id !== id));
+    deleteNote(accessToken, id).catch((err) => setSaveError(err.message));
   };
 
   const handleTextChange = (id, text) => {
     setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, text } : note)));
+
+    clearTimeout(textSaveTimers.current[id]);
+    textSaveTimers.current[id] = setTimeout(() => {
+      updateNote(accessToken, id, { text }).catch((err) => setSaveError(err.message));
+    }, 600);
   };
 
   const handleColorChange = (id, colorName) => {
     setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, color: colorName } : note)));
+    updateNote(accessToken, id, { color: colorName }).catch((err) => setSaveError(err.message));
   };
 
   const handleAssignTechnique = (id, technique) => {
     setNotes((prev) => prev.map((note) => (note.id === id ? { ...note, technique } : note)));
+    const patch = technique === null ? { clear_technique: true } : { technique };
+    updateNote(accessToken, id, patch).catch((err) => setSaveError(err.message));
   };
 
   // ---- Freeform drag (mouse-based, pixel positions) ----
@@ -174,10 +215,20 @@ function IdeationBoard() {
   const upHandlerRef = useRef(null);
 
   const handlePointerUp = useCallback(() => {
+    const draggedId = dragInfo.current?.id;
     dragInfo.current = null;
     setDraggingId(null);
     window.removeEventListener("mousemove", moveHandlerRef.current);
     window.removeEventListener("mouseup", upHandlerRef.current);
+
+    if (draggedId == null) return;
+    const finalNote = notesRef.current.find((n) => n.id === draggedId);
+    if (finalNote) {
+      updateNoteRef.current(draggedId, { x: finalNote.x, y: finalNote.y }).catch(() => {
+        // Position drift on a failed save isn't worth interrupting the
+        // drag interaction over — the next successful drag corrects it.
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -239,11 +290,15 @@ function IdeationBoard() {
   const handleColumnDrop = (e, technique, key) => {
     e.preventDefault();
     setDragOverKey((prev) => (prev === key ? null : prev));
-    const noteId = Number(e.dataTransfer.getData("text/plain"));
-    if (!Number.isNaN(noteId)) {
+    const noteId = e.dataTransfer.getData("text/plain");
+    if (noteId) {
       handleAssignTechnique(noteId, technique);
     }
   };
+
+  if (isLoading) {
+    return <div className="board-loading">Loading your ideation board...</div>;
+  }
 
   return (
     <div className="ideation-board">
@@ -256,6 +311,12 @@ function IdeationBoard() {
           views to organize them with SCAMPER or a mind map.
         </p>
       </header>
+
+      {saveError && (
+        <p className="board-save-error" onClick={() => setSaveError("")}>
+          {saveError} (click to dismiss)
+        </p>
+      )}
 
       <div className="board-toolbar">
         <button type="button" className="add-note-button" onClick={() => handleAddNote()}>

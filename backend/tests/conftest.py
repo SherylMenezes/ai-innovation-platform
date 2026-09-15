@@ -1,3 +1,14 @@
+import os
+
+# IMPORTANT:
+# Set the test database BEFORE importing anything from app.
+# app.config/settings and the SQLAlchemy engine are initialized
+# during imports, so this must come first.
+os.environ.setdefault(
+    "DATABASE_URL",
+    "sqlite:///./test.db",
+)
+
 import uuid
 import pytest
 
@@ -61,7 +72,9 @@ def auth_headers():
             db.commit()
             db.refresh(user)
 
-        token = create_access_token(user_id=str(user.id))
+        token = create_access_token(
+            user_id=str(user.id)
+        )
 
         return {
             "Authorization": f"Bearer {token}"

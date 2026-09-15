@@ -1,0 +1,123 @@
+.gami-panel {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 0 18px;
+}
+
+.gami-loading {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.gami-stat-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+
+  margin-bottom: 20px;
+}
+
+.gami-stat-card {
+  flex: 1;
+  min-width: 120px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  padding: 18px 12px;
+
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 14px;
+}
+
+.gami-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.gami-stat-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.gami-badges {
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 14px;
+  padding: 16px 18px;
+
+  margin-bottom: 16px;
+}
+
+.gami-badges h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.gami-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.gami-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gami-badge {
+  padding: 6px 12px;
+
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+}
+
+.gami-checkin-button {
+  padding: 11px 20px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+
+  background: #2563eb;
+  border: none;
+  border-radius: 10px;
+
+  cursor: pointer;
+}
+
+.gami-checkin-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.gami-checkin-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gami-info {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #15803d;
+}
+
+.gami-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #b91c1c;
+}
