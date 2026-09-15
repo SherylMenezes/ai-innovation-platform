@@ -1,50 +1,92 @@
-from app.models.user import User
-from app.schemas.dashboard import (
-    DashboardOverviewResponse,
-    QuickLink,
-)
+from sqlalchemy.orm import Session
+
+from app.models.challenge import Enrollment
+from app.models.notification import Notification
 
 
-def build_dashboard_overview(
-    current_user: User,
-) -> DashboardOverviewResponse:
-    """
-    Build the student dashboard overview.
+def get_dashboard_overview(db: Session, user_id: int):
 
-    Some values are placeholders during Week 2 because
-    projects, XP, badges, and notifications are implemented
-    in later tasks.
-    """
+    active_projects = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.user_id == user_id,
+            Enrollment.status == "active"
+        )
+        .count()
+    )
 
-    quick_links = [
-        QuickLink(
-            label="Problem Canvas",
-            path="/canvas",
-        ),
-        QuickLink(
-            label="Ideation Board",
-            path="/ideate",
-        ),
-        QuickLink(
-            label="Challenge Catalog",
-            path="/challenges",
-        ),
+    completed_projects = (
+        db.query(Enrollment)
+        .filter(
+            Enrollment.user_id == user_id,
+            Enrollment.status == "completed"
+        )
+        .count()
+    )
+
+    unread_notifications = (
+        db.query(Notification)
+        .filter(
+            Notification.user_id == user_id,
+            Notification.is_read == False
+        )
+        .count()
+    )
+
+    # -----------------------------------
+    # WEEK 2 PLACEHOLDER GAMIFICATION DATA
+    # Real XP/streak system is Week 3.
+    # -----------------------------------
+
+    current_xp = 350
+    next_level_xp = 500
+    level = 2
+
+    progress_percent = round(
+        (current_xp / next_level_xp) * 100,
+        2
+    )
+
+    badges = [
+        {
+            "name": "First Challenge",
+            "description": "Enrolled in your first challenge",
+            "earned": active_projects > 0
+        },
+        {
+            "name": "Explorer",
+            "description": "Started exploring innovation challenges",
+            "earned": True
+        },
+        {
+            "name": "Project Finisher",
+            "description": "Completed your first project",
+            "earned": completed_projects > 0
+        }
     ]
 
-    return DashboardOverviewResponse(
-        user_id=current_user.id,
-        name=current_user.name,
-        academic_tier=current_user.academic_tier,
+    quick_links = [
+        "/api/challenges",
+        "/api/challenges/recommended",
+        "/api/notifications"
+    ]
 
-        # Will later come from project/enrollment data
-        active_project=None,
+    return {
+        "user_id": user_id,
 
-        # Day 2 will connect real notifications
-        notifications_count=0,
+        "active_projects": active_projects,
+        "completed_projects": completed_projects,
 
-        # Week 2 Day 4 / Week 3 gamification work
-        xp=0,
-        badges=[],
+        "xp": {
+            "current_xp": current_xp,
+            "next_level_xp": next_level_xp,
+            "level": level,
+            "progress_percent": progress_percent
+        },
 
-        quick_links=quick_links,
-    )
+        "badges": badges,
+
+        "unread_notifications": unread_notifications,
+
+        "quick_links": quick_links
+    }
