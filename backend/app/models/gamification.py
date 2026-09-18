@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, String, Column
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, String, Column, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -68,3 +68,29 @@ class XPHistory(Base):
     amount = Column(Integer, nullable=False)
     reason = Column(String(255), nullable=False)  # e.g., 'daily_check_in', 'submission'
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Badge(Base):
+    __tablename__ = "badges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(50), unique=True, nullable=False, index=True)  # e.g. "first_submission"
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=False)
+    icon_url = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class UserBadge(Base):
+    __tablename__ = "user_badges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    badge_id = Column(Integer, ForeignKey("badges.id"), nullable=False)
+    awarded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    badge = relationship("Badge")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "badge_id", name="uq_user_badge"),
+    )

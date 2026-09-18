@@ -6,16 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.database import Base, engine
-from app.models import (
-    challenge,
-    evaluation,
-    gamification,
-    ideation,
-    notification,
-    otp,
-    user,
-)
+from app.database import Base, engine  
+from app.models import challenge, evaluation, gamification, otp, user 
 
 from app.routers import (
     ai as ai_router,
@@ -23,19 +15,16 @@ from app.routers import (
     challenges as challenges_router,
     evaluation as evaluation_router,
     gamification as gamification_router,
-    ideation as ideation_router,
     user as user_router,
+    submissions,
 )
-
-from app.routers.dashboard import router as dashboard_router
-from app.routers.notification import router as notification_router
-
 from app.services.gamification_listeners import register_gamification_listeners
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Auto-create all tables in SQLite / PostgreSQL
     Base.metadata.create_all(bind=engine)
+    # Register event-driven gamification hooks
     register_gamification_listeners()
     yield
 
@@ -47,20 +36,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
 # CORS configuration for Vite frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "*",
-    ],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # Register all API routers
 app.include_router(auth.router)
@@ -70,45 +53,21 @@ app.include_router(challenges_router.router)
 app.include_router(gamification_router.router)
 app.include_router(evaluation_router.router)
 
-# Week 2 backend routers
-app.include_router(dashboard_router)
-app.include_router(notification_router)
-
-# Ideation router from latest main
-app.include_router(ideation_router.router)
-
-
 # Optional: Serve built frontend if present
-frontend_dist_path = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "..",
-    "frontend",
-    "dist",
-)
-
+frontend_dist_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
 if os.path.exists(frontend_dist_path):
-    app.mount(
-        "/assets",
-        StaticFiles(
-            directory=os.path.join(frontend_dist_path, "assets")
-        ),
-        name="assets",
-    )
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
 
     @app.get("/")
     def serve_frontend_root():
-        index_file = os.path.join(
-            frontend_dist_path,
-            "index.html",
-        )
-
+        index_file = os.path.join(frontend_dist_path, "index.html")
         if os.path.exists(index_file):
             return FileResponse(index_file)
-
         return {"status": "backend running"}
 
 
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+app.include_router(submissions.router)

@@ -1,8 +1,8 @@
-from typing import Any, Optional
+from typing import Any, Optional, List
 
 from pydantic import BaseModel, Field, ConfigDict
 
-from datetime import date
+from datetime import date, datetime
 
 class AwardXpRequest(BaseModel):
     user_id: str = Field(..., min_length=1, description="Target user's id")
@@ -42,3 +42,33 @@ class UserStatsResponse(BaseModel):
     last_check_in: Optional[date] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BadgeItem(BaseModel):
+    id: int
+    slug: str
+    name: str
+    description: str
+    icon_url: Optional[str] = None
+    unlocked: bool = False
+    awarded_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserBadgesResponse(BaseModel):
+    total_unlocked: int
+    badges: List[BadgeItem]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AwardBadgeRequest(BaseModel):
+    user_id: int
+    badge_slug: str
+
+
+class AwardBadgeResponse(BaseModel):
+    success: bool
+    message: str
+    badge: Optional[BadgeItem] = None

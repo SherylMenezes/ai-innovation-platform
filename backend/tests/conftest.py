@@ -26,10 +26,10 @@ from app.models.user import User
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_db():
+    """Create all database tables before tests execute and tear down afterwards."""
     Base.metadata.create_all(bind=engine)
-
     yield
-
+    Base.metadata.drop_all(bind=engine)
 
 # ---------------------------------------------------------
 # FASTAPI TEST CLIENT
@@ -47,38 +47,26 @@ def client():
 
 @pytest.fixture(scope="function")
 def auth_headers():
-    db = next(get_db())
+    # Ensure all tables exist for the current test database instance
+    Base.metadata.create_all(bind=engine)
 
+    db = next(get_db())
     try:
         email = "testuser@example.com"
-
-        # Look for existing test user
-        user = (
-            db.query(User)
-            .filter(User.email == email)
-            .first()
-        )
-
-        # Create test user if it does not exist
-        if user is None:
+        user = db.query(User).filter(User.email == email).first()
+        if not user:
             user = User(
-                id=str(uuid.uuid4()),
-                name="Test User",
                 email=email,
+                name="Test Student",
                 role="student",
+                academic_tier="Graduate",
+                is_verified=True,
             )
-
             db.add(user)
             db.commit()
             db.refresh(user)
 
-        token = create_access_token(
-            user_id=str(user.id)
-        )
-
-        return {
-            "Authorization": f"Bearer {token}"
-        }
-
+        token = create_access_token(user_id=str(user.id))
+        return {"Authorization": f"Bearer {token}"}
     finally:
         db.close()

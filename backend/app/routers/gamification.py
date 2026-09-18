@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.models.gamification import UserGamificationProfile
-from app.schemas.gamification import AwardXpRequest, AwardXpResponse, StreakCheckInResponse, UserStatsResponse
+from app.models.gamification import UserGamificationProfile, Badge, UserBadge
+from app.schemas.gamification import AwardXpRequest, AwardXpResponse, StreakCheckInResponse, UserStatsResponse, BadgeItem, UserBadgesResponse, AwardBadgeRequest, AwardBadgeResponse
 from app.services.gamification_service import UserNotFoundError, award_xp, record_streak_checkin
 from app.security import require_role, get_current_user
 
@@ -90,4 +90,83 @@ def get_user_stats(
         current_streak=profile.current_streak,
         longest_streak=profile.longest_streak,
         last_check_in=profile.last_checkin_date,
+    )
+
+@router.get("/badges", response_model=UserBadgesResponse)
+def get_user_badges(
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    all_badges = db.query(Badge).all()
+    user_awards = {
+        ub.badge_id: ub.awarded_at
+        for ub in db.query(UserBadge).filter(UserBadge.user_id == user_id).all()
+    }
+
+    result = []
+    for b in all_badges:
+        is_unlocked = b.id in user_awards
+        result.append(
+            BadgeItem(
+                id=b.id,
+                slug=b.slug,
+                name=b.name,
+                description=b.description,
+                icon_url=b.icon_url,
+                unlocked=is_unlocked,
+                awarded_at=user_awards.get(b.id),
+            )
+        )
+
+    return UserBadgesResponse(
+        total_unlocked=len(user_awards),
+        badges=result,
+    )
+
+@router.post("/badges/award", response_model=AwardBadgeResponse)
+def award_badge(
+    payload: AwardBadgeRequest,
+    db: Session = Depends(get_db),
+):
+    badge = db.query(Badge).filter(Badge.slug == payload.badge_slug).first()
+    if not badge:
+        raise HTTPException(status_code=404, detail="Badge not found")
+
+    existing = (
+        db.query(UserBadge)
+        .filter(UserBadge.user_id == payload.user_id, UserBadge.badge_id == badge.id)
+        .first()
+    )
+    if existing:
+        return AwardBadgeResponse(
+            success=False,
+            message="Badge already awarded to this user.",
+            badge=BadgeItem(
+                id=badge.id,
+                slug=badge.slug,
+                name=badge.name,
+                description=badge.description,
+                icon_url=badge.icon_url,
+                unlocked=True,
+                awarded_at=existing.awarded_at,
+            ),
+        )
+
+    new_award = UserBadge(user_id=payload.user_id, badge_id=badge.id)
+    db.add(new_award)
+    db.commit()
+    db.refresh(new_award)
+
+    return AwardBadgeResponse(
+        success=True,
+        message="Badge awarded successfully.",
+        badge=BadgeItem(
+            id=badge.id,
+            slug=badge.slug,
+            name=badge.name,
+            description=badge.description,
+            icon_url=badge.icon_url,
+            unlocked=True,
+            awarded_at=new_award.awarded_at,
+        ),
     )
