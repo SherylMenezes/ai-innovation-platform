@@ -53,17 +53,21 @@ app.include_router(challenges_router.router)
 app.include_router(gamification_router.router)
 app.include_router(evaluation_router.router)
 
-# Optional: Serve built frontend if present
-frontend_dist_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
-if os.path.exists(frontend_dist_path):
-    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
+# Resolve path relative to backend root directory
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+frontend_path = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
 
-    @app.get("/")
-    def serve_frontend_root():
-        index_file = os.path.join(frontend_dist_path, "index.html")
+if os.path.exists(frontend_path):
+    app.mount("/static", StaticFiles(directory=frontend_path), name="static")
+
+
+@app.get("/")
+def serve_canvas():
+    if os.path.exists(frontend_path):
+        index_file = os.path.join(frontend_path, "index.html")
         if os.path.exists(index_file):
             return FileResponse(index_file)
-        return {"status": "backend running"}
+    return {"status": "backend running"}
 
 
 @app.get("/health")

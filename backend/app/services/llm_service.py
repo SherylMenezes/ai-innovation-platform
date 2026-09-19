@@ -1,366 +1,243 @@
-import json
+import os
+import logging
 import asyncio
-from typing import List, AsyncGenerator
+from typing import AsyncGenerator
+from google import genai
+from google.genai import types
+from google.genai.errors import ServerError, APIError, ClientError
+
 from app.schemas.ai import (
     ProblemRefineResponse,
     HMWGenerateResponse,
-    HMWCard,
     ProblemScoreResponse,
-    ScoringDimension,
     ScamperPromptResponse,
-    ScamperSuggestion,
-    MindMapNode,
     MindMapResponse,
-    MindMapRequest,
-    IdeaItem,
-    EvaluatedIdea,
     IdeaEvaluationResponse,
-    GeneratedIdea,
     GenerateIdeasResponse,
     RemixIdeasResponse,
     IdeaScoreResponse,
-    IdeaScoreBreakdown,
-    RiskItem,
     RiskAnalysisResponse,
     SWOTAnalysisResponse,
     MentorCoachResponse,
 )
 
+logger = logging.getLogger("uvicorn.error")
+
+# Supported models for the google-genai SDK
+MODEL_CANDIDATES = [
+    "gemini-3.6-flash",
+    "gemini-2.5-flash",
+]
+
+
+def _get_client() -> genai.Client:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise ValueError(
+            "GEMINI_API_KEY environment variable is missing or empty. "
+            "Ensure load_dotenv() is called in main.py and .env contains GEMINI_API_KEY."
+        )
+    return genai.Client(api_key=api_key)
+
+
+async def _generate_with_fallback(prompt: str, response_schema=None, system_instruction: str = ""):
+    """Helper that retries across supported models if API deprecations or server errors occur."""
+    client = _get_client()
+    last_exception = None
+
+    for model_name in MODEL_CANDIDATES:
+        try:
+            config = types.GenerateContentConfig(
+                temperature=0.7,
+                response_mime_type="application/json" if response_schema else None,
+                response_schema=response_schema if response_schema else None,
+                system_instruction=system_instruction if system_instruction else None,
+            )
+            response = await client.aio.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=config,
+            )
+            return response
+        except (ServerError, APIError, ClientError) as e:
+            logger.warning(
+                f"Model '{model_name}' failed with error ({type(e).__name__}: {e}). "
+                f"Attempting fallback to next model..."
+            )
+            last_exception = e
+            await asyncio.sleep(0.5)
+            continue
+        except Exception as e:
+            logger.error(f"Unexpected exception while invoking {model_name}: {e}")
+            last_exception = e
+            continue
+
+    if last_exception:
+        raise last_exception
+
+
 async def refine_problem_statement(problem_statement: str) -> ProblemRefineResponse:
-    return ProblemRefineResponse(
-        synthesized_root_cause="Absence of a unified, guided platform directly bridging user intent with structured execution frameworks.",
-        five_whys=[
-            "W1: Users lack access to integrated tooling and real-time guidance.",
-            "W2: Current workflows rely on disconnected resources and ad-hoc practices.",
-            "W3: There is no centralized platform bridging structured frameworks with active tasks.",
-            "W4: Project execution stalls without structured iterative milestones.",
-            "W5: Students cannot easily map academic projects to real-world industrial needs."
-        ]
-    )
+    prompt = f"""
+Perform a '5 Whys' root cause analysis for the following problem statement:
+"{problem_statement}"
+
+Provide:
+1. "five_whys": A list of exactly 5 strings representing the sequential 'Why' questions and answers leading to the root cause.
+2. "synthesized_root_cause": A clear, single-sentence summary of the core underlying issue.
+"""
+    try:
+        response = await _generate_with_fallback(
+            prompt=prompt,
+            response_schema=ProblemRefineResponse,
+            system_instruction="You are an expert product design and engineering coach."
+        )
+        return ProblemRefineResponse.model_validate_json(response.text)
+    except Exception as e:
+        logger.error(f"Gemini API Error in refine_problem_statement: {e}", exc_info=True)
+        raise e
+
 
 async def generate_hmw_statements(root_cause: str) -> HMWGenerateResponse:
-    cards = [
-        HMWCard(
-            id="hmw-1",
-            category="Ecosystem & Mentorship",
-            statement="How might we connect students directly with industry mentors through real-world problem sets?"
-        ),
-        HMWCard(
-            id="hmw-2",
-            category="Curriculum Alignment",
-            statement="How might we embed active industry project challenges directly into university course credit?"
-        ),
-        HMWCard(
-            id="hmw-3",
-            category="Gamification & Motivation",
-            statement="How might we gamify project milestones to encourage consistent team execution?"
-        ),
-        HMWCard(
-            id="hmw-4",
-            category="Career & Proof-of-Work",
-            statement="How might we turn student project deliverables into verified competency profiles for recruiters?"
-        )
-    ]
-    return HMWGenerateResponse(cards=cards)
+    prompt = f"Based on this root cause analysis, generate structured 'How Might We' (HMW) statements:\n\"{root_cause}\""
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=HMWGenerateResponse,
+        system_instruction="Generate 4 diverse 'How Might We' cards categorized appropriately."
+    )
+    return HMWGenerateResponse.model_validate_json(response.text)
+
 
 async def score_problem_statement(problem_statement: str) -> ProblemScoreResponse:
-    words = problem_statement.strip().split()
-    word_count = len(words)
-
-    clarity_score = min(100, max(45, word_count * 5))
-    has_cause = any(k in problem_statement.lower() for k in ["because", "struggle", "lack", "unable", "due to", "fail"])
-    specificity_score = 85 if has_cause else 55
-    actionability_score = 80 if word_count >= 8 else 45
-
-    overall = int((clarity_score + specificity_score + actionability_score) / 3)
-    grade = "Excellent" if overall >= 80 else ("Good" if overall >= 65 else "Needs Refinement")
-
-    return ProblemScoreResponse(
-        overall_score=overall,
-        grade=grade,
-        dimensions=[
-            ScoringDimension(name="Clarity", score=clarity_score, feedback="Clarity of core user struggle."),
-            ScoringDimension(name="Specificity", score=specificity_score, feedback="Identifies concrete pain points."),
-            ScoringDimension(name="Actionability", score=actionability_score, feedback="Actionable for design-thinking steps.")
-        ],
-        strengths=["Clear persona context", "Identifiable problem domain"],
-        improvements=["Include quantifiable metrics or operational constraints"]
+    prompt = f"Evaluate and score the clarity, specificity, and actionability of this problem statement:\n\"{problem_statement}\""
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=ProblemScoreResponse,
+        system_instruction="Score the problem statement on a scale of 0-100 across Clarity, Specificity, and Actionability."
     )
+    return ProblemScoreResponse.model_validate_json(response.text)
 
-SCAMPER_PROMPTS = {
-    "Substitute": "What components, manual procedures, or traditional learning materials can be substituted with automated or modern equivalents?",
-    "Combine": "How can we merge this problem solving process with external tools, gamified mechanics, or team collaborations?",
-    "Adapt": "What proven solutions from other industries (like open-source development or gaming) can we adapt here?",
-    "Modify": "What features can be magnified, minimized, or made dynamic to speed up student progress?",
-    "Put to another use": "How could this workspace or its outputs be repurposed for recruiter verification or peer mentoring?",
-    "Eliminate": "What administrative friction, unnecessary steps, or paperwork can be completely eliminated?",
-    "Reverse": "What happens if we reverse the flow—having companies pitch challenges directly to students rather than students applying?"
-}
 
 async def generate_scamper_prompts(hmw_statement: str) -> ScamperPromptResponse:
-    seeds = [
-        ScamperSuggestion(
-            technique="Substitute",
-            prompt_question=SCAMPER_PROMPTS["Substitute"],
-            idea_seed="Replace static problem PDFs with interactive challenge canvases linked to live GitHub templates."
-        ),
-        ScamperSuggestion(
-            technique="Combine",
-            prompt_question=SCAMPER_PROMPTS["Combine"],
-            idea_seed="Combine automated peer code reviews with real-time mentor office hours."
-        ),
-        ScamperSuggestion(
-            technique="Adapt",
-            prompt_question=SCAMPER_PROMPTS["Adapt"],
-            idea_seed="Adapt RPG quest progression loops to represent project development milestones."
-        ),
-        ScamperSuggestion(
-            technique="Modify",
-            prompt_question=SCAMPER_PROMPTS["Modify"],
-            idea_seed="Convert semester-long final projects into weekly verifiable micro-sprints."
-        ),
-        ScamperSuggestion(
-            technique="Put to another use",
-            prompt_question=SCAMPER_PROMPTS["Put to another use"],
-            idea_seed="Repurpose finished milestone artifacts directly as interactive portfolio proof-of-work cards."
-        ),
-        ScamperSuggestion(
-            technique="Eliminate",
-            prompt_question=SCAMPER_PROMPTS["Eliminate"],
-            idea_seed="Eliminate generic resume screening by letting project test-suite pass rates prove competence."
-        ),
-        ScamperSuggestion(
-            technique="Reverse",
-            prompt_question=SCAMPER_PROMPTS["Reverse"],
-            idea_seed="Flip the discovery flow: let verified student project squads receive bounty invitations from startups."
-        )
-    ]
-    return ScamperPromptResponse(hmw_statement=hmw_statement, suggestions=seeds)
+    prompt = f"Apply all 7 SCAMPER techniques to this HMW statement:\n\"{hmw_statement}\""
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=ScamperPromptResponse,
+        system_instruction="Provide innovative SCAMPER ideation prompts and idea seeds."
+    )
+    return ScamperPromptResponse.model_validate_json(response.text)
+
 
 async def generate_mind_map_nodes(concept: str) -> MindMapResponse:
-    nodes = [
-        MindMapNode(id="root", label=concept[:40] + "...", parent_id=None, category="core"),
-        MindMapNode(id="branch-1", label="Curriculum Integration", parent_id="root", category="education"),
-        MindMapNode(id="sub-1-1", label="Capstone Project Matching", parent_id="branch-1", category="education"),
-        MindMapNode(id="sub-1-2", label="Course Credit Accreditation", parent_id="branch-1", category="education"),
-        MindMapNode(id="branch-2", label="Industry Mentorship", parent_id="root", category="industry"),
-        MindMapNode(id="sub-2-1", label="Weekly Tech Office Hours", parent_id="branch-2", category="industry"),
-        MindMapNode(id="sub-2-2", label="Code Review Bounty Program", parent_id="branch-2", category="industry"),
-        MindMapNode(id="branch-3", label="Proof of Competency", parent_id="root", category="career"),
-        MindMapNode(id="sub-3-1", label="Automated Test-Suite Badging", parent_id="branch-3", category="career"),
-        MindMapNode(id="sub-3-2", label="Live Project Portfolio Cards", parent_id="branch-3", category="career"),
-    ]
-    return MindMapResponse(root_concept=concept, nodes=nodes)
+    prompt = f"Create a hierarchical mind map structure for the concept:\n\"{concept}\""
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=MindMapResponse,
+        system_instruction="Return a root node and key branch nodes forming a clean hierarchy."
+    )
+    return MindMapResponse.model_validate_json(response.text)
+
 
 async def evaluate_ideation_list(ideas: list) -> IdeaEvaluationResponse:
-    results = []
-    for item in ideas:
-        feasibility = 8 if any(k in item.title.lower() for k in ["canvas", "card", "tree"]) else 6
-        impact = 9 if any(k in item.title.lower() for k in ["industry", "recruiter", "bounty"]) else 7
+    ideas_text = "\n".join([
+        f"- ID: {getattr(i, 'id', idx)}, Title: {getattr(i, 'title', str(i))}, Description: {getattr(i, 'description', '')}"
+        for idx, i in enumerate(ideas)
+    ])
+    prompt = f"Evaluate these ideas on Feasibility and Impact into 2x2 quadrants:\n{ideas_text}"
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=IdeaEvaluationResponse,
+        system_instruction="Quadrants must be assigned as 'Quick Win', 'Major Project', 'Fill-in', or 'Thankless Task'."
+    )
+    return IdeaEvaluationResponse.model_validate_json(response.text)
 
-        quadrant = "Quick Win" if feasibility >= 7 and impact >= 7 else "Major Project"
-        if feasibility < 7 and impact < 7:
-            quadrant = "Fill-in"
-
-        results.append(
-            EvaluatedIdea(
-                id=item.id,
-                title=item.title,
-                feasibility_score=feasibility,
-                impact_score=impact,
-                quadrant=quadrant,
-                rationale=f"Evaluated against practical implementation complexity ({feasibility}/10) and user value ({impact}/10)."
-            )
-        )
-    return IdeaEvaluationResponse(evaluated_ideas=results)
 
 async def generate_divergent_ideas(context: str, count: int = 5) -> GenerateIdeasResponse:
-    base_ideas = [
-        GeneratedIdea(id="idea-d1", title="AI Project Matching Canvas", description="Matches student profiles with live company problem backlogs.", category="Platform"),
-        GeneratedIdea(id="idea-d2", title="Automated Peer Review Sprints", description="Micro-milestones evaluated by automated test runners and peers.", category="Workflow"),
-        GeneratedIdea(id="idea-d3", title="Proof-of-Work Credentialing", description="Converts passing unit tests into verified portfolio tokens.", category="Verification"),
-        GeneratedIdea(id="idea-d4", title="Industry Mentor Office-Hours Bounty", description="Engineers earn open-source credits for hosting weekly office hours.", category="Mentorship"),
-        GeneratedIdea(id="idea-d5", title="Gamified Project Skill Trees", description="Visual branch progression mapping code commits to resume skills.", category="Gamification"),
-    ]
+    prompt = f"Generate {count} creative, divergent project ideas based on context:\n\"{context}\""
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=GenerateIdeasResponse,
+        system_instruction="Provide unique, non-overlapping product/feature concepts."
+    )
+    return GenerateIdeasResponse.model_validate_json(response.text)
 
-    seen_titles = set()
-    deduped = []
-    for idea in base_ideas[:count]:
-        if idea.title.lower() not in seen_titles:
-            seen_titles.add(idea.title.lower())
-            deduped.append(idea)
-
-    return GenerateIdeasResponse(ideas=deduped)
 
 async def remix_ideas(descriptions: list) -> RemixIdeasResponse:
-    combined_title = "Gamified Project Sprints with Verified Skill Badges"
-    combined_concept = f"A blended approach combining: '{descriptions[0]}' and '{descriptions[1]}' into an integrated execution loop."
-    return RemixIdeasResponse(
-        remixed_title=combined_title,
-        remixed_concept=combined_concept,
-        combined_elements=[descriptions[0][:40], descriptions[1][:40]]
+    prompt = f"Remix and combine the following idea concepts into a cohesive hybrid solution:\n" + "\n".join(descriptions)
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=RemixIdeasResponse,
+        system_instruction="Synthesize key elements into an innovative, single hybrid concept."
     )
+    return RemixIdeasResponse.model_validate_json(response.text)
 
-# --- Week 3 Implementations ---
 
 async def calculate_idea_score(title: str, description: str) -> IdeaScoreResponse:
-    text = f"{title} {description}".lower()
-
-    feasibility = 8 if any(k in text for k in ["api", "template", "workflow", "canvas", "dashboard"]) else 6
-    if "hardware" in text or "blockchain" in text:
-        feasibility = 4
-
-    impact = 9 if any(k in text for k in ["recruiter", "mentor", "industry", "career", "grade", "portfolio"]) else 7
-    complexity = 4 if ("simple" in text or "template" in text) else (8 if any(k in text for k in ["ai", "ml", "real-time", "distributed"]) else 6)
-
-    if feasibility >= 7 and impact >= 7:
-        quadrant = "Quick Win"
-    elif feasibility < 7 and impact >= 7:
-        quadrant = "Major Project"
-    elif feasibility >= 7 and impact < 7:
-        quadrant = "Fill-in"
-    else:
-        quadrant = "Thankless Task"
-
-    return IdeaScoreResponse(
-        title=title,
-        feasibility=feasibility,
-        impact=impact,
-        complexity=complexity,
-        quadrant=quadrant,
-        breakdown=IdeaScoreBreakdown(
-            feasibility_notes=f"Estimated technical feasibility: {feasibility}/10 based on standard architecture requirements.",
-            impact_notes=f"Anticipated value delivery: {impact}/10 for targeted student/industry stakeholders.",
-            complexity_notes=f"Execution complexity: {complexity}/10 considering implementation surface area."
-        )
+    prompt = f"Score this idea concept:\nTitle: {title}\nDescription: {description}"
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=IdeaScoreResponse,
+        system_instruction="Evaluate technical feasibility, user impact, and execution complexity."
     )
+    return IdeaScoreResponse.model_validate_json(response.text)
+
 
 async def analyze_idea_risks(title: str, description: str = "") -> RiskAnalysisResponse:
-    combined = f"{title} {description}".lower()
-
-    risks = [
-        RiskItem(
-            category="Technical",
-            severity="Medium" if ("ai" in combined or "ml" in combined) else "Low",
-            description="Latency and model variance when handling real-time unstructured inputs.",
-            mitigation="Implement deterministic heuristic fallbacks and local cache layers."
-        ),
-        RiskItem(
-            category="Adoption",
-            severity="High" if ("mentor" in combined or "recruiter" in combined) else "Medium",
-            description="Friction in engaging external professional participants consistently.",
-            mitigation="Incentivize participation using asynchronous review queues and gamified points."
-        ),
-        RiskItem(
-            category="Execution",
-            severity="Medium",
-            description="Complex scope across multi-disciplinary user roles delaying initial MVP test.",
-            mitigation="Focus current release slice strictly on the core automated evaluation loops."
-        )
-    ]
-
-    has_high = any(r.severity == "High" for r in risks)
-    overall_level = "Elevated" if has_high else "Moderate"
-
-    return RiskAnalysisResponse(
-        idea_title=title,
-        overall_risk_level=overall_level,
-        risks=risks
+    prompt = f"Perform a comprehensive risk analysis for:\nTitle: {title}\nDescription: {description}"
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=RiskAnalysisResponse,
+        system_instruction="Identify Technical, Adoption, and Execution risks with actionable mitigations."
     )
+    return RiskAnalysisResponse.model_validate_json(response.text)
+
 
 async def generate_swot_analysis(title: str, description: str) -> SWOTAnalysisResponse:
-    text = f"{title} {description}".lower()
-
-    strengths = [
-        "Strong direct alignment with user pain points in student-industry coordination.",
-        "Modular microservice structure allowing independent evaluation and scoring."
-    ]
-    weaknesses = [
-        "Initial dependency on consistent input quality for high-accuracy scoring.",
-        "Requires active participant engagement to fully realize network effects."
-    ]
-    opportunities = [
-        "Integration into accredited university curriculum capstone programs.",
-        "Monetizable candidate discovery funnel for engineering recruiting partners."
-    ]
-    threats = [
-        "Generic LLM wrapper saturation in the edtech productivity market.",
-        "Mentor time constraints causing latency in collaborative feedback loops."
-    ]
-
-    recommendation = (
-        "Focus first on standardizing the automated rubric scoring before expanding to multi-party mentor syncs."
-        if "mentor" in text else
-        "Ship the core scoring matrix as a self-serve student workspace widget to drive immediate adoption."
+    prompt = f"Perform a SWOT analysis for:\nTitle: {title}\nDescription: {description}"
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=SWOTAnalysisResponse,
+        system_instruction="Provide actionable SWOT factors and a strategic recommendation."
     )
+    return SWOTAnalysisResponse.model_validate_json(response.text)
 
-    return SWOTAnalysisResponse(
-        title=title,
-        strengths=strengths,
-        weaknesses=weaknesses,
-        opportunities=opportunities,
-        threats=threats,
-        strategic_recommendation=recommendation
-    )
 
 async def run_mentor_coach(workspace_context: str, user_query: str, stage: str) -> MentorCoachResponse:
-    q_lower = user_query.lower()
-
-    if "how do i" in q_lower or "how to" in q_lower:
-        coach_response = (
-            f"You're currently exploring solutions in the '{stage}' stage. "
-            f"Rather than jumping straight to implementation, let's dissect the operational bottleneck in: '{workspace_context[:60]}...'."
-        )
-        questions = [
-            "What is the single highest-risk assumption in your current architecture?",
-            "How could we validate this concept with mock data before writing full persistence models?",
-            "What telemetry will prove that users are succeeding with this flow?"
-        ]
-        action = "Define a minimal acceptance criteria checklist for this feature."
-    else:
-        coach_response = (
-            f"In the context of '{workspace_context[:50]}...', your thought highlights an important design trade-off. "
-            "A solid engineering solution balances feasibility with immediate user utility."
-        )
-        questions = [
-            "Does this feature belong in the 'Quick Win' quadrant or is it an ambitious 'Major Project'?",
-            "What can be eliminated from this specification without reducing value?"
-        ]
-        action = "Run this concept through the /api/ai/score-idea endpoint to evaluate its quadrant."
-
-    return MentorCoachResponse(
-        coach_response=coach_response,
-        socratic_questions=questions,
-        recommended_action=action
+    prompt = f"Stage: {stage}\nWorkspace Context: {workspace_context}\nUser Query: {user_query}"
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=MentorCoachResponse,
+        system_instruction="Act as a Socratic engineering coach. Guide the user with questions rather than giving direct answers."
     )
+    return MentorCoachResponse.model_validate_json(response.text)
 
-# --- Week 4 Day 1 Implementation ---
 
 async def stream_socratic_mentor(workspace_context: str, user_query: str, current_stage: str) -> AsyncGenerator[str, None]:
-    """Week 4 Day 1: Streaming Socratic Mentor Coach."""
-    intro = f"[AI Mentor | Stage: {current_stage}]\n\n"
-    for chunk in intro.split(" "):
-        yield f"{chunk} "
-        await asyncio.sleep(0.04)
+    client = _get_client()
+    prompt = (
+        f"You are a Socratic AI Engineering Coach.\n"
+        f"Current Stage: {current_stage}\n"
+        f"Workspace Context: {workspace_context}\n"
+        f"User Query: {user_query}\n\n"
+        f"Guide the user through Socratic questioning and critical evaluation."
+    )
+    
+    last_exception = None
+    for model_name in MODEL_CANDIDATES:
+        try:
+            response_stream = await client.aio.models.generate_content_stream(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(temperature=0.7),
+            )
+            async for chunk in response_stream:
+                if chunk.text:
+                    yield chunk.text
+            return
+        except Exception as e:
+            logger.warning(f"Streaming failed on {model_name}: {e}. Retrying with next model...")
+            last_exception = e
+            await asyncio.sleep(0.5)
+            continue
 
-    q_lower = user_query.lower()
-    if any(k in q_lower for k in ["give me", "write it for me", "tell me the answer", "code it"]):
-        dialogue = (
-            "As your engineering coach, I won't write the direct solution for you. "
-            f"Let's break down your challenge in the {current_stage} stage instead:\n\n"
-            f"1. What is the fundamental operational constraint in: '{workspace_context[:60]}...'?\n"
-            "2. If you had to build a trivial manual prototype first, what single capability must work?\n"
-            "3. What trade-offs exist between building this yourself versus leveraging existing libraries?"
-        )
-    else:
-        dialogue = (
-            f"That's a relevant design query for the {current_stage} milestone. "
-            f"Looking at your active work ('{workspace_context[:50]}...'), consider these hints:\n\n"
-            "• Hint 1: Focus on your core data flow before adding edge-case handling.\n"
-            "• Hint 2: Check whether this belongs in the 'Quick Win' quadrant or requires high infrastructure overhead.\n"
-            "• Prompt: How will your target users immediately notice if this step succeeds or fails?"
-        )
-
-    for word in dialogue.split(" "):
-        yield f"{word} "
-        await asyncio.sleep(0.04)
+    if last_exception:
+        raise last_exception

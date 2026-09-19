@@ -72,7 +72,10 @@ async def evaluate_ideas(payload: IdeaEvaluationRequest):
 
 @router.post("/generate-ideas", response_model=GenerateIdeasResponse)
 async def get_divergent_ideas(payload: GenerateIdeasRequest):
-    return await generate_divergent_ideas(payload.problem_or_hmw, payload.count)
+    return await generate_divergent_ideas(
+        context=payload.problem_or_hmw, 
+        count=payload.count or 5
+    )
 
 @router.post("/remix-ideas", response_model=RemixIdeasResponse)
 async def get_remixed_ideas(payload: RemixIdeasRequest):
