@@ -24,11 +24,12 @@ from app.schemas.ai import (
 logger = logging.getLogger("uvicorn.error")
 
 # Supported models for the google-genai SDK
+# Supported models for the google-genai SDK
 MODEL_CANDIDATES = [
     "gemini-3.6-flash",
-    "gemini-2.5-flash",
+    "gemini-3.5-flash",
+    "gemini-1.5-flash",
 ]
-
 
 def _get_client() -> genai.Client:
     api_key = os.getenv("GEMINI_API_KEY")
