@@ -16,3 +16,5 @@ redis
 boto3
 sendgrid
 supabase
+psycopg2-binary
+google-genai

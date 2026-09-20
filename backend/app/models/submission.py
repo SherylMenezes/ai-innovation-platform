@@ -9,7 +9,7 @@ class Submission(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(String(36), ForeignKey("users.id"), nullable=False)
     file_url = Column(String(500), nullable=False)
     repository_url = Column(String(500), nullable=True)
     status = Column(String(50), default="submitted")  # submitted, evaluating, evaluated
