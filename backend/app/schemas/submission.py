@@ -19,10 +19,16 @@ class ScorecardResponse(BaseModel):
 class SubmissionStatusResponse(BaseModel):
     id: int
     challenge_id: int
-    user_id: int
+    user_id: str
     status: str
     file_url: str
     created_at: Optional[datetime] = None
     scorecard: Optional[ScorecardResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EvaluateSubmissionResponse(BaseModel):
+    job_id: str
+    submission_id: int
+    status: str

@@ -1,13 +1,21 @@
 from contextlib import asynccontextmanager
 import os
 
+from dotenv import load_dotenv
+
+# Must run before any module reads os.getenv() at call time — e.g.
+# llm_service.py's _get_client() reads GEMINI_API_KEY straight from the
+# process environment, which pydantic-settings' own .env loading (in
+# app/config.py) never populates; only python-dotenv does that.
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.database import Base, engine  
-from app.models import challenge, evaluation, gamification, otp, user 
+from app.database import Base, engine
+from app.models import challenge, evaluation, gamification, ideation, otp, user
 
 from app.routers import (
     ai as ai_router,
@@ -15,6 +23,7 @@ from app.routers import (
     challenges as challenges_router,
     evaluation as evaluation_router,
     gamification as gamification_router,
+    ideation as ideation_router,
     user as user_router,
     submissions,
 )
@@ -52,6 +61,7 @@ app.include_router(ai_router.router)
 app.include_router(challenges_router.router)
 app.include_router(gamification_router.router)
 app.include_router(evaluation_router.router)
+app.include_router(ideation_router.router)
 
 # Resolve path relative to backend root directory
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

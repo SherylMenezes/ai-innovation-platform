@@ -7,14 +7,16 @@ directly would let them award themselves unlimited XP. The path students
 actually earn XP through is the Day 3 event broker (task completions,
 challenge submissions, etc.), not a direct call to this endpoint.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
 from app.models.gamification import UserGamificationProfile, Badge, UserBadge
 from app.schemas.gamification import AwardXpRequest, AwardXpResponse, StreakCheckInResponse, UserStatsResponse, BadgeItem, UserBadgesResponse, AwardBadgeRequest, AwardBadgeResponse
+from app.schemas.leaderboard import LeaderboardResponse, LeaderboardScope
 from app.services.gamification_service import UserNotFoundError, award_xp, record_streak_checkin
+from app.services.leaderboard_service import InvalidScopeError, get_leaderboard
 from app.security import require_role, get_current_user
 
 router = APIRouter(prefix="/api/gamification", tags=["gamification"])
@@ -92,15 +94,28 @@ def get_user_stats(
         last_check_in=profile.last_checkin_date,
     )
 
+@router.get("/leaderboard", response_model=LeaderboardResponse)
+def leaderboard(
+    scope: LeaderboardScope = Query("global", description="global | institution | class"),
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    try:
+        return get_leaderboard(db, scope, current_user, limit=limit)
+    except InvalidScopeError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+
+
 @router.get("/badges", response_model=UserBadgesResponse)
 def get_user_badges(
-    user_id: int = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     all_badges = db.query(Badge).all()
     user_awards = {
         ub.badge_id: ub.awarded_at
-        for ub in db.query(UserBadge).filter(UserBadge.user_id == user_id).all()
+        for ub in db.query(UserBadge).filter(UserBadge.user_id == current_user.id).all()
     }
 
     result = []
@@ -127,6 +142,10 @@ def get_user_badges(
 def award_badge(
     payload: AwardBadgeRequest,
     db: Session = Depends(get_db),
+    # Same reasoning as award_xp above: this trusts a client-supplied
+    # user_id, so it must not be callable by an unauthenticated caller
+    # or by a student awarding badges to themselves.
+    _current_user: User = Depends(require_role("admin", "mentor")),
 ):
     badge = db.query(Badge).filter(Badge.slug == payload.badge_slug).first()
     if not badge:

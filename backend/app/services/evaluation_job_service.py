@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models.evaluation import EvaluationJob, EvaluationJobStatus
+from app.models.submission import Scorecard, Submission
 from app.services.llm_service import (
     analyze_idea_risks,
     calculate_idea_score,
@@ -24,11 +25,18 @@ class EvaluationJobNotFoundError(Exception):
     pass
 
 
-def create_evaluation_job(db: Session, requested_by: str, title: str, description: str) -> EvaluationJob:
+def create_evaluation_job(
+    db: Session,
+    requested_by: str,
+    title: str,
+    description: str,
+    submission_id: int | None = None,
+) -> EvaluationJob:
     job = EvaluationJob(
         requested_by=requested_by,
         title=title,
         description=description,
+        submission_id=submission_id,
         status=EvaluationJobStatus.pending.value,
     )
     db.add(job)
@@ -57,6 +65,10 @@ async def run_evaluation_job(job_id: str) -> None:
 
         job.status = EvaluationJobStatus.running.value
         job.started_at = datetime.now(timezone.utc)
+        if job.submission_id is not None:
+            submission = db.get(Submission, job.submission_id)
+            if submission is not None:
+                submission.status = "evaluating"
         db.commit()
 
         try:
@@ -72,6 +84,10 @@ async def run_evaluation_job(job_id: str) -> None:
             job.status = EvaluationJobStatus.failed.value
             job.error_message = str(exc)[:1024]
             job.completed_at = datetime.now(timezone.utc)
+            if job.submission_id is not None:
+                submission = db.get(Submission, job.submission_id)
+                if submission is not None:
+                    submission.status = "submitted"
             db.commit()
             logger.exception("Evaluation job %s failed.", job_id)
             return
@@ -79,7 +95,36 @@ async def run_evaluation_job(job_id: str) -> None:
         job.result = result
         job.status = EvaluationJobStatus.completed.value
         job.completed_at = datetime.now(timezone.utc)
+
+        if job.submission_id is not None:
+            _write_scorecard(db, job.submission_id, score)
+
         db.commit()
         logger.info("Evaluation job %s completed.", job_id)
     finally:
         db.close()
+
+
+def _write_scorecard(db: Session, submission_id: int, score) -> None:
+    """Bridges the generic idea-scoring result onto a submission's
+    Scorecard row. There's no dedicated "innovation" dimension in
+    calculate_idea_score yet, so it's approximated as the feasibility/
+    impact composite until a real innovation-scoring signal exists —
+    documented here rather than presented as a distinct measurement."""
+    innovation_score = round((score.feasibility_score + score.impact_score) / 2, 1)
+    overall_score = round((innovation_score + score.feasibility_score + score.impact_score) / 3, 1)
+
+    scorecard = db.query(Scorecard).filter(Scorecard.submission_id == submission_id).first()
+    if scorecard is None:
+        scorecard = Scorecard(submission_id=submission_id)
+        db.add(scorecard)
+
+    scorecard.innovation_score = innovation_score
+    scorecard.feasibility_score = score.feasibility_score
+    scorecard.impact_score = score.impact_score
+    scorecard.overall_score = overall_score
+    scorecard.feedback = score.summary
+
+    submission = db.get(Submission, submission_id)
+    if submission is not None:
+        submission.status = "evaluated"

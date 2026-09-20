@@ -64,7 +64,7 @@ class UserBadgesResponse(BaseModel):
 
 
 class AwardBadgeRequest(BaseModel):
-    user_id: int
+    user_id: str
     badge_slug: str
 
 

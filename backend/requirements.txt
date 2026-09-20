@@ -17,4 +17,9 @@ boto3
 sendgrid
 supabase
 psycopg2-binary
+# Pure-Python fallback for psycopg2 — some locked-down Windows machines
+# (Application Control / AppLocker policies) block psycopg2's compiled
+# DLL outright. If that happens, switch DATABASE_URL's scheme from
+# postgresql:// to postgresql+pg8000:// in your local .env.
+pg8000
 google-genai

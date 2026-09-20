@@ -25,6 +25,11 @@ class EvaluationJob(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     requested_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    # Set when this job was triggered for a specific submission (Epic 4.2
+    # integration) rather than an ad-hoc /api/ai/* style evaluation — lets
+    # run_evaluation_job write its result back into that submission's
+    # Scorecard instead of only the generic `result` JSON blob.
+    submission_id: Mapped[int | None] = mapped_column(ForeignKey("submissions.id"), nullable=True, index=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default=EvaluationJobStatus.pending.value)
