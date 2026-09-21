@@ -1,5 +1,5 @@
 // Thin client for backend/app/routers/ideation.py.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
 
 async function request(path, { method = "GET", body, token } = {}) {
   let response;

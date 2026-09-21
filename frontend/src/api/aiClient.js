@@ -2,7 +2,7 @@
 // VITE_API_BASE_URL (see .env.example) since the backend's run port isn't
 // fixed by any project convention — defaults to FastAPI/uvicorn's own
 // default of 8000.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
 
 async function postJson(path, body) {
   let response;
