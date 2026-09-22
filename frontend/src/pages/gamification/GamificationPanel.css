@@ -121,3 +121,66 @@
   font-size: 13px;
   color: #b91c1c;
 }
+
+.gami-leaderboard {
+  margin-top: 16px;
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.gami-leaderboard h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.gami-leaderboard-scopes {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gami-scope-chip {
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: #2563eb;
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.gami-scope-chip-active {
+  color: white;
+  background: #2563eb;
+}
+
+.gami-leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.gami-leaderboard-table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: #64748b;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.gami-leaderboard-table td {
+  padding: 8px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.gami-leaderboard-you {
+  background: #eff6ff;
+  font-weight: 700;
+}

@@ -1,8 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./IdeaEvaluation.css";
+import { getSwotAnalysis, scoreIdea, getRiskAnalysis, mentorCoach } from "../../api/aiClient";
+import { getWorkspace, saveEvaluationState, advanceStage } from "../../api/challengesClient";
+import { useAuth } from "../../context/AuthContext";
 
-function IdeaEvaluation() {
+function IdeaEvaluation({ challengeId, onStageAdvance }) {
+  const { accessToken } = useAuth();
   const [step, setStep] = useState(1);
+
+  const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(true);
+  const [workspaceError, setWorkspaceError] = useState("");
+  const [isLocked, setIsLocked] = useState(false);
+  const [savingStep, setSavingStep] = useState(null);
+  const [xpToast, setXpToast] = useState("");
+
+  const [idea, setIdea] = useState({ title: "", description: "" });
 
   const [swot, setSwot] = useState({
     strengths: "",
@@ -19,6 +31,147 @@ function IdeaEvaluation() {
   });
 
   const [mentorMessage, setMentorMessage] = useState("");
+  const [mentorReply, setMentorReply] = useState("");
+  const [isMentorLoading, setIsMentorLoading] = useState(false);
+  const [mentorError, setMentorError] = useState("");
+
+  const [isSwotAiLoading, setIsSwotAiLoading] = useState(false);
+  const [swotAiError, setSwotAiError] = useState("");
+  const [swotAiRecommendation, setSwotAiRecommendation] = useState("");
+
+  const [isScoreAiLoading, setIsScoreAiLoading] = useState(false);
+  const [scoreAiError, setScoreAiError] = useState("");
+  const [scoreAiSummary, setScoreAiSummary] = useState("");
+
+  const [riskAnalysis, setRiskAnalysis] = useState(null);
+  const [isRiskLoading, setIsRiskLoading] = useState(false);
+  const [riskError, setRiskError] = useState("");
+
+  // AI scores land on a 0-100 scale; the scoring UI here uses 1-5.
+  const normalizeToFive = (value) => Math.max(1, Math.min(5, Math.round(value / 20)));
+
+  // Load (or resume) this challenge's saved evaluation progress. Prefills
+  // the idea title/description from the challenge itself the first time,
+  // since the challenge already stood in as the problem statement upstream.
+  useEffect(() => {
+    if (!challengeId || !accessToken) return;
+    setIsLoadingWorkspace(true);
+    setWorkspaceError("");
+    getWorkspace(accessToken, challengeId)
+      .then((data) => {
+        setIsLocked(data.status === "completed");
+        const saved = data.evaluation_state || {};
+        setIdea({
+          title: saved.idea_title || data.canvas_state?.selected_idea?.title || data.challenge.title,
+          description: saved.idea_description || data.canvas_state?.selected_idea?.description || "",
+        });
+        if (saved.swot) setSwot(saved.swot);
+        if (saved.scores) setScores(saved.scores);
+        if (saved.swot_recommendation) setSwotAiRecommendation(saved.swot_recommendation);
+        if (saved.score_summary) setScoreAiSummary(saved.score_summary);
+        if (saved.risk_analysis) setRiskAnalysis(saved.risk_analysis);
+      })
+      .catch((err) => setWorkspaceError(err.message))
+      .finally(() => setIsLoadingWorkspace(false));
+  }, [challengeId, accessToken]);
+
+  const buildEvaluationState = (overrides = {}) => ({
+    idea_title: idea.title,
+    idea_description: idea.description,
+    swot,
+    scores,
+    swot_recommendation: swotAiRecommendation,
+    score_summary: scoreAiSummary,
+    risk_analysis: riskAnalysis,
+    ...overrides,
+  });
+
+  const persistStep = async (stepKey, overrides) => {
+    setSavingStep(stepKey);
+    setXpToast("");
+    try {
+      const result = await saveEvaluationState(accessToken, challengeId, buildEvaluationState(overrides), stepKey);
+      if (result.xp_awarded > 0) setXpToast(`+${result.xp_awarded} XP`);
+      return true;
+    } catch (err) {
+      setWorkspaceError(err.message);
+      return false;
+    } finally {
+      setSavingStep(null);
+    }
+  };
+
+  const handleFinishEvaluation = async () => {
+    const saved = await persistStep("eval_complete", {});
+    if (!saved) return;
+    try {
+      const result = await advanceStage(accessToken, challengeId);
+      onStageAdvance?.(result.current_stage);
+    } catch (err) {
+      setWorkspaceError(err.message);
+    }
+  };
+
+  const handleIdeaChange = (field, value) => {
+    setIdea((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAutoFillSwot = async () => {
+    if (!idea.title.trim() || isSwotAiLoading) return;
+    setIsSwotAiLoading(true);
+    setSwotAiError("");
+    try {
+      const result = await getSwotAnalysis(idea.title, idea.description);
+      const nextSwot = {
+        strengths: result.strengths.join("\n"),
+        weaknesses: result.weaknesses.join("\n"),
+        opportunities: result.opportunities.join("\n"),
+        threats: result.threats.join("\n"),
+      };
+      setSwot(nextSwot);
+      setSwotAiRecommendation(result.strategic_recommendation);
+      await persistStep("eval_swot", { swot: nextSwot, swot_recommendation: result.strategic_recommendation });
+    } catch (err) {
+      setSwotAiError(err.message);
+    } finally {
+      setIsSwotAiLoading(false);
+    }
+  };
+
+  const handleScoreWithAi = async () => {
+    if (!idea.title.trim() || isScoreAiLoading) return;
+    setIsScoreAiLoading(true);
+    setScoreAiError("");
+    try {
+      const result = await scoreIdea(idea.title, idea.description);
+      const nextScores = {
+        ...scores,
+        feasibility: normalizeToFive(result.feasibility_score),
+        impact: normalizeToFive(result.impact_score),
+      };
+      setScores(nextScores);
+      setScoreAiSummary(result.summary);
+      await persistStep("eval_scoring", { scores: nextScores, score_summary: result.summary });
+    } catch (err) {
+      setScoreAiError(err.message);
+    } finally {
+      setIsScoreAiLoading(false);
+    }
+  };
+
+  const handleGetRiskAnalysis = async () => {
+    if (!idea.title.trim() || isRiskLoading) return;
+    setIsRiskLoading(true);
+    setRiskError("");
+    try {
+      const result = await getRiskAnalysis(idea.title, idea.description);
+      setRiskAnalysis(result);
+    } catch (err) {
+      setRiskError(err.message);
+    } finally {
+      setIsRiskLoading(false);
+    }
+  };
 
   const handleSwotChange = (field, value) => {
     setSwot((previous) => ({
@@ -50,12 +203,41 @@ function IdeaEvaluation() {
     "Is my idea feasible?",
   ];
 
-  const handleMentorPrompt = (prompt) => {
+  const handleMentorPrompt = async (prompt) => {
+    if (!accessToken || isMentorLoading) return;
     setMentorMessage(prompt);
+    setMentorReply("");
+    setMentorError("");
+    setIsMentorLoading(true);
+    try {
+      const context = JSON.stringify({ idea, swot, scores });
+      const result = await mentorCoach(accessToken, context, prompt, "evaluation", String(challengeId));
+      setMentorReply(result.feedback);
+    } catch (err) {
+      setMentorError(err.message);
+    } finally {
+      setIsMentorLoading(false);
+    }
   };
+
+  if (isLoadingWorkspace) {
+    return <div className="evaluation-page"><p className="canvas-loading">Loading your saved progress...</p></div>;
+  }
+
+  if (isLocked) {
+    return (
+      <div className="evaluation-page">
+        <p className="canvas-loading">
+          This challenge is already completed — open it from the Dashboard or Challenges tab to view your submitted approach.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="evaluation-page">
+      {workspaceError && <p className="ai-error-text">{workspaceError}</p>}
+      {xpToast && <span className="xp-toast">{xpToast}</span>}
 
       {/* =====================================================
           STEP 1 — SWOT ANALYSIS
@@ -72,6 +254,42 @@ function IdeaEvaluation() {
               Analyze your idea by identifying its strengths,
               weaknesses, opportunities, and threats.
             </p>
+          </div>
+
+          <div className="idea-identity">
+            <label htmlFor="idea-title">Idea title</label>
+            <input
+              id="idea-title"
+              type="text"
+              value={idea.title}
+              onChange={(event) => handleIdeaChange("title", event.target.value)}
+              placeholder="e.g. Smart Demand Planning"
+            />
+
+            <label htmlFor="idea-description">Idea description</label>
+            <textarea
+              id="idea-description"
+              value={idea.description}
+              onChange={(event) => handleIdeaChange("description", event.target.value)}
+              placeholder="Briefly describe what the idea does and who it's for..."
+            />
+
+            <button
+              type="button"
+              className="ai-autofill-button"
+              onClick={handleAutoFillSwot}
+              disabled={!idea.title.trim() || isSwotAiLoading}
+            >
+              {isSwotAiLoading ? "Analyzing with AI..." : "✦ Auto-fill SWOT with AI"}
+            </button>
+
+            {swotAiError && <p className="ai-error-text">{swotAiError}</p>}
+
+            {swotAiRecommendation && (
+              <p className="ai-recommendation-text">
+                <strong>AI recommendation:</strong> {swotAiRecommendation}
+              </p>
+            )}
           </div>
 
           <div className="swot-grid">
@@ -199,8 +417,44 @@ function IdeaEvaluation() {
             <h2>Evaluation Criteria</h2>
 
             <p className="score-description">
-              Select a score from 1 to 5 for each criterion.
+              Select a score from 1 to 5 for each criterion, or let AI score
+              feasibility and impact from your idea description.
             </p>
+
+            <button
+              type="button"
+              className="ai-autofill-button"
+              onClick={handleScoreWithAi}
+              disabled={!idea.title.trim() || isScoreAiLoading}
+            >
+              {isScoreAiLoading ? "Scoring with AI..." : "✦ Score Feasibility & Impact with AI"}
+            </button>
+
+            {scoreAiError && <p className="ai-error-text">{scoreAiError}</p>}
+            {scoreAiSummary && <p className="ai-recommendation-text">{scoreAiSummary}</p>}
+
+            <button
+              type="button"
+              className="ai-autofill-button"
+              onClick={handleGetRiskAnalysis}
+              disabled={!idea.title.trim() || isRiskLoading}
+            >
+              {isRiskLoading ? "Analyzing risks..." : "✦ Get AI Risk Analysis"}
+            </button>
+
+            {riskError && <p className="ai-error-text">{riskError}</p>}
+
+            {riskAnalysis && (
+              <div className="ai-risk-box">
+                {riskAnalysis.risks.map((risk, i) => (
+                  <div key={i} className="ai-risk-item">
+                    <strong>{risk.risk_type}</strong> ({risk.impact_level}): {risk.description}
+                    <br />
+                    <em>Mitigation: {risk.mitigation}</em>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="score-grid">
 
@@ -550,7 +804,7 @@ function IdeaEvaluation() {
                   <span className="idea-dot"></span>
 
                   <div className="idea-point-label">
-                    Smart Demand Planning
+                    {idea.title || "Your idea"}
                   </div>
                 </div>
 
@@ -671,7 +925,7 @@ function IdeaEvaluation() {
                     </td>
 
                     <td className="idea-name">
-                      Smart Demand Planning
+                      {idea.title || "Your idea"}
                     </td>
 
                     <td>{scores.feasibility} / 5</td>
@@ -841,7 +1095,7 @@ function IdeaEvaluation() {
                 </p>
 
                 <strong>
-                  Smart Demand Planning
+                  {idea.title || "Your idea"}
                 </strong>
 
                 <div className="mentor-context-scores">
@@ -912,6 +1166,34 @@ function IdeaEvaluation() {
                   </div>
                 )}
 
+                {isMentorLoading && (
+                  <p className="ai-error-text" style={{ color: "#64748b" }}>Mentor is thinking...</p>
+                )}
+
+                {mentorError && <p className="ai-error-text">{mentorError}</p>}
+
+                {mentorReply && (
+                  <div className="mentor-message mentor-message-ai">
+
+                    <div className="mentor-message-avatar">
+                      AI
+                    </div>
+
+                    <div className="mentor-message-content">
+
+                      <span className="mentor-message-name">
+                        AI Mentor
+                      </span>
+
+                      <p>
+                        {mentorReply}
+                      </p>
+
+                    </div>
+
+                  </div>
+                )}
+
               </div>
 
               <div className="mentor-prompts">
@@ -956,8 +1238,9 @@ function IdeaEvaluation() {
               </div>
 
               <p className="mentor-week3-note">
-                Mentor responses will be connected to the AI
-                engine in Week 4.
+                Prompt pills above call the real Socratic AI mentor. For
+                free-form questions with saved history, use the AI Mentor
+                drawer on the Ideation Board.
               </p>
 
             </div>
@@ -971,6 +1254,14 @@ function IdeaEvaluation() {
               onClick={() => setStep(5)}
             >
               ← Back to Rankings
+            </button>
+
+            <button
+              className="continue-evaluation-button"
+              onClick={handleFinishEvaluation}
+              disabled={savingStep === "eval_complete"}
+            >
+              {savingStep === "eval_complete" ? "Saving..." : "Finish Evaluation → Continue to Submission"}
             </button>
 
           </div>

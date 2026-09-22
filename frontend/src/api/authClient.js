@@ -1,6 +1,6 @@
 // Thin client for backend/app/routers/auth.py and app/routers/user.py.
 // Base URL is configurable via VITE_API_BASE_URL (see .env.example).
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 async function request(path, { method = "GET", body, token } = {}) {
   let response;

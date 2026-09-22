@@ -4,9 +4,9 @@ Map are all views over the same note rows, scoped to the logged-in user
 via get_current_user — one student's board never reads or writes another
 student's notes.
 """
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -27,15 +27,14 @@ def _get_owned_note(db: Session, note_id: str, user_id: str) -> IdeationNote:
 
 @router.get("/notes", response_model=List[NoteResponse])
 def list_notes(
+    challenge_id: Optional[int] = Query(None, description="Scope notes to one challenge's workspace"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return (
-        db.query(IdeationNote)
-        .filter(IdeationNote.user_id == current_user.id)
-        .order_by(IdeationNote.created_at.asc())
-        .all()
-    )
+    query = db.query(IdeationNote).filter(IdeationNote.user_id == current_user.id)
+    if challenge_id is not None:
+        query = query.filter(IdeationNote.challenge_id == challenge_id)
+    return query.order_by(IdeationNote.created_at.asc()).all()
 
 
 @router.post("/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
@@ -46,6 +45,7 @@ def create_note(
 ):
     note = IdeationNote(
         user_id=current_user.id,
+        challenge_id=payload.challenge_id,
         text=payload.text,
         color=payload.color,
         x=payload.x,

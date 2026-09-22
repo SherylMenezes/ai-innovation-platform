@@ -71,12 +71,14 @@ class MentorCoachRequest(BaseModel):
     workspace_context: str
     user_query: str
     current_stage: str
+    workspace_id: str = "default"
 
 
 class MentorStreamRequest(BaseModel):
     workspace_context: str
     user_query: str
     current_stage: str
+    workspace_id: str = "default"
 
 
 # --- Response Schemas ---
@@ -162,9 +164,12 @@ class RemixIdeasResponse(BaseModel):
 
 
 class IdeaScoreResponse(BaseModel):
-    feasibility_score: int
-    impact_score: int
-    complexity_score: int
+    # Explicit 0-100 bounds so every consumer (submission scorecards,
+    # the evaluation-page /5 normalizer) can rely on one fixed scale
+    # instead of whatever range the model happens to pick on its own.
+    feasibility_score: int = Field(..., ge=0, le=100)
+    impact_score: int = Field(..., ge=0, le=100)
+    complexity_score: int = Field(..., ge=0, le=100)
     summary: str
 
 

@@ -1,10 +1,13 @@
 from sqlalchemy.orm import Session
 
 from app.models.challenge import Enrollment
+from app.models.gamification import Badge, UserBadge, UserGamificationProfile
 from app.models.notification import Notification
 
+XP_PER_LEVEL = 100
 
-def get_dashboard_overview(db: Session, user_id: int):
+
+def get_dashboard_overview(db: Session, user_id: str):
 
     active_projects = (
         db.query(Enrollment)
@@ -33,36 +36,31 @@ def get_dashboard_overview(db: Session, user_id: int):
         .count()
     )
 
-    # -----------------------------------
-    # WEEK 2 PLACEHOLDER GAMIFICATION DATA
-    # Real XP/streak system is Week 3.
-    # -----------------------------------
+    profile = db.get(UserGamificationProfile, user_id)
+    total_xp = profile.total_xp if profile else 0
 
-    current_xp = 350
-    next_level_xp = 500
-    level = 2
+    level = (total_xp // XP_PER_LEVEL) + 1
+    current_xp = total_xp % XP_PER_LEVEL
+    next_level_xp = XP_PER_LEVEL
 
     progress_percent = round(
         (current_xp / next_level_xp) * 100,
         2
     )
 
+    all_badges = db.query(Badge).all()
+    unlocked_badge_ids = {
+        ub.badge_id
+        for ub in db.query(UserBadge).filter(UserBadge.user_id == user_id).all()
+    }
+
     badges = [
         {
-            "name": "First Challenge",
-            "description": "Enrolled in your first challenge",
-            "earned": active_projects > 0
-        },
-        {
-            "name": "Explorer",
-            "description": "Started exploring innovation challenges",
-            "earned": True
-        },
-        {
-            "name": "Project Finisher",
-            "description": "Completed your first project",
-            "earned": completed_projects > 0
+            "name": b.name,
+            "description": b.description,
+            "earned": b.id in unlocked_badge_ids,
         }
+        for b in all_badges
     ]
 
     quick_links = [

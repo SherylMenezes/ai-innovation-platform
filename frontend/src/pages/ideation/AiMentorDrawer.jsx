@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./AiIdeaDrawer.css";
 import ChatThread from "./ChatThread";
+import { getMentorHistory, streamMentorChat } from "../../api/aiClient";
+import { useAuth } from "../../context/AuthContext";
 
-function AiMentorDrawer({ currentStage, workspaceContext, userId, workspaceId }) {
+function AiMentorDrawer({ currentStage, workspaceContext, workspaceId }) {
+  const { accessToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputQuery, setInputQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const messagesEndRef = useRef(null);
 
-  // Fetch history when drawer opens (Task 2)
+  const effectiveWorkspaceId = workspaceId || "default";
+
+  // Fetch history when drawer opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && accessToken) {
       fetchMentorHistory();
     }
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, accessToken]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -22,20 +29,19 @@ function AiMentorDrawer({ currentStage, workspaceContext, userId, workspaceId })
   }, [messages]);
 
   const fetchMentorHistory = async () => {
+    setLoadError("");
     try {
-      const response = await fetch(`http://localhost:8001/api/ai/mentor/history?user_id=${userId || 1}&workspace_id=${workspaceId || 1}`);
-      if (!response.ok) throw new Error("Failed to load history");
-      const data = await response.json();
+      const data = await getMentorHistory(accessToken, effectiveWorkspaceId);
       if (data.messages) {
         setMessages(data.messages);
       }
     } catch (err) {
-      console.error("Error fetching mentor history:", err);
+      setLoadError(err.message);
     }
   };
 
   const handleSendMessage = async () => {
-    if (!inputQuery.trim() || isLoading) return;
+    if (!inputQuery.trim() || isLoading || !accessToken) return;
 
     const userQuery = inputQuery.trim();
     setInputQuery("");
@@ -50,17 +56,15 @@ function AiMentorDrawer({ currentStage, workspaceContext, userId, workspaceId })
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8001/api/ai/mentor/stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_query: userQuery,
-          current_stage: currentStage || "ideation",
-          workspace_context: workspaceContext || {}
-        })
-      });
-
-      if (!response.ok) throw new Error("Streaming failed");
+      const contextString =
+        typeof workspaceContext === "string" ? workspaceContext : JSON.stringify(workspaceContext || {});
+      const response = await streamMentorChat(
+        accessToken,
+        contextString,
+        userQuery,
+        currentStage || "ideation",
+        effectiveWorkspaceId
+      );
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -110,6 +114,7 @@ function AiMentorDrawer({ currentStage, workspaceContext, userId, workspaceId })
         </div>
 
         <div className="ai-mentor-chat-body" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+          {loadError && <p className="ai-drawer-error">{loadError}</p>}
           <ChatThread messages={messages} />
           <div ref={messagesEndRef} />
         </div>

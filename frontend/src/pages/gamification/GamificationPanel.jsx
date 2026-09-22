@@ -1,36 +1,7 @@
 import { useEffect, useState } from "react";
 import "./GamificationPanel.css";
-import { getUserStats, checkIn } from "../../api/gamificationClient";
+import { getUserStats, checkIn, getBadges, getLeaderboard } from "../../api/gamificationClient";
 import { useAuth } from "../../context/AuthContext";
-
-// Purely derived from real xp/streak numbers returned by the backend —
-// there is no badge model or endpoint yet, so nothing here is fabricated
-// or stored; it just labels thresholds already crossed.
-const XP_BADGES = [
-  { threshold: 10, label: "First Steps", icon: "🌱" },
-  { threshold: 50, label: "Rising Star", icon: "⭐" },
-  { threshold: 100, label: "Century Club", icon: "💯" },
-  { threshold: 500, label: "XP Master", icon: "🏆" },
-];
-
-const STREAK_BADGES = [
-  { threshold: 3, label: "3-Day Streak", icon: "🔥" },
-  { threshold: 7, label: "Week Warrior", icon: "🔥" },
-  { threshold: 14, label: "Two-Week Titan", icon: "⚡" },
-  { threshold: 30, label: "Monthly Marathoner", icon: "👑" },
-];
-
-function earnedBadges(xp, longestStreak) {
-  const earned = [
-    ...XP_BADGES.filter((b) => xp >= b.threshold),
-    ...STREAK_BADGES.filter((b) => longestStreak >= b.threshold),
-  ];
-  // Keep only the highest badge earned within each family so the panel
-  // doesn't list "First Steps" once someone's already hit "XP Master".
-  const highestXp = XP_BADGES.filter((b) => xp >= b.threshold).at(-1);
-  const highestStreak = STREAK_BADGES.filter((b) => longestStreak >= b.threshold).at(-1);
-  return [highestXp, highestStreak].filter(Boolean);
-}
 
 function GamificationPanel() {
   const { accessToken } = useAuth();
@@ -39,6 +10,13 @@ function GamificationPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [checkInMessage, setCheckInMessage] = useState("");
+
+  const [badges, setBadges] = useState(null);
+  const [badgesError, setBadgesError] = useState("");
+
+  const [leaderboardScope, setLeaderboardScope] = useState("global");
+  const [leaderboard, setLeaderboard] = useState(null);
+  const [leaderboardError, setLeaderboardError] = useState("");
 
   const loadStats = () => {
     setIsLoading(true);
@@ -53,6 +31,20 @@ function GamificationPanel() {
     if (accessToken) loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    getBadges(accessToken)
+      .then(setBadges)
+      .catch((err) => setBadgesError(err.message));
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    getLeaderboard(accessToken, leaderboardScope)
+      .then(setLeaderboard)
+      .catch((err) => setLeaderboardError(err.message));
+  }, [accessToken, leaderboardScope]);
 
   const handleCheckIn = async () => {
     setIsCheckingIn(true);
@@ -81,7 +73,7 @@ function GamificationPanel() {
     );
   }
 
-  const badges = earnedBadges(stats.xp, stats.longest_streak);
+  const unlockedBadges = badges?.badges?.filter((b) => b.unlocked) || [];
 
   return (
     <div className="gami-panel">
@@ -102,13 +94,15 @@ function GamificationPanel() {
 
       <div className="gami-badges">
         <h4>Badges</h4>
-        {badges.length === 0 ? (
+        {badgesError ? (
+          <p className="gami-error">{badgesError}</p>
+        ) : unlockedBadges.length === 0 ? (
           <p className="gami-empty">No badges yet — check in daily and complete tasks to earn XP.</p>
         ) : (
           <div className="gami-badge-list">
-            {badges.map((b) => (
-              <span className="gami-badge" key={b.label}>
-                {b.icon} {b.label}
+            {unlockedBadges.map((b) => (
+              <span className="gami-badge" key={b.id} title={b.description}>
+                🏅 {b.name}
               </span>
             ))}
           </div>
@@ -121,6 +115,51 @@ function GamificationPanel() {
 
       {checkInMessage && <p className="gami-info">{checkInMessage}</p>}
       {error && <p className="gami-error">{error}</p>}
+
+      <div className="gami-leaderboard">
+        <h4>Leaderboard</h4>
+        <div className="gami-leaderboard-scopes">
+          {["global", "institution", "class"].map((scope) => (
+            <button
+              key={scope}
+              type="button"
+              className={`gami-scope-chip${leaderboardScope === scope ? " gami-scope-chip-active" : ""}`}
+              onClick={() => setLeaderboardScope(scope)}
+            >
+              {scope}
+            </button>
+          ))}
+        </div>
+
+        {leaderboardError ? (
+          <p className="gami-error">{leaderboardError}</p>
+        ) : !leaderboard ? (
+          <p className="gami-empty">Loading leaderboard...</p>
+        ) : leaderboard.entries.length === 0 ? (
+          <p className="gami-empty">No ranked users yet for this scope.</p>
+        ) : (
+          <table className="gami-leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Name</th>
+                <th>XP</th>
+                <th>Streak</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaderboard.entries.map((entry) => (
+                <tr key={entry.user_id} className={entry.is_current_user ? "gami-leaderboard-you" : ""}>
+                  <td>{entry.rank}</td>
+                  <td>{entry.name}</td>
+                  <td>{entry.xp}</td>
+                  <td>{entry.current_streak}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }

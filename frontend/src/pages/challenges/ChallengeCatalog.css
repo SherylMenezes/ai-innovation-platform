@@ -1,0 +1,142 @@
+.catalog-panel {
+  max-width: 1100px;
+  margin: 24px auto;
+  padding: 0 18px;
+}
+
+.catalog-loading {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.catalog-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.catalog-search {
+  flex: 1;
+  min-width: 200px;
+  padding: 9px 12px;
+  border: 1px solid #e0eaff;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.catalog-chip {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.catalog-chip-active {
+  color: white;
+  background: #2563eb;
+}
+
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.catalog-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  padding: 16px 18px;
+
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 14px;
+}
+
+.catalog-card-completed {
+  opacity: 0.85;
+}
+
+.catalog-card-badge {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+}
+
+.catalog-card-domain {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-radius: 999px;
+}
+
+.catalog-card h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.catalog-card-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  flex: 1;
+}
+
+.catalog-card-meta {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.catalog-enroll-button {
+  padding: 9px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: #2563eb;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.catalog-enroll-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.catalog-enroll-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.catalog-empty {
+  color: #94a3b8;
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 0;
+}
+
+.catalog-error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: #b91c1c;
+}

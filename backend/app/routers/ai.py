@@ -1,5 +1,12 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models.user import User
+from app.schemas.mentor import MentorHistoryResponse
+from app.security import get_current_user
+from app.services import mentor_service
 from app.schemas.ai import (
     ProblemRefineRequest,
     ProblemRefineResponse,
@@ -99,15 +106,42 @@ async def get_swot_analysis(payload: SWOTAnalysisRequest):
     return await generate_swot_analysis(payload.title, payload.description)
 
 @router.post("/mentor-coach", response_model=MentorCoachResponse)
-async def chat_with_mentor_coach(payload: MentorCoachRequest):
-    return await run_mentor_coach(payload.workspace_context, payload.user_query, payload.current_stage)
+async def chat_with_mentor_coach(
+    payload: MentorCoachRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    mentor_service.record_message(db, current_user.id, payload.workspace_id, "user", payload.user_query, payload.current_stage)
+    result = await run_mentor_coach(payload.workspace_context, payload.user_query, payload.current_stage)
+    mentor_service.record_message(db, current_user.id, payload.workspace_id, "assistant", result.feedback, payload.current_stage)
+    return result
 
 # --- Week 4 Day 1 Endpoint ---
 
 @router.post("/mentor/stream")
-async def stream_mentor_chat(payload: MentorStreamRequest):
+async def stream_mentor_chat(
+    payload: MentorStreamRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """Week 4 Day 1: Token-streaming Socratic mentor feedback over HTTP."""
-    return StreamingResponse(
-        stream_socratic_mentor(payload.workspace_context, payload.user_query, payload.current_stage),
-        media_type="text/plain"
-    )
+    mentor_service.record_message(db, current_user.id, payload.workspace_id, "user", payload.user_query, payload.current_stage)
+
+    async def _stream_and_record():
+        chunks: list[str] = []
+        async for chunk in stream_socratic_mentor(payload.workspace_context, payload.user_query, payload.current_stage):
+            chunks.append(chunk)
+            yield chunk
+        mentor_service.record_message(db, current_user.id, payload.workspace_id, "assistant", "".join(chunks), payload.current_stage)
+
+    return StreamingResponse(_stream_and_record(), media_type="text/plain")
+
+
+@router.get("/mentor/history", response_model=MentorHistoryResponse)
+def get_mentor_history(
+    workspace_id: str = Query("default", description="Mentor thread to fetch history for"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    messages = mentor_service.get_history(db, current_user.id, workspace_id)
+    return MentorHistoryResponse(workspace_id=workspace_id, messages=messages)

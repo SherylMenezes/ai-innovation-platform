@@ -1,5 +1,5 @@
 // Thin client for backend/app/routers/ideation.py.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 async function request(path, { method = "GET", body, token } = {}) {
   let response;
@@ -38,12 +38,13 @@ async function request(path, { method = "GET", body, token } = {}) {
 // the same shape locally, so these are pass-through with just the token
 // threaded in.
 
-export function listNotes(token) {
-  return request("/api/ideation/notes", { token });
+export function listNotes(token, challengeId) {
+  const qs = challengeId ? `?challenge_id=${challengeId}` : "";
+  return request(`/api/ideation/notes${qs}`, { token });
 }
 
-export function createNote(token, note) {
-  return request("/api/ideation/notes", { method: "POST", token, body: note });
+export function createNote(token, note, challengeId) {
+  return request("/api/ideation/notes", { method: "POST", token, body: { ...note, challenge_id: challengeId } });
 }
 
 export function updateNote(token, id, patch) {

@@ -1,0 +1,107 @@
+.summary-panel {
+  max-width: 800px;
+  margin: 24px auto;
+  padding: 0 18px;
+}
+
+.summary-loading {
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.summary-header {
+  margin-bottom: 20px;
+}
+
+.summary-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-bottom: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.summary-header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #1e293b;
+}
+
+.summary-section {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 14px;
+}
+
+.summary-section h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.summary-section p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.summary-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.summary-swot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.summary-scorecard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.summary-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.summary-stat-label {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.summary-overall-score {
+  font-size: 28px;
+  font-weight: 800;
+  color: #15803d;
+}

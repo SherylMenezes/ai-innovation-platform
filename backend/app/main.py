@@ -14,16 +14,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.database import Base, engine
-from app.models import challenge, evaluation, gamification, ideation, otp, user
+from app.database import Base, SessionLocal, engine
+from app.models import challenge, evaluation, gamification, ideation, mentor, notification, otp, user
+from app.seed_data import seed_badges, seed_challenges
 
 from app.routers import (
     ai as ai_router,
     auth,
     challenges as challenges_router,
+    dashboard as dashboard_router,
     evaluation as evaluation_router,
     gamification as gamification_router,
     ideation as ideation_router,
+    notification as notification_router,
     user as user_router,
     submissions,
 )
@@ -35,6 +38,13 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     # Register event-driven gamification hooks
     register_gamification_listeners()
+    # Seed demo challenges on first run (no-op once the table has rows)
+    db = SessionLocal()
+    try:
+        seed_challenges(db)
+        seed_badges(db)
+    finally:
+        db.close()
     yield
 
 
@@ -59,9 +69,11 @@ app.include_router(auth.router)
 app.include_router(user_router.router)
 app.include_router(ai_router.router)
 app.include_router(challenges_router.router)
+app.include_router(dashboard_router.router)
 app.include_router(gamification_router.router)
 app.include_router(evaluation_router.router)
 app.include_router(ideation_router.router)
+app.include_router(notification_router.router)
 
 # Resolve path relative to backend root directory
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

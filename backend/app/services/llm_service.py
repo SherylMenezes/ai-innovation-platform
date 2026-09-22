@@ -23,12 +23,15 @@ from app.schemas.ai import (
 
 logger = logging.getLogger("uvicorn.error")
 
-# Supported models for the google-genai SDK
-# Supported models for the google-genai SDK
+# Supported models for the google-genai SDK, newest first. gemini-1.5-flash
+# used to be the last-resort fallback here but Google has retired it (404
+# NOT_FOUND, not a transient error), so it could never actually catch a
+# 503 from the models above it — verified against this key's live
+# client.models.list() and replaced with gemini-2.5-flash, which is.
 MODEL_CANDIDATES = [
     "gemini-3.6-flash",
     "gemini-3.5-flash",
-    "gemini-1.5-flash",
+    "gemini-2.5-flash",
 ]
 
 def _get_client() -> genai.Client:
@@ -177,7 +180,12 @@ async def calculate_idea_score(title: str, description: str) -> IdeaScoreRespons
     response = await _generate_with_fallback(
         prompt=prompt,
         response_schema=IdeaScoreResponse,
-        system_instruction="Evaluate technical feasibility, user impact, and execution complexity."
+        system_instruction=(
+            "Evaluate technical feasibility, user impact, and execution complexity. "
+            "Score each dimension on a 0-100 scale (0 = worst, 100 = best), using the "
+            "full range rather than clustering near a single number — this is not a "
+            "score out of 10."
+        )
     )
     return IdeaScoreResponse.model_validate_json(response.text)
 

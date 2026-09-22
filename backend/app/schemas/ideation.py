@@ -9,6 +9,7 @@ class NoteCreate(BaseModel):
     x: float = 0
     y: float = 0
     technique: Optional[str] = None
+    challenge_id: Optional[int] = None
 
 
 class NoteUpdate(BaseModel):
@@ -30,5 +31,6 @@ class NoteResponse(BaseModel):
     x: float
     y: float
     technique: Optional[str] = None
+    challenge_id: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

@@ -1566,5 +1566,110 @@
   .mentor-send-button {
     min-height: 42px;
   }
+}
 
+/* =========================
+   REAL AI ACTIONS
+   ========================= */
+
+.idea-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  margin-bottom: 20px;
+  padding: 16px 18px;
+
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.idea-identity label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.idea-identity input,
+.idea-identity textarea {
+  padding: 9px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13.5px;
+}
+
+.ai-autofill-button {
+  align-self: flex-start;
+  margin-top: 4px;
+
+  padding: 9px 16px;
+
+  background: white;
+  border: 1px solid #2563eb;
+  border-radius: 8px;
+
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.ai-autofill-button:hover:not(:disabled) {
+  background: #eff6ff;
+}
+
+.ai-autofill-button:disabled {
+  border-color: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.ai-error-text {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #dc2626;
+}
+
+.ai-recommendation-text {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #334155;
+}
+
+.ai-risk-box {
+  margin: 10px 0 16px;
+  padding: 14px 16px;
+
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+}
+
+.ai-risk-item {
+  font-size: 13px;
+  color: #7c2d12;
+  margin-bottom: 8px;
+
+}
+
+.canvas-loading {
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.xp-toast {
+  display: inline-block;
+  margin: 0 0 16px;
+  padding: 4px 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 700;
 }

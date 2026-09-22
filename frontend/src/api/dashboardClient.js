@@ -1,4 +1,4 @@
-// Thin client for backend/app/routers/gamification.py.
+// Thin client for backend/app/routers/dashboard.py.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 async function authedRequest(path, { method = "GET", token } = {}) {
@@ -28,22 +28,7 @@ async function authedRequest(path, { method = "GET", token } = {}) {
   return data;
 }
 
-// GET /api/gamification/user-stats
-export function getUserStats(token) {
-  return authedRequest("/api/gamification/user-stats", { token });
-}
-
-// POST /api/gamification/streak/check-in
-export function checkIn(token) {
-  return authedRequest("/api/gamification/streak/check-in", { method: "POST", token });
-}
-
-// GET /api/gamification/badges
-export function getBadges(token) {
-  return authedRequest("/api/gamification/badges", { token });
-}
-
-// GET /api/gamification/leaderboard?scope=&limit=
-export function getLeaderboard(token, scope = "global", limit = 20) {
-  return authedRequest(`/api/gamification/leaderboard?scope=${scope}&limit=${limit}`, { token });
+// GET /api/dashboard/overview
+export function getDashboardOverview(token) {
+  return authedRequest("/api/dashboard/overview", { token });
 }

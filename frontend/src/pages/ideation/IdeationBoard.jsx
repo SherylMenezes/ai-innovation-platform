@@ -4,6 +4,7 @@ import AiIdeaDrawer from "./AiIdeaDrawer";
 import AiMentorDrawer from "./AiMentorDrawer";
 import { useAuth } from "../../context/AuthContext";
 import { listNotes, createNote, updateNote, deleteNote } from "../../api/ideationClient";
+import { completeWorkspaceStep, advanceStage } from "../../api/challengesClient";
 
 // Sticky note color palette. Backgrounds/borders only — note text always
 // stays the app's standard dark slate for readability across all colors.
@@ -101,7 +102,7 @@ function NoteCard({ note, style, className, headerDragProps, onTextChange, onCol
 
 const UNSORTED_KEY = "__unsorted__";
 
-function IdeationBoard() {
+function IdeationBoard({ challengeId, onStageAdvance }) {
   const { accessToken } = useAuth();
   const [notes, setNotes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -111,6 +112,8 @@ function IdeationBoard() {
   const [mindMapCenter, setMindMapCenter] = useState("");
   const [dragOverKey, setDragOverKey] = useState(null); // SCAMPER column currently being dragged over
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [xpToast, setXpToast] = useState("");
 
   const boardRef = useRef(null);
   const dragInfo = useRef(null); // { id, offsetX, offsetY }
@@ -131,13 +134,28 @@ function IdeationBoard() {
   const textSaveTimers = useRef({});
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!accessToken || !challengeId) return;
     setIsLoading(true);
-    listNotes(accessToken)
+    listNotes(accessToken, challengeId)
       .then(setNotes)
       .catch((err) => setSaveError(err.message))
       .finally(() => setIsLoading(false));
-  }, [accessToken]);
+  }, [accessToken, challengeId]);
+
+  const handleCompleteIdeation = async () => {
+    setIsCompleting(true);
+    setSaveError("");
+    try {
+      const result = await completeWorkspaceStep(accessToken, challengeId, "ideation_complete");
+      if (result.xp_awarded > 0) setXpToast(`+${result.xp_awarded} XP`);
+      const advanced = await advanceStage(accessToken, challengeId);
+      onStageAdvance?.(advanced.current_stage);
+    } catch (err) {
+      setSaveError(err.message);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
 
   // Mind Map's radial layout scales down on narrow viewports so satellite
   // notes stay reachable instead of running off-screen.
@@ -160,7 +178,7 @@ function IdeationBoard() {
     const color = NOTE_COLORS[notes.length % NOTE_COLORS.length].name;
 
     try {
-      const created = await createNote(accessToken, { text: initialText, color, x, y, technique: null });
+      const created = await createNote(accessToken, { text: initialText, color, x, y, technique: null }, challengeId);
       setNotes((prev) => [...prev, created]);
     } catch (err) {
       setSaveError(err.message);
@@ -311,6 +329,7 @@ function IdeationBoard() {
           Add sticky notes for every direction worth exploring, then switch
           views to organize them with SCAMPER or a mind map.
         </p>
+        {xpToast && <span className="xp-toast">{xpToast}</span>}
       </header>
 
       {saveError && (
@@ -351,6 +370,15 @@ function IdeationBoard() {
         <span className="note-count-badge">
           {notes.length} {notes.length === 1 ? "Note" : "Notes"}
         </span>
+
+        <button
+          type="button"
+          className="add-note-button"
+          onClick={handleCompleteIdeation}
+          disabled={notes.length === 0 || isCompleting}
+        >
+          {isCompleting ? "Saving..." : "Mark Ideation Complete → Continue to Evaluation"}
+        </button>
       </div>
 
       <main className={`ideation-board-surface board-surface-${viewMode}`} ref={boardRef}>
@@ -500,7 +528,11 @@ function IdeationBoard() {
       </main>
 
       <AiIdeaDrawer notes={notes} onAddNoteFromIdea={(text) => handleAddNote(text)} />
-      <AiMentorDrawer currentStage="ideation" workspaceContext={{ notesCount: notes.length }} />
+      <AiMentorDrawer
+        currentStage="ideation"
+        workspaceContext={{ notesCount: notes.length }}
+        workspaceId={challengeId ? String(challengeId) : "default"}
+      />
 
     </div>
   );

@@ -24,6 +24,7 @@ REWARD_RULES: dict[str, int] = {
     GamificationEvent.TASK_COMPLETED: 10,
     GamificationEvent.CHALLENGE_SUBMITTED: 50,
     GamificationEvent.STREAK_CHECKIN: 5,
+    GamificationEvent.WORKSPACE_STEP_COMPLETED: 5,
 }
 
 
@@ -64,6 +65,7 @@ def register_gamification_listeners() -> None:
         GamificationEvent.TASK_COMPLETED,
         GamificationEvent.CHALLENGE_SUBMITTED,
         GamificationEvent.STREAK_CHECKIN,
+        GamificationEvent.WORKSPACE_STEP_COMPLETED,
     ):
         event_broker.on(event_type, handle_milestone_event)
 

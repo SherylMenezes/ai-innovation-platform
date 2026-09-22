@@ -26,4 +26,12 @@ class Enrollment(Base):
     status = Column(String(50), default="active")              # active, completed, abandoned
     enrolled_at = Column(DateTime, default=datetime.utcnow)
 
+    # Per-user-per-challenge workspace: which stage the student is on, the
+    # freeform state for each stage, and which step keys already paid out
+    # XP (so re-saving a step is idempotent — see workspace_service.py).
+    current_stage = Column(String(20), nullable=False, default="canvas")  # canvas, ideation, evaluation, submission, completed
+    canvas_state = Column(JSON, nullable=True)
+    evaluation_state = Column(JSON, nullable=True)
+    completed_steps = Column(JSON, nullable=False, default=list)
+
     challenge = relationship("Challenge", back_populates="enrollments")
