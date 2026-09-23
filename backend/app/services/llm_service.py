@@ -220,33 +220,121 @@ async def run_mentor_coach(workspace_context: str, user_query: str, stage: str) 
     return MentorCoachResponse.model_validate_json(response.text)
 
 
-async def stream_socratic_mentor(workspace_context: str, user_query: str, current_stage: str) -> AsyncGenerator[str, None]:
+async def stream_socratic_mentor(
+    workspace_context: str,
+    user_query: str,
+    current_stage: str
+) -> AsyncGenerator[str, None]:
+    """
+    Stream context-aware Socratic mentoring feedback.
+
+    The mentor should guide the learner through questions, hints,
+    and small reasoning steps instead of directly solving the problem.
+    """
+
     client = _get_client()
-    prompt = (
-        f"You are a Socratic AI Engineering Coach.\n"
-        f"Current Stage: {current_stage}\n"
-        f"Workspace Context: {workspace_context}\n"
-        f"User Query: {user_query}\n\n"
-        f"Guide the user through Socratic questioning and critical evaluation."
-    )
-    
+
+    system_instruction = """
+You are an AI Mentor for a project-based learning and innovation platform.
+
+Your job is to help a student develop their own solution.
+
+IMPORTANT BEHAVIOR:
+1. Use the Socratic method.
+2. Do NOT immediately give the complete solution or final answer.
+3. Ask focused questions that help the student reason through the problem.
+4. Give small hints when the student is stuck.
+5. Break difficult problems into manageable steps.
+6. Refer to the student's current workspace context whenever relevant.
+7. Never ignore the current project stage.
+8. Do not ask unnecessary questions when the student has already provided
+   enough information.
+9. Keep responses concise, practical, and encouraging.
+10. If the student asks directly for an answer, first explain the key concept,
+    provide a useful hint, and then ask a focused question that lets the
+    student complete the reasoning.
+
+STAGE-SPECIFIC BEHAVIOR:
+
+Problem Framing:
+- Help the student clarify the problem.
+- Question assumptions, users, pain points, and evidence.
+- Encourage specific and measurable problem statements.
+
+Ideation:
+- Help the student explore multiple possibilities.
+- Ask questions about users, constraints, novelty, and value.
+- Encourage divergent thinking before selecting an idea.
+
+Evaluation:
+- Help the student compare ideas using evidence and criteria.
+- Ask about feasibility, impact, complexity, risks, and assumptions.
+- Do not choose the idea for the student.
+
+Implementation:
+- Help the student reason about architecture, technology,
+  implementation steps, and debugging.
+- Ask what they have already tried before suggesting the next step.
+- Give hints rather than writing the entire implementation.
+
+Submission:
+- Help the student check completeness, quality, documentation,
+  testing, and presentation.
+- Ask targeted questions about missing requirements.
+
+General:
+- Use the workspace context to determine what the student is currently doing.
+- Maintain continuity with the student's project.
+"""
+
+    prompt = f"""
+Current Project Stage:
+{current_stage}
+
+Current Workspace Context:
+{workspace_context}
+
+Student's Message:
+{user_query}
+
+Based on the project stage, workspace context, and student's message:
+
+1. Identify what the student is trying to accomplish.
+2. Give a short, useful response.
+3. Guide their reasoning using Socratic questions when appropriate.
+4. Provide a small hint or next step if they appear stuck.
+5. Avoid directly completing the student's work unless it is necessary
+   to explain a concept.
+
+Remember: You are a mentor, not an answer generator.
+"""
+
     last_exception = None
+
     for model_name in MODEL_CANDIDATES:
         try:
             response_stream = await client.aio.models.generate_content_stream(
                 model=model_name,
                 contents=prompt,
-                config=types.GenerateContentConfig(temperature=0.7),
+                config=types.GenerateContentConfig(
+                    temperature=0.7,
+                    system_instruction=system_instruction,
+                ),
             )
+
             async for chunk in response_stream:
                 if chunk.text:
                     yield chunk.text
+
             return
+
         except Exception as e:
-            logger.warning(f"Streaming failed on {model_name}: {e}. Retrying with next model...")
+            logger.warning(
+                f"Streaming failed on {model_name}: {e}. "
+                "Retrying with next model..."
+            )
             last_exception = e
             await asyncio.sleep(0.5)
-            continue
 
     if last_exception:
         raise last_exception

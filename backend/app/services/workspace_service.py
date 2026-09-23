@@ -145,3 +145,69 @@ def list_enrolled(db: Session, user_id: str) -> list[Enrollment]:
         .order_by(Enrollment.enrolled_at.desc())
         .all()
     )
+
+def get_ai_workspace_context(
+    db: Session,
+    user_id: str,
+    challenge_id: int,
+) -> tuple[dict, str]:
+    """
+    Build a compact workspace context for the AI mentor.
+
+    The context is generated from the user's actual active workspace
+    stored in PostgreSQL instead of relying only on context supplied
+    by the frontend.
+    """
+    workspace = get_workspace_data(db, user_id, challenge_id)
+
+    challenge = workspace["challenge"]
+    current_stage = workspace["current_stage"]
+    status = workspace["status"]
+    canvas_state = workspace["canvas_state"]
+    evaluation_state = workspace["evaluation_state"]
+    completed_steps = workspace["completed_steps"]
+    submission = workspace["submission"]
+
+    challenge_context = {
+        "id": challenge.id,
+        "title": challenge.title,
+        "domain": challenge.domain,
+        "difficulty": challenge.difficulty,
+        "description": challenge.description,
+        "learning_tier": challenge.learning_tier,
+    }
+
+    submission_context = None
+
+    if submission:
+        submission_context = {
+            "status": submission.status,
+            "file_url": submission.file_url,
+            "repository_url": submission.repository_url,
+        }
+
+    context_data = {
+        "challenge": challenge_context,
+        "workspace_status": status,
+        "current_stage": current_stage,
+        "canvas_state": canvas_state,
+        "evaluation_state": evaluation_state,
+        "completed_steps": completed_steps,
+        "submission": submission_context,
+    }
+
+    context_text = (
+        f"Challenge: {challenge.title}\n"
+        f"Domain: {challenge.domain}\n"
+        f"Difficulty: {challenge.difficulty}\n"
+        f"Learning Tier: {challenge.learning_tier or 'Not specified'}\n"
+        f"Challenge Description: {challenge.description}\n"
+        f"Workspace Status: {status}\n"
+        f"Current Stage: {current_stage}\n"
+        f"Canvas State: {canvas_state}\n"
+        f"Evaluation State: {evaluation_state}\n"
+        f"Completed Steps: {completed_steps}\n"
+        f"Submission: {submission_context}\n"
+    )
+
+    return context_data, context_text

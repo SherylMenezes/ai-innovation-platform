@@ -6,7 +6,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.mentor import MentorHistoryResponse
 from app.security import get_current_user
-from app.services import mentor_service
+from app.services import mentor_service, workspace_service
 from app.schemas.ai import (
     ProblemRefineRequest,
     ProblemRefineResponse,
@@ -124,17 +124,84 @@ async def stream_mentor_chat(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Week 4 Day 1: Token-streaming Socratic mentor feedback over HTTP."""
-    mentor_service.record_message(db, current_user.id, payload.workspace_id, "user", payload.user_query, payload.current_stage)
+    """
+    Week 4 Day 3:
+    Stream a context-aware Socratic mentor response.
+
+    When workspace_id contains a numeric challenge ID, the backend
+    loads the user's real workspace state from PostgreSQL and uses
+    that state as the AI context.
+
+    If workspace_id is not numeric, the existing workspace_context
+    supplied by the caller is used as a fallback.
+    """
+
+    workspace_context = payload.workspace_context
+    current_stage = payload.current_stage
+
+    # Try to connect the mentor to the actual PostgreSQL workspace.
+    # Existing callers using "default" continue to work.
+    try:
+        challenge_id = int(payload.workspace_id)
+
+        _, workspace_context = workspace_service.get_ai_workspace_context(
+            db=db,
+            user_id=current_user.id,
+            challenge_id=challenge_id,
+        )
+
+        # Use the real stage stored in the workspace.
+        workspace_data = workspace_service.get_workspace_data(
+            db,
+            current_user.id,
+            challenge_id,
+        )
+
+        current_stage = workspace_data["current_stage"]
+
+    except ValueError:
+        # workspace_id is not a numeric challenge ID.
+        # Keep the existing context/stage supplied by the caller.
+        pass
+
+    except workspace_service.WorkspaceNotFoundError:
+        # Preserve existing mentor behavior if the workspace cannot
+        # be found for this user.
+        pass
+
+    mentor_service.record_message(
+        db,
+        current_user.id,
+        payload.workspace_id,
+        "user",
+        payload.user_query,
+        current_stage,
+    )
 
     async def _stream_and_record():
         chunks: list[str] = []
-        async for chunk in stream_socratic_mentor(payload.workspace_context, payload.user_query, payload.current_stage):
+
+        async for chunk in stream_socratic_mentor(
+            workspace_context,
+            payload.user_query,
+            current_stage,
+        ):
             chunks.append(chunk)
             yield chunk
-        mentor_service.record_message(db, current_user.id, payload.workspace_id, "assistant", "".join(chunks), payload.current_stage)
 
-    return StreamingResponse(_stream_and_record(), media_type="text/plain")
+        mentor_service.record_message(
+            db,
+            current_user.id,
+            payload.workspace_id,
+            "assistant",
+            "".join(chunks),
+            current_stage,
+        )
+
+    return StreamingResponse(
+        _stream_and_record(),
+        media_type="text/plain",
+    )
 
 
 @router.get("/mentor/history", response_model=MentorHistoryResponse)
