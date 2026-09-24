@@ -1,4 +1,6 @@
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+load_dotenv()  # This loads the variables from your .env file into Python's environment
 import os
 
 from dotenv import load_dotenv
