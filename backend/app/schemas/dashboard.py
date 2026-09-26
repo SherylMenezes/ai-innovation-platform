@@ -2,14 +2,17 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
-class XPData(BaseModel):
-    current_xp: int
-    next_level_xp: int
-    level: int
+class RankData(BaseModel):
+    rank: int
+    title: str
+    total_xp: int
+    xp_into_rank: int
+    xp_for_next_rank: int
     progress_percent: float
 
 
 class BadgeData(BaseModel):
+    slug: str
     name: str
     description: str
     earned: bool
@@ -21,7 +24,7 @@ class DashboardOverview(BaseModel):
     active_projects: int
     completed_projects: int
 
-    xp: XPData
+    rank: RankData
     badges: List[BadgeData]
 
     unread_notifications: int

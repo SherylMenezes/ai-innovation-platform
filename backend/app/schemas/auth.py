@@ -1,6 +1,7 @@
 from typing import Literal, Optional
 from pydantic import BaseModel
 from app.models.user import AcademicTier
+from app.schemas.user import UserProfileResponse
 
 Channel = Literal["email", "phone"]
 Purpose = Literal["registration", "login"]
@@ -51,6 +52,12 @@ class RegisterResponse(BaseModel):
     is_verified: bool
     academic_tier: str
     institution_name: Optional[str] = None
+    # The registration code already proved ownership of the email/phone,
+    # so signup signs the user straight in instead of making them wait for
+    # (and type) a second, login-purpose code.
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 
 class LoginRequest(BaseModel):
@@ -63,3 +70,6 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    # Included so the client doesn't need a separate /api/user/profile
+    # round trip right after signing in.
+    user: Optional[UserProfileResponse] = None

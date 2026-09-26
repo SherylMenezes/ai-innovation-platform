@@ -8,6 +8,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     # --- Database ---
     database_url: str = "sqlite:///./app.db"
+    db_pool_size: int = 5
+    # Below the Supabase pooler's idle timeout, so a pooled connection is
+    # retired before the server can drop it out from under us.
+    db_pool_recycle_seconds: int = 1800
+    # Connections unused for longer than this are pinged on checkout.
+    db_ping_after_idle_seconds: int = 60
 
     # --- OTP behavior ---
     otp_length: int = 6

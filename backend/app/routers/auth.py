@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -6,6 +8,7 @@ from app.integrations.email import send_otp_email
 from app.integrations.sms import send_otp_sms
 from app.models.otp import OtpChannel, OtpPurpose
 from app.models.user import User
+from app.schemas.user import UserProfileResponse
 from app.schemas.auth import (
     LoginRequest,
     OtpGenerateRequest,
@@ -20,18 +23,30 @@ from app.services import otp_service
 from app.config import settings
 from app.security import create_access_token, create_refresh_token
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 def _dispatch_otp(identifier: str, channel: OtpChannel, code: str) -> None:
-    if channel == OtpChannel.email:
-        send_otp_email(identifier, code)
-    else:
-        send_otp_sms(identifier, code)
+    # Runs as a background task, after the response has been sent — a
+    # provider failure can't be returned to the client any more, so it
+    # must at least be logged.
+    try:
+        if channel == OtpChannel.email:
+            send_otp_email(identifier, code)
+        else:
+            send_otp_sms(identifier, code)
+    except Exception:
+        logger.exception("Failed to deliver %s OTP to %s", channel.value, identifier)
 
 
 @router.post("/otp/generate", response_model=OtpGenerateResponse)
-def generate_otp(payload: OtpGenerateRequest, db: Session = Depends(get_db)):
+def generate_otp(
+    payload: OtpGenerateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     channel = OtpChannel(payload.channel)
     purpose = OtpPurpose(payload.purpose)
 
@@ -40,7 +55,9 @@ def generate_otp(payload: OtpGenerateRequest, db: Session = Depends(get_db)):
     except otp_service.OtpCooldownError as exc:
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, str(exc))
 
-    _dispatch_otp(payload.identifier, channel, code)
+    # Twilio/SendGrid calls take a second or more; the student shouldn't
+    # wait on them to see the "enter your code" screen.
+    background_tasks.add_task(_dispatch_otp, payload.identifier, channel, code)
 
     debug_code = code if (channel == OtpChannel.email and settings.email_provider == "mock") or (
         channel == OtpChannel.phone and settings.sms_provider == "mock"
@@ -90,7 +107,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
 
     try:
         otp_service.verify_otp(
-            db, identifier, channel, OtpPurpose.registration, payload.code, consume=True
+            db, identifier, channel, OtpPurpose.registration, payload.code, consume=True, commit=False
         )
     except (
         otp_service.OtpInvalidError,
@@ -112,10 +129,11 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         hashed_password=None,
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    db.flush()  # assigns user.id
 
-    return RegisterResponse(
+    # Built before commit: commit expires every loaded attribute, and
+    # reading them back afterwards would cost another round trip.
+    response = RegisterResponse(
         user_id=user.id,
         name=user.name,
         email=user.email,
@@ -124,7 +142,12 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         academic_tier=user.academic_tier,
         institution_name=user.institution_name,
         is_verified=user.is_verified,
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
     )
+    # One commit consumes the OTP and creates the user together.
+    db.commit()
+    return response
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -150,4 +173,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     access_token = create_access_token(user.id)
     refresh_token = create_refresh_token(user.id)
 
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserProfileResponse.model_validate(user),
+    )

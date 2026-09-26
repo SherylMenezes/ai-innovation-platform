@@ -1,66 +1,41 @@
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.challenge import Enrollment
-from app.models.gamification import Badge, UserBadge, UserGamificationProfile
+from app.models.gamification import UserGamificationProfile
 from app.models.notification import Notification
+from app.services.badge_service import list_badges_for_user
+from app.services.player_rank import rank_for_xp
 
-XP_PER_LEVEL = 100
+
+def _count(model, *conditions):
+    return select(func.count()).select_from(model).where(*conditions).scalar_subquery()
 
 
 def get_dashboard_overview(db: Session, user_id: str):
-
-    active_projects = (
-        db.query(Enrollment)
-        .filter(
-            Enrollment.user_id == user_id,
-            Enrollment.status == "active"
+    # Every number on the dashboard in a single round trip — the database
+    # is far away, so four separate COUNT/SELECTs would each cost a full
+    # network hop.
+    active_projects, completed_projects, unread_notifications, total_xp = db.execute(
+        select(
+            _count(Enrollment, Enrollment.user_id == user_id, Enrollment.status == "active"),
+            _count(Enrollment, Enrollment.user_id == user_id, Enrollment.status == "completed"),
+            _count(Notification, Notification.user_id == user_id, Notification.is_read.is_(False)),
+            select(UserGamificationProfile.total_xp)
+            .where(UserGamificationProfile.user_id == user_id)
+            .scalar_subquery(),
         )
-        .count()
-    )
-
-    completed_projects = (
-        db.query(Enrollment)
-        .filter(
-            Enrollment.user_id == user_id,
-            Enrollment.status == "completed"
-        )
-        .count()
-    )
-
-    unread_notifications = (
-        db.query(Notification)
-        .filter(
-            Notification.user_id == user_id,
-            Notification.is_read == False
-        )
-        .count()
-    )
-
-    profile = db.get(UserGamificationProfile, user_id)
-    total_xp = profile.total_xp if profile else 0
-
-    level = (total_xp // XP_PER_LEVEL) + 1
-    current_xp = total_xp % XP_PER_LEVEL
-    next_level_xp = XP_PER_LEVEL
-
-    progress_percent = round(
-        (current_xp / next_level_xp) * 100,
-        2
-    )
-
-    all_badges = db.query(Badge).all()
-    unlocked_badge_ids = {
-        ub.badge_id
-        for ub in db.query(UserBadge).filter(UserBadge.user_id == user_id).all()
-    }
+    ).one()
+    total_xp = total_xp or 0
 
     badges = [
         {
+            "slug": b.slug,
             "name": b.name,
             "description": b.description,
-            "earned": b.id in unlocked_badge_ids,
+            "earned": awarded_at is not None,
         }
-        for b in all_badges
+        for b, awarded_at in list_badges_for_user(db, user_id)
     ]
 
     quick_links = [
@@ -75,12 +50,7 @@ def get_dashboard_overview(db: Session, user_id: str):
         "active_projects": active_projects,
         "completed_projects": completed_projects,
 
-        "xp": {
-            "current_xp": current_xp,
-            "next_level_xp": next_level_xp,
-            "level": level,
-            "progress_percent": progress_percent
-        },
+        "rank": rank_for_xp(total_xp).as_dict(),
 
         "badges": badges,
 

@@ -16,7 +16,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.database import Base, SessionLocal, engine
+from sqlalchemy import inspect
+
+from app.database import Base, SessionLocal, engine, warm_up_pool
 from app.models import challenge, evaluation, gamification, ideation, mentor, notification, otp, user
 from app.seed_data import seed_badges, seed_challenges
 
@@ -36,8 +38,14 @@ from app.services.gamification_listeners import register_gamification_listeners
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-create all tables in SQLite / PostgreSQL
-    Base.metadata.create_all(bind=engine)
+    # Auto-create any missing tables in SQLite / PostgreSQL. One query
+    # lists what exists, instead of create_all()'s one existence check per
+    # table — each of which is a full round trip to the hosted database.
+    existing_tables = set(inspect(engine).get_table_names())
+    missing_tables = [t for t in Base.metadata.sorted_tables if t.name not in existing_tables]
+    if missing_tables:
+        Base.metadata.create_all(bind=engine, tables=missing_tables)
+    warm_up_pool()
     # Register event-driven gamification hooks
     register_gamification_listeners()
     # Seed demo challenges on first run (no-op once the table has rows)
