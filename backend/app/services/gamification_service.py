@@ -11,8 +11,10 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from app.models.gamification import UserGamificationProfile, XPTransaction
+from app.models.notification import Notification
 from app.models.user import User
 from app.services import gamification_cache
+from app.services.player_rank import rank_for_xp
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,18 @@ async def award_xp(
     )
     db.add(transaction)
 
+    previous_rank = rank_for_xp(profile.total_xp)
     profile.total_xp += points
+    new_rank = rank_for_xp(profile.total_xp)
+    if new_rank.rank > previous_rank.rank:
+        db.add(
+            Notification(
+                user_id=user_id,
+                title=f"Rank up! You're now Rank {new_rank.rank}",
+                message=f"You reached Rank {new_rank.rank} · {new_rank.title} with {new_rank.total_xp} XP.",
+                notification_type="rank_up",
+            )
+        )
     db.commit()
     db.refresh(profile)
     db.refresh(transaction)

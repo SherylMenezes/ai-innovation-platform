@@ -8,13 +8,16 @@ import {
   getSubmissionStatus,
 } from "../../api/submissionsClient";
 import { useAuth } from "../../context/AuthContext";
+import { CHALLENGE_LEVELS } from "../../utils/progression";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 20;
+const EVALUATION_REWARD_EVENTS = new Set(["CHALLENGE_EVALUATED", "BADGE_EARNED"]);
 
-function SubmissionUpload({ challengeId, onCompleted }) {
+function SubmissionUpload({ challengeId, onCompleted, onReward }) {
   const { accessToken } = useAuth();
   const [challenge, setChallenge] = useState(null);
+  const [currentStage, setCurrentStage] = useState(null);
   const [isLoadingWorkspace, setIsLoadingWorkspace] = useState(true);
   const [workspaceError, setWorkspaceError] = useState("");
 
@@ -38,6 +41,7 @@ function SubmissionUpload({ challengeId, onCompleted }) {
     getWorkspace(accessToken, challengeId)
       .then((data) => {
         setChallenge(data.challenge);
+        setCurrentStage(data.current_stage);
         if (data.submission) setSubmission(data.submission);
         if (data.submission?.scorecard) setScorecard(data.submission.scorecard);
       })
@@ -59,6 +63,7 @@ function SubmissionUpload({ challengeId, onCompleted }) {
         repositoryUrl: repositoryUrl.trim() || undefined,
       });
       setSubmission(result);
+      onReward?.({ xp_awarded: result.xp_awarded, label: "Project submitted" });
     } catch (err) {
       setSubmitError(err.message);
     } finally {
@@ -79,12 +84,32 @@ function SubmissionUpload({ challengeId, onCompleted }) {
         setIsEvaluating(false);
         const status = await getSubmissionStatus(accessToken, submissionId);
         setSubmission(status);
+        await announceEvaluationRewards(card);
         onCompleted?.();
       } catch {
         // Not ready yet — keep polling.
         pollForScorecard(submissionId, attemptsLeft - 1);
       }
     }, POLL_INTERVAL_MS);
+  };
+
+  // Evaluation XP and badges are paid by the background job, not by any
+  // response this page receives — read them back off the workspace.
+  const announceEvaluationRewards = async (card) => {
+    try {
+      const data = await getWorkspace(accessToken, challengeId);
+      const xp = data.rewards
+        .filter((reward) => EVALUATION_REWARD_EVENTS.has(reward.source_event))
+        .reduce((sum, reward) => sum + reward.points, 0);
+      onReward?.({
+        xp_awarded: xp,
+        label: `AI evaluation · ${card.overall_score}/20`,
+        cleared_level: { number: 4, name: "Submit Project" },
+        badges: data.badges_earned,
+      });
+    } catch {
+      // Non-fatal — the rewards still show on the project summary.
+    }
   };
 
   const handleEvaluate = async () => {
@@ -108,6 +133,18 @@ function SubmissionUpload({ challengeId, onCompleted }) {
 
   if (workspaceError) {
     return <div className="submission-panel"><p className="submission-error">{workspaceError}</p></div>;
+  }
+
+  const levelsBefore = CHALLENGE_LEVELS.slice(0, -1);
+  if (currentStage && !["submission", "completed"].includes(currentStage)) {
+    return (
+      <div className="submission-panel">
+        <p className="submission-loading">
+          🔒 Level 4 unlocks once you clear{" "}
+          {levelsBefore.map((level) => `Level ${level.number} (${level.name})`).join(", ")}.
+        </p>
+      </div>
+    );
   }
 
   return (

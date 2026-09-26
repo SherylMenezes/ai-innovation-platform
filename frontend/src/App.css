@@ -113,6 +113,72 @@
   color: white;
 }
 
+.app-page-tabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.app-page-tabs button:disabled:hover {
+  color: #64748b;
+  background: transparent;
+}
+
+/* Level tabs stack a small "LEVEL n" label over the Level's name. */
+.app-page-tabs .app-level-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  padding: 6px 14px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.app-level-tab-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.app-page-tabs .app-rank-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+
+  padding: 6px 10px;
+}
+
+.app-rank-chip .app-current-user {
+  padding: 0;
+}
+
+.app-rank-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #6d28d9;
+  white-space: nowrap;
+}
+
+.app-rank-track {
+  width: 110px;
+  height: 4px;
+
+  background: #ddd6fe;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.app-rank-fill {
+  display: block;
+  height: 100%;
+
+  background: #7c3aed;
+  border-radius: 999px;
+}
+
 @media (max-width: 768px) {
 
   .app-page-tabs {

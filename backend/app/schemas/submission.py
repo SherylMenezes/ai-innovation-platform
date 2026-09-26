@@ -24,6 +24,8 @@ class SubmissionStatusResponse(BaseModel):
     file_url: str
     created_at: Optional[datetime] = None
     scorecard: Optional[ScorecardResponse] = None
+    # Only set on the create response: XP paid for this submission.
+    xp_awarded: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 

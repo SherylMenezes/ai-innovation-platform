@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import "./GamificationPanel.css";
-import { getUserStats, checkIn, getBadges, getLeaderboard } from "../../api/gamificationClient";
+import { getUserStats, checkIn, getBadges, getLeaderboard, getXpHistory } from "../../api/gamificationClient";
 import { useAuth } from "../../context/AuthContext";
+import { BADGES, badgeIcon, describeXpEvent } from "../../utils/progression";
 
 function GamificationPanel() {
   const { accessToken } = useAuth();
@@ -18,6 +19,8 @@ function GamificationPanel() {
   const [leaderboard, setLeaderboard] = useState(null);
   const [leaderboardError, setLeaderboardError] = useState("");
 
+  const [xpHistory, setXpHistory] = useState([]);
+
   const loadStats = () => {
     setIsLoading(true);
     setError("");
@@ -25,6 +28,11 @@ function GamificationPanel() {
       .then(setStats)
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
+    getXpHistory(accessToken)
+      .then((data) => setXpHistory(data.items))
+      .catch(() => {
+        // Non-fatal — the history list just stays empty.
+      });
   };
 
   useEffect(() => {
@@ -73,10 +81,24 @@ function GamificationPanel() {
     );
   }
 
-  const unlockedBadges = badges?.badges?.filter((b) => b.unlocked) || [];
+  const allBadges = badges?.badges || [];
 
   return (
     <div className="gami-panel">
+      <div className="gami-rank-card">
+        <div className="gami-rank-header">
+          <span className="gami-rank-title">
+            Rank {stats.rank.rank} · {stats.rank.title}
+          </span>
+          <span className="gami-rank-next">
+            {stats.rank.xp_into_rank} / {stats.rank.xp_for_next_rank} XP to Rank {stats.rank.rank + 1}
+          </span>
+        </div>
+        <div className="gami-rank-track">
+          <div className="gami-rank-fill" style={{ width: `${stats.rank.progress_percent}%` }} />
+        </div>
+      </div>
+
       <div className="gami-stat-row">
         <div className="gami-stat-card">
           <span className="gami-stat-value">{stats.xp}</span>
@@ -96,16 +118,37 @@ function GamificationPanel() {
         <h4>Badges</h4>
         {badgesError ? (
           <p className="gami-error">{badgesError}</p>
-        ) : unlockedBadges.length === 0 ? (
-          <p className="gami-empty">No badges yet — check in daily and complete tasks to earn XP.</p>
+        ) : allBadges.length === 0 ? (
+          <p className="gami-empty">No badges available yet.</p>
         ) : (
           <div className="gami-badge-list">
-            {unlockedBadges.map((b) => (
-              <span className="gami-badge" key={b.id} title={b.description}>
-                🏅 {b.name}
+            {allBadges.map((b) => (
+              <span
+                className={`gami-badge${b.unlocked ? "" : " gami-badge-locked"}`}
+                key={b.id}
+                title={b.description}
+              >
+                {b.unlocked ? badgeIcon(b.slug) : "🔒"} {b.name}
+                {!b.unlocked && BADGES[b.slug] && <small> — {BADGES[b.slug].hint}</small>}
               </span>
             ))}
           </div>
+        )}
+      </div>
+
+      <div className="gami-history">
+        <h4>Recent XP</h4>
+        {xpHistory.length === 0 ? (
+          <p className="gami-empty">No XP yet — clear a Level in any challenge to start earning.</p>
+        ) : (
+          <ul className="gami-history-list">
+            {xpHistory.map((item) => (
+              <li key={item.id}>
+                <span>{describeXpEvent(item)}</span>
+                <span className="gami-history-points">+{item.points} XP</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
@@ -143,6 +186,7 @@ function GamificationPanel() {
               <tr>
                 <th>Rank</th>
                 <th>Name</th>
+                <th>Title</th>
                 <th>XP</th>
                 <th>Streak</th>
               </tr>
@@ -152,6 +196,7 @@ function GamificationPanel() {
                 <tr key={entry.user_id} className={entry.is_current_user ? "gami-leaderboard-you" : ""}>
                   <td>{entry.rank}</td>
                   <td>{entry.name}</td>
+                  <td>{entry.rank_title}</td>
                   <td>{entry.xp}</td>
                   <td>{entry.current_streak}</td>
                 </tr>

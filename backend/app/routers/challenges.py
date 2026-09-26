@@ -15,6 +15,7 @@ from app.models.challenge import Challenge, Enrollment
 from app.models.user import User
 from app.schemas.challenge import ChallengeResponse, EnrollmentResponse
 from app.schemas.workspace import (
+    AdvanceStageRequest,
     AdvanceStageResponse,
     CanvasStateUpdate,
     EnrolledChallengeItem,
@@ -122,15 +123,7 @@ def get_enrolled_challenges(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    enrollments = workspace_service.list_enrolled(db, current_user.id)
-    items = [
-        EnrolledChallengeItem(
-            challenge=e.challenge,
-            status=e.status,
-            current_stage=e.current_stage,
-        )
-        for e in enrollments
-    ]
+    items = [EnrolledChallengeItem(**item) for item in workspace_service.list_enrolled(db, current_user.id)]
     return EnrolledChallengesResponse(items=items)
 
 
@@ -259,18 +252,21 @@ async def save_canvas_workspace(
     db: Session = Depends(get_db),
 ):
     try:
-        enrollment, xp = await workspace_service.save_canvas_state(
+        enrollment, rewards = await workspace_service.save_canvas_state(
             db, current_user.id, id, payload.canvas_state, payload.mark_step_complete
         )
     except workspace_service.WorkspaceNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
-    except workspace_service.WorkspaceLockedError as exc:
+    except workspace_service.InvalidStepError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
 
     return WorkspaceSaveResponse(
         current_stage=enrollment.current_stage,
         completed_steps=enrollment.completed_steps or [],
-        xp_awarded=xp,
+        xp_awarded=rewards.xp_awarded,
+        total_xp=rewards.total_xp,
     )
 
 
@@ -282,18 +278,21 @@ async def save_evaluation_workspace(
     db: Session = Depends(get_db),
 ):
     try:
-        enrollment, xp = await workspace_service.save_evaluation_state(
+        enrollment, rewards = await workspace_service.save_evaluation_state(
             db, current_user.id, id, payload.evaluation_state, payload.mark_step_complete
         )
     except workspace_service.WorkspaceNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
-    except workspace_service.WorkspaceLockedError as exc:
+    except workspace_service.InvalidStepError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
 
     return WorkspaceSaveResponse(
         current_stage=enrollment.current_stage,
         completed_steps=enrollment.completed_steps or [],
-        xp_awarded=xp,
+        xp_awarded=rewards.xp_awarded,
+        total_xp=rewards.total_xp,
     )
 
 
@@ -305,30 +304,41 @@ async def complete_workspace_step(
     db: Session = Depends(get_db),
 ):
     try:
-        enrollment, xp = await workspace_service.complete_step(db, current_user.id, id, payload.step_key)
+        enrollment, rewards = await workspace_service.complete_step(db, current_user.id, id, payload.step_key)
     except workspace_service.WorkspaceNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
-    except workspace_service.WorkspaceLockedError as exc:
+    except workspace_service.InvalidStepError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
 
     return WorkspaceSaveResponse(
         current_stage=enrollment.current_stage,
         completed_steps=enrollment.completed_steps or [],
-        xp_awarded=xp,
+        xp_awarded=rewards.xp_awarded,
+        total_xp=rewards.total_xp,
     )
 
 
 @router.post("/{id}/workspace/advance-stage", response_model=AdvanceStageResponse)
-def advance_workspace_stage(
+async def advance_workspace_stage(
     id: int,
+    payload: Optional[AdvanceStageRequest] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     try:
-        enrollment = workspace_service.advance_stage(db, current_user.id, id)
+        enrollment, rewards = await workspace_service.advance_stage(
+            db, current_user.id, id, from_stage=payload.stage if payload else None
+        )
     except workspace_service.WorkspaceNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
-    except workspace_service.WorkspaceLockedError as exc:
+    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
 
-    return AdvanceStageResponse(current_stage=enrollment.current_stage)
+    return AdvanceStageResponse(
+        current_stage=enrollment.current_stage,
+        xp_awarded=rewards.xp_awarded,
+        total_xp=rewards.total_xp,
+        cleared_level=rewards.cleared_level,
+    )

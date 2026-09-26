@@ -1,16 +1,21 @@
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.challenge import Challenge, Enrollment
+from app.models.evaluation import EvaluationJob, EvaluationJobStatus
 from app.models.submission import Submission, Scorecard
 from app.models.user import User
 from app.schemas.submission import EvaluateSubmissionResponse, SubmissionStatusResponse, ScorecardResponse
-from app.services.event_broker import GamificationEvent, event_broker
+from app.services import xp_rules
 from app.services.evaluation_job_service import create_evaluation_job, run_evaluation_job
 from app.services.storage_service import storage_service
+from app.services.workspace_service import award_once
 from app.security import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/submissions", tags=["Submissions"])
 
@@ -42,6 +47,8 @@ async def create_submission(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Enroll in this challenge before submitting.")
     if enrollment.status == "completed":
         raise HTTPException(status.HTTP_409_CONFLICT, "This challenge is already completed.")
+    if enrollment.current_stage != "submission":
+        raise HTTPException(status.HTTP_409_CONFLICT, "Clear Levels 1–3 before submitting your project.")
 
     file_url = storage_service.upload_file(file) if file else ""
 
@@ -52,18 +59,30 @@ async def create_submission(
         repository_url=repository_url,
     )
     db.add(submission)
-
-    enrollment.current_stage = "submission"
-
     db.commit()
     db.refresh(submission)
 
-    await event_broker.emit(
-        GamificationEvent.CHALLENGE_SUBMITTED,
-        {"user_id": current_user.id, "metadata": {"submission_id": submission.id, "challenge_id": challenge_id}},
-    )
+    # Paid for the first submission only — replacing a deliverable before
+    # it's evaluated doesn't pay again.
+    xp_awarded = 0
+    try:
+        result = await award_once(
+            db,
+            enrollment,
+            xp_rules.SUBMITTED_KEY,
+            xp_rules.SUBMISSION_XP,
+            "CHALLENGE_SUBMITTED",
+            "submission",
+            {"submission_id": submission.id},
+        )
+        xp_awarded = result.points_awarded if result else 0
+    except Exception:
+        logger.exception("Failed to award submission XP for submission %s", submission.id)
 
-    return submission
+    db.refresh(submission)
+    response = SubmissionStatusResponse.model_validate(submission)
+    response.xp_awarded = xp_awarded
+    return response
 
 
 def _get_owned_submission(db: Session, submission_id: int, current_user: User) -> Submission:
@@ -97,6 +116,22 @@ def evaluate_submission(
     evaluation_job_service._write_scorecard) instead of only living on
     the job record, so GET /{id}/scorecard has something to return."""
     submission = _get_owned_submission(db, submission_id, current_user)
+
+    # One evaluation per submission: re-running it would re-roll the score
+    # (and with it the XP and badges) until the student liked the result.
+    # A failed job resets the submission to "submitted", so retries still work.
+    if submission.status in ("evaluating", "evaluated"):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This submission has already been evaluated.")
+    job_in_flight = (
+        db.query(EvaluationJob)
+        .filter(
+            EvaluationJob.submission_id == submission.id,
+            EvaluationJob.status.in_([EvaluationJobStatus.pending.value, EvaluationJobStatus.running.value]),
+        )
+        .first()
+    )
+    if job_in_flight is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "An evaluation is already running for this submission.")
 
     challenge = db.get(Challenge, submission.challenge_id)
     title = challenge.title if challenge else f"Submission {submission.id}"

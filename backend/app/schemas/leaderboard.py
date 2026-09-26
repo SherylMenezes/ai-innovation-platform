@@ -10,6 +10,9 @@ class LeaderboardEntry(BaseModel):
     user_id: str
     name: str
     xp: int
+    # Player Rank title from XP (e.g. "Problem Solver") — `rank` above is
+    # the leaderboard position.
+    rank_title: str = ""
     current_streak: int
     is_current_user: bool
 

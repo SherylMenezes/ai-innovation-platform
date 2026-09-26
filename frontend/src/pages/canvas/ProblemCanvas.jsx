@@ -12,6 +12,7 @@ import {
 } from "../../api/aiClient";
 import { getWorkspace, saveCanvasState, advanceStage } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
+import { stepLabel } from "../../utils/progression";
 
 // Minimum score required before a step's Continue button unlocks.
 const PASS_THRESHOLD = 40;
@@ -51,7 +52,7 @@ function ScoreIndicator({ label, score, tips }) {
   );
 }
 
-function ProblemCanvas({ challengeId, onStageAdvance }) {
+function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
   const { accessToken } = useAuth();
 
   // Workspace load state
@@ -95,9 +96,7 @@ function ProblemCanvas({ challengeId, onStageAdvance }) {
   // Additional AI-generated ideas (appended on "Generate More Ideas")
   const [extraIdeas, setExtraIdeas] = useState([]);
 
-  // Save/XP feedback
   const [savingStep, setSavingStep] = useState(null);
-  const [xpToast, setXpToast] = useState("");
 
   // Real AI calls — feedback (step 1), root cause suggestions (step 2),
   // HMW suggestions (step 3), and the initial idea batch (step 4).
@@ -157,12 +156,9 @@ function ProblemCanvas({ challengeId, onStageAdvance }) {
 
   const persistStep = async (stepKey, overrides, nextStep) => {
     setSavingStep(stepKey);
-    setXpToast("");
     try {
       const result = await saveCanvasState(accessToken, challengeId, buildCanvasState(overrides), stepKey);
-      if (result.xp_awarded > 0) {
-        setXpToast(`+${result.xp_awarded} XP`);
-      }
+      onReward?.({ ...result, label: stepLabel(stepKey) });
       if (nextStep) setStep(nextStep);
       return true;
     } catch (err) {
@@ -251,7 +247,8 @@ function ProblemCanvas({ challengeId, onStageAdvance }) {
     const saved = await persistStep("canvas_step_4", {}, null);
     if (!saved) return;
     try {
-      const result = await advanceStage(accessToken, challengeId);
+      const result = await advanceStage(accessToken, challengeId, "canvas");
+      onReward?.(result);
       onStageAdvance?.(result.current_stage);
     } catch (err) {
       setError(err.message);
@@ -361,7 +358,6 @@ function ProblemCanvas({ challengeId, onStageAdvance }) {
       <header className="workspace-header">
         <p className="workspace-label">PROJECT WORKSPACE</p>
         {challenge && <h1 className="workspace-challenge-title">{challenge.title}</h1>}
-        {xpToast && <span className="xp-toast">{xpToast}</span>}
       </header>
 
       <nav className="workspace-tabs">

@@ -1,0 +1,169 @@
+.level-bar {
+  max-width: 1100px;
+  margin: 16px auto 0;
+  padding: 14px 16px;
+
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 14px;
+}
+
+.level-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+
+  margin-bottom: 12px;
+}
+
+.level-bar-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.level-bar-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.level-bar-xp {
+  padding: 2px 10px;
+
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+
+  color: #15803d;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.level-bar-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.level-step {
+  width: 100%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 12px;
+
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.level-step:hover:not(:disabled) {
+  border-color: #93c5fd;
+}
+
+.level-step:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.level-step-number {
+  flex-shrink: 0;
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #e2e8f0;
+  border-radius: 50%;
+
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.level-step-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.level-step-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.level-step-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.level-step-xp {
+  font-size: 11.5px;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+.level-step-completed {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.level-step-completed .level-step-number {
+  background: #16a34a;
+  color: white;
+}
+
+.level-step-current {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.level-step-current .level-step-number {
+  background: #2563eb;
+  color: white;
+}
+
+.level-step-active {
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+@media (max-width: 768px) {
+  .level-bar {
+    margin: 12px 16px 0;
+  }
+
+  .level-bar-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

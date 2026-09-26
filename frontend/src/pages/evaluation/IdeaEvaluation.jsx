@@ -3,8 +3,9 @@ import "./IdeaEvaluation.css";
 import { getSwotAnalysis, scoreIdea, getRiskAnalysis, mentorCoach } from "../../api/aiClient";
 import { getWorkspace, saveEvaluationState, advanceStage } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
+import { stepLabel } from "../../utils/progression";
 
-function IdeaEvaluation({ challengeId, onStageAdvance }) {
+function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
   const { accessToken } = useAuth();
   const [step, setStep] = useState(1);
 
@@ -12,7 +13,6 @@ function IdeaEvaluation({ challengeId, onStageAdvance }) {
   const [workspaceError, setWorkspaceError] = useState("");
   const [isLocked, setIsLocked] = useState(false);
   const [savingStep, setSavingStep] = useState(null);
-  const [xpToast, setXpToast] = useState("");
 
   const [idea, setIdea] = useState({ title: "", description: "" });
 
@@ -88,10 +88,9 @@ function IdeaEvaluation({ challengeId, onStageAdvance }) {
 
   const persistStep = async (stepKey, overrides) => {
     setSavingStep(stepKey);
-    setXpToast("");
     try {
       const result = await saveEvaluationState(accessToken, challengeId, buildEvaluationState(overrides), stepKey);
-      if (result.xp_awarded > 0) setXpToast(`+${result.xp_awarded} XP`);
+      onReward?.({ ...result, label: stepLabel(stepKey) });
       return true;
     } catch (err) {
       setWorkspaceError(err.message);
@@ -105,7 +104,8 @@ function IdeaEvaluation({ challengeId, onStageAdvance }) {
     const saved = await persistStep("eval_complete", {});
     if (!saved) return;
     try {
-      const result = await advanceStage(accessToken, challengeId);
+      const result = await advanceStage(accessToken, challengeId, "evaluation");
+      onReward?.(result);
       onStageAdvance?.(result.current_stage);
     } catch (err) {
       setWorkspaceError(err.message);
@@ -237,7 +237,6 @@ function IdeaEvaluation({ challengeId, onStageAdvance }) {
   return (
     <div className="evaluation-page">
       {workspaceError && <p className="ai-error-text">{workspaceError}</p>}
-      {xpToast && <span className="xp-toast">{xpToast}</span>}
 
       {/* =====================================================
           STEP 1 — SWOT ANALYSIS
