@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()  # This loads the variables from your .env file into Python's environment
 import os
 
+
+
 from dotenv import load_dotenv
 
 # Must run before any module reads os.getenv() at call time — e.g.
@@ -12,6 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -56,6 +59,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+from app.routers import leaderboard
+app.include_router(leaderboard.router)
 
 # CORS configuration for Vite frontend
 app.add_middleware(
