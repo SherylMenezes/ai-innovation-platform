@@ -14,7 +14,7 @@ function DashboardOverview({ onOpenChallenge }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(() => !readCache(cacheKey)?.overview);
   const [projects, setProjects] = useState(() => readCache(cacheKey)?.projects || []);
-  const userBadges = overview?.badges || stats?.badges || [];
+  const userBadges = (typeof overview !== "undefined" && overview?.badges) || [];
 
   useEffect(() => {
     if (!accessToken) return;
