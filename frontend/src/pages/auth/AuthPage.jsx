@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 // purely for the UI countdown; the server enforces the real cooldown.
 const RESEND_COOLDOWN_SECONDS = 60;
 
-function AuthPage() {
+export default function AuthPage({ onBack }) {
   const { loginWithTokens } = useAuth();
 
   const [mode, setMode] = useState("login"); // "login" | "signup"
@@ -71,9 +71,6 @@ function AuthPage() {
 
     try {
       if (otpPurpose === "registration") {
-        // The registration code already proves ownership of the email/
-        // phone, so /register signs the new user straight in — no second
-        // login code to wait for.
         const account = await register({
           name: name.trim(),
           email: channel === "email" ? identifier.trim() : undefined,
@@ -111,16 +108,30 @@ function AuthPage() {
 
   return (
     <div className="auth-page">
+      {onBack && (
+        <button type="button" className="auth-back-btn" onClick={onBack}>
+          ← Back to Home
+        </button>
+      )}
+
       <div className="auth-card">
         <h1 className="auth-title">AI Innovation Platform</h1>
 
         {step === "form" && (
           <>
             <div className="auth-mode-tabs">
-              <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>
+              <button
+                type="button"
+                className={mode === "login" ? "active" : ""}
+                onClick={() => switchMode("login")}
+              >
                 Log in
               </button>
-              <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => switchMode("signup")}>
+              <button
+                type="button"
+                className={mode === "signup" ? "active" : ""}
+                onClick={() => switchMode("signup")}
+              >
                 Sign up
               </button>
             </div>
@@ -129,7 +140,12 @@ function AuthPage() {
               {mode === "signup" && (
                 <label className="auth-field">
                   Name
-                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required />
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your full name"
+                    required
+                  />
                 </label>
               )}
 
@@ -137,14 +153,20 @@ function AuthPage() {
                 <button
                   type="button"
                   className={channel === "email" ? "active" : ""}
-                  onClick={() => { setChannel("email"); setIdentifier(""); }}
+                  onClick={() => {
+                    setChannel("email");
+                    setIdentifier("");
+                  }}
                 >
                   Email
                 </button>
                 <button
                   type="button"
                   className={channel === "phone" ? "active" : ""}
-                  onClick={() => { setChannel("phone"); setIdentifier(""); }}
+                  onClick={() => {
+                    setChannel("phone");
+                    setIdentifier("");
+                  }}
                 >
                   Phone
                 </button>
@@ -172,7 +194,10 @@ function AuthPage() {
                 <>
                   <label className="auth-field">
                     Academic tier
-                    <select value={academicTier} onChange={(e) => setAcademicTier(e.target.value)}>
+                    <select
+                      value={academicTier}
+                      onChange={(e) => setAcademicTier(e.target.value)}
+                    >
                       <option value="Grade 8-10">Grade 8-10</option>
                       <option value="Grade 11-12">Grade 11-12</option>
                       <option value="Graduate">Graduate</option>
@@ -205,7 +230,6 @@ function AuthPage() {
               We sent a {otpPurpose === "registration" ? "verification" : "login"} code to{" "}
               <strong>{identifier}</strong> via {channel === "email" ? "email" : "SMS"}.
             </p>
-
 
             <label className="auth-field">
               Enter code
@@ -244,5 +268,3 @@ function AuthPage() {
     </div>
   );
 }
-
-export default AuthPage;
