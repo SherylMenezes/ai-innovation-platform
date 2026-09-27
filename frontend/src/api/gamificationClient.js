@@ -47,3 +47,8 @@ export function getBadges(token) {
 export function getLeaderboard(token, scope = "global", limit = 20) {
   return authedRequest(`/api/gamification/leaderboard?scope=${scope}&limit=${limit}`, { token });
 }
+
+// GET /api/gamification/xp-history?limit=
+export function getXpHistory(token, limit = 20) {
+  return authedRequest(`/api/gamification/xp-history?limit=${limit}`, { token });
+}

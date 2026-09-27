@@ -276,7 +276,7 @@ def test_streak_checkin_event_updates_streak_and_awards_xp():
     profile = db.get(UserGamificationProfile, user.id)
     db.close()
     assert profile.current_streak == 1
-    assert profile.total_xp == 5  # REWARD_RULES[STREAK_CHECKIN]
+    assert profile.total_xp == 10  # REWARD_RULES[STREAK_CHECKIN] == xp_rules.STREAK_CHECKIN_XP
 
 
 def test_unknown_event_type_is_ignored_not_errored():

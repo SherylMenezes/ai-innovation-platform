@@ -20,7 +20,6 @@ function AuthPage() {
   const [step, setStep] = useState("form"); // "form" | "otp"
   const [otpPurpose, setOtpPurpose] = useState("login");
   const [code, setCode] = useState("");
-  const [info, setInfo] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -35,7 +34,6 @@ function AuthPage() {
     setStep("form");
     setCode("");
     setError("");
-    setInfo("");
   };
 
   const switchMode = (nextMode) => {
@@ -73,7 +71,10 @@ function AuthPage() {
 
     try {
       if (otpPurpose === "registration") {
-        await register({
+        // The registration code already proves ownership of the email/
+        // phone, so /register signs the new user straight in — no second
+        // login code to wait for.
+        const account = await register({
           name: name.trim(),
           email: channel === "email" ? identifier.trim() : undefined,
           phone: channel === "phone" ? identifier.trim() : undefined,
@@ -82,12 +83,20 @@ function AuthPage() {
           academicTier,
           institutionName: institutionName.trim(),
         });
-        // Registration and login use separate OTP purposes by design (one
-        // code can't double as a login token later), so signup's last
-        // step is silently requesting the login code on the user's behalf.
-        setInfo("Account created — sending a login code to finish signing in...");
-        setCode("");
-        await sendCode("login");
+        await loginWithTokens({
+          access_token: account.access_token,
+          refresh_token: account.refresh_token,
+          user: {
+            id: account.user_id,
+            name: account.name,
+            email: account.email,
+            phone: account.phone,
+            role: account.role,
+            academic_tier: account.academic_tier,
+            institution_name: account.institution_name,
+            is_verified: account.is_verified,
+          },
+        });
         return;
       }
 
@@ -197,7 +206,6 @@ function AuthPage() {
               <strong>{identifier}</strong> via {channel === "email" ? "email" : "SMS"}.
             </p>
 
-            {info && <p className="auth-info">{info}</p>}
 
             <label className="auth-field">
               Enter code

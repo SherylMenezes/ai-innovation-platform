@@ -73,7 +73,6 @@ def create_otp(db: Session, identifier: str, channel: OtpChannel, purpose: OtpPu
     )
     db.add(otp)
     db.commit()
-    db.refresh(otp)
     return otp, code
 
 
@@ -84,7 +83,12 @@ def verify_otp(
     purpose: OtpPurpose,
     code: str,
     consume: bool = True,
+    commit: bool = True,
 ) -> OtpCode:
+    """commit=False leaves marking the OTP used to the caller's own
+    commit, so e.g. registration consumes the code and creates the user
+    atomically in one round trip. Failed attempts are always committed
+    immediately — the attempt limit must hold even if the caller aborts."""
     stmt = (
         select(OtpCode)
         .where(
@@ -116,6 +120,7 @@ def verify_otp(
 
     if consume:
         otp.is_used = True
-        db.commit()
+        if commit:
+            db.commit()
 
     return otp

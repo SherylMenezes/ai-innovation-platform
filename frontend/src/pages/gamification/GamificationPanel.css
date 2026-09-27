@@ -184,3 +184,101 @@
   background: #eff6ff;
   font-weight: 700;
 }
+
+.gami-rank-card {
+  background: white;
+  border: 1px solid #ddd6fe;
+  border-radius: 14px;
+  padding: 16px 18px;
+
+  margin-bottom: 16px;
+}
+
+.gami-rank-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+
+  margin-bottom: 8px;
+}
+
+.gami-rank-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #6d28d9;
+}
+
+.gami-rank-next {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.gami-rank-track {
+  width: 100%;
+  height: 10px;
+  background: #ede9fe;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.gami-rank-fill {
+  height: 100%;
+  background: #7c3aed;
+  border-radius: 999px;
+}
+
+.gami-badge-locked {
+  color: #94a3b8;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.gami-badge-locked small {
+  font-weight: 500;
+}
+
+.gami-history {
+  background: white;
+  border: 1px solid #e0eaff;
+  border-radius: 14px;
+  padding: 16px 18px;
+
+  margin-bottom: 16px;
+}
+
+.gami-history h4 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.gami-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.gami-history-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+
+  padding: 7px 0;
+  border-bottom: 1px solid #f1f5f9;
+
+  font-size: 13.5px;
+  color: #334155;
+}
+
+.gami-history-list li:last-child {
+  border-bottom: none;
+}
+
+.gami-history-points {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: #15803d;
+  font-variant-numeric: tabular-nums;
+}

@@ -170,6 +170,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 
   padding: 12px 14px;
 
@@ -208,4 +209,63 @@
 .dash-project-status-completed {
   color: #15803d;
   background: #f0fdf4;
+}
+
+.dash-xp-total {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: #64748b;
+}
+
+.dash-project-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.dash-project-level {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.dash-project-side {
+  flex-shrink: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.dash-level-segments {
+  display: flex;
+  gap: 4px;
+}
+
+.dash-level-segment {
+  width: 26px;
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.dash-level-segment-completed {
+  background: #16a34a;
+}
+
+.dash-level-segment-current {
+  background: #2563eb;
+}
+
+@media (max-width: 560px) {
+  .dash-project-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dash-project-side {
+    align-items: flex-start;
+  }
 }

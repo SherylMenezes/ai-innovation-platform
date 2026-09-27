@@ -5,6 +5,7 @@ import AiMentorDrawer from "./AiMentorDrawer";
 import { useAuth } from "../../context/AuthContext";
 import { listNotes, createNote, updateNote, deleteNote } from "../../api/ideationClient";
 import { completeWorkspaceStep, advanceStage } from "../../api/challengesClient";
+import { stepLabel } from "../../utils/progression";
 
 // Sticky note color palette. Backgrounds/borders only — note text always
 // stays the app's standard dark slate for readability across all colors.
@@ -102,7 +103,7 @@ function NoteCard({ note, style, className, headerDragProps, onTextChange, onCol
 
 const UNSORTED_KEY = "__unsorted__";
 
-function IdeationBoard({ challengeId, onStageAdvance }) {
+function IdeationBoard({ challengeId, onStageAdvance, onReward }) {
   const { accessToken } = useAuth();
   const [notes, setNotes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,7 +114,6 @@ function IdeationBoard({ challengeId, onStageAdvance }) {
   const [dragOverKey, setDragOverKey] = useState(null); // SCAMPER column currently being dragged over
   const [viewportWidth, setViewportWidth] = useState(() => window.innerWidth);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [xpToast, setXpToast] = useState("");
 
   const boardRef = useRef(null);
   const dragInfo = useRef(null); // { id, offsetX, offsetY }
@@ -147,8 +147,9 @@ function IdeationBoard({ challengeId, onStageAdvance }) {
     setSaveError("");
     try {
       const result = await completeWorkspaceStep(accessToken, challengeId, "ideation_complete");
-      if (result.xp_awarded > 0) setXpToast(`+${result.xp_awarded} XP`);
-      const advanced = await advanceStage(accessToken, challengeId);
+      onReward?.({ ...result, label: stepLabel("ideation_complete") });
+      const advanced = await advanceStage(accessToken, challengeId, "ideation");
+      onReward?.(advanced);
       onStageAdvance?.(advanced.current_stage);
     } catch (err) {
       setSaveError(err.message);
@@ -329,7 +330,6 @@ function IdeationBoard({ challengeId, onStageAdvance }) {
           Add sticky notes for every direction worth exploring, then switch
           views to organize them with SCAMPER or a mind map.
         </p>
-        {xpToast && <span className="xp-toast">{xpToast}</span>}
       </header>
 
       {saveError && (

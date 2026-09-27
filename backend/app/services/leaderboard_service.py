@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.models.gamification import UserGamificationProfile
 from app.models.user import User
+from app.services.player_rank import rank_for_xp
 from app.schemas.leaderboard import LeaderboardEntry, LeaderboardResponse, LeaderboardScope
 
 
@@ -60,6 +61,7 @@ def get_leaderboard(db: Session, scope: LeaderboardScope, current_user: User, li
             user_id=user.id,
             name=user.name,
             xp=xp,
+            rank_title=rank_for_xp(xp).title,
             current_streak=streak,
             is_current_user=(user.id == current_user.id),
         )

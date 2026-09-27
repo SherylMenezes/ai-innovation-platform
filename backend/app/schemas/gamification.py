@@ -34,14 +34,37 @@ class StreakCheckInResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RankOut(BaseModel):
+    """A player's overall Rank from lifetime XP — see services/player_rank.py."""
+    rank: int
+    title: str
+    total_xp: int
+    xp_into_rank: int
+    xp_for_next_rank: int
+    progress_percent: float
+
+
 class UserStatsResponse(BaseModel):
     user_id: str
     xp: int
     current_streak: int
     longest_streak: int
     last_check_in: Optional[date] = None
+    rank: RankOut
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class XpHistoryItem(BaseModel):
+    id: str
+    points: int
+    source_event: str
+    metadata: dict[str, Any] = {}
+    created_at: datetime
+
+
+class XpHistoryResponse(BaseModel):
+    items: List[XpHistoryItem]
 
 
 class BadgeItem(BaseModel):

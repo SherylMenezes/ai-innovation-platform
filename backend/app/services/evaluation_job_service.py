@@ -12,27 +12,17 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.models.challenge import Enrollment
 from app.models.evaluation import EvaluationJob, EvaluationJobStatus
-from app.models.gamification import Badge, UserBadge
 from app.models.submission import Scorecard, Submission
-from app.services.gamification_service import award_xp
+from app.services import xp_rules
+from app.services.badge_service import award_submission_badges
 from app.services.llm_service import (
     analyze_idea_risks,
     calculate_idea_score,
     generate_swot_analysis,
 )
+from app.services.workspace_service import award_once
 
 logger = logging.getLogger(__name__)
-
-# Score-proportional completion bonus, on top of the flat 50 XP for
-# submitting: up to 60 XP for a perfect 20/20 (score_out_of_20 * 3).
-EVALUATION_XP_MULTIPLIER = 3
-
-# slug -> minimum overall_score (out of 20) required to unlock it.
-COMPLETION_BADGE_THRESHOLDS = [
-    ("challenge_completer", 0),
-    ("high_achiever", 16),
-    ("perfectionist", 19),
-]
 
 
 class EvaluationJobNotFoundError(Exception):
@@ -154,10 +144,10 @@ def _write_scorecard(db: Session, submission_id: int, score) -> float:
 
 
 async def _complete_enrollment_and_reward(db: Session, submission_id: int, overall_score: float) -> None:
-    """Locks the challenge (Enrollment -> completed) and pays out the
-    score-proportional XP bonus + completion badges. Runs once per
-    submission evaluation — safe to call even if the enrollment can't be
-    found (e.g. legacy/orphaned submission), it just skips the reward."""
+    """Clears Level 4: locks the challenge (Enrollment -> completed), pays
+    the score-based evaluation XP once, and unlocks any submission badges.
+    Safe to call even if the enrollment can't be found (e.g. legacy/
+    orphaned submission), it just skips the reward."""
     submission = db.get(Submission, submission_id)
     if submission is None:
         return
@@ -174,24 +164,22 @@ async def _complete_enrollment_and_reward(db: Session, submission_id: int, overa
     enrollment.current_stage = "completed"
     db.commit()
 
-    bonus_points = round(overall_score) * EVALUATION_XP_MULTIPLIER
-    if bonus_points > 0:
-        try:
-            await award_xp(db, submission.user_id, bonus_points, "CHALLENGE_EVALUATED", {"submission_id": submission_id, "overall_score": overall_score})
-        except Exception:
-            logger.exception("Failed to award completion XP for submission %s", submission_id)
-
-    for slug, threshold in COMPLETION_BADGE_THRESHOLDS:
-        if overall_score < threshold:
-            continue
-        badge = db.query(Badge).filter(Badge.slug == slug).first()
-        if badge is None:
-            continue
-        already_awarded = (
-            db.query(UserBadge)
-            .filter(UserBadge.user_id == submission.user_id, UserBadge.badge_id == badge.id)
-            .first()
+    try:
+        await award_once(
+            db,
+            enrollment,
+            xp_rules.EVALUATED_KEY,
+            xp_rules.evaluation_xp(overall_score),
+            "CHALLENGE_EVALUATED",
+            "submission",
+            {"submission_id": submission_id, "overall_score": overall_score},
         )
-        if already_awarded is None:
-            db.add(UserBadge(user_id=submission.user_id, badge_id=badge.id))
-    db.commit()
+    except Exception:
+        logger.exception("Failed to award completion XP for submission %s", submission_id)
+
+    try:
+        await award_submission_badges(
+            db, submission.user_id, submission.challenge_id, submission_id, overall_score
+        )
+    except Exception:
+        logger.exception("Failed to award badges for submission %s", submission_id)

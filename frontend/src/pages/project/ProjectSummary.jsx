@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./ProjectSummary.css";
 import { getWorkspace } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
+import { badgeIcon, describeXpEvent } from "../../utils/progression";
 
 function ProjectSummary({ challengeId }) {
   const { accessToken } = useAuth();
@@ -33,6 +34,8 @@ function ProjectSummary({ challengeId }) {
   const evaluation = data.evaluation_state || {};
   const submission = data.submission;
   const scorecard = submission?.scorecard;
+  const rewards = data.rewards || [];
+  const totalXp = rewards.reduce((sum, reward) => sum + reward.points, 0);
 
   return (
     <div className="summary-panel">
@@ -126,6 +129,36 @@ function ProjectSummary({ challengeId }) {
           </>
         ) : (
           <p>No submission recorded yet.</p>
+        )}
+      </div>
+
+      <div className="summary-section">
+        <h3>Rewards</h3>
+        <p className="summary-rewards-total">
+          <strong>{totalXp} XP</strong> earned from this challenge
+          {" · "}
+          {data.progress.levels_completed} of {data.progress.total_levels} levels cleared
+        </p>
+
+        {data.badges_earned.length > 0 && (
+          <div className="summary-badge-list">
+            {data.badges_earned.map((badge) => (
+              <span key={badge.slug} className="summary-earned-badge" title={badge.description}>
+                {badgeIcon(badge.slug)} {badge.name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {rewards.length > 0 && (
+          <ul className="summary-reward-list">
+            {rewards.map((reward, index) => (
+              <li key={index}>
+                <span>{describeXpEvent(reward)}</span>
+                <span className="summary-reward-points">+{reward.points} XP</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>

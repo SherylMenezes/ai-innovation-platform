@@ -8,6 +8,7 @@ import-order side effects.
 import logging
 
 from app.database import SessionLocal
+from app.services import xp_rules
 from app.services.event_broker import GamificationEvent, event_broker
 from app.services.gamification_service import (
     UserNotFoundError,
@@ -19,12 +20,13 @@ logger = logging.getLogger(__name__)
 
 # Extensible reward rule configuration — add a new event type here and it
 # automatically starts awarding XP the moment something emits it, with no
-# other code changes required.
+# other code changes required. Challenge workflow XP (steps, Level clears,
+# submission, evaluation) is paid by workspace_service.award_once() instead,
+# because it needs per-enrollment idempotency and difficulty scaling.
 REWARD_RULES: dict[str, int] = {
     GamificationEvent.TASK_COMPLETED: 10,
-    GamificationEvent.CHALLENGE_SUBMITTED: 50,
-    GamificationEvent.STREAK_CHECKIN: 5,
-    GamificationEvent.WORKSPACE_STEP_COMPLETED: 5,
+    GamificationEvent.CHALLENGE_SUBMITTED: xp_rules.SUBMISSION_XP,
+    GamificationEvent.STREAK_CHECKIN: xp_rules.STREAK_CHECKIN_XP,
 }
 
 
@@ -65,7 +67,6 @@ def register_gamification_listeners() -> None:
         GamificationEvent.TASK_COMPLETED,
         GamificationEvent.CHALLENGE_SUBMITTED,
         GamificationEvent.STREAK_CHECKIN,
-        GamificationEvent.WORKSPACE_STEP_COMPLETED,
     ):
         event_broker.on(event_type, handle_milestone_event)
 

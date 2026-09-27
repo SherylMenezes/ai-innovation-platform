@@ -12,11 +12,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
-from app.models.gamification import UserGamificationProfile, Badge, UserBadge
-from app.schemas.gamification import AwardXpRequest, AwardXpResponse, StreakCheckInResponse, UserStatsResponse, BadgeItem, UserBadgesResponse, AwardBadgeRequest, AwardBadgeResponse
+from app.models.gamification import UserGamificationProfile, Badge, UserBadge, XPTransaction
+from app.schemas.gamification import AwardXpRequest, AwardXpResponse, StreakCheckInResponse, UserStatsResponse, BadgeItem, UserBadgesResponse, AwardBadgeRequest, AwardBadgeResponse, XpHistoryItem, XpHistoryResponse
 from app.schemas.leaderboard import LeaderboardResponse, LeaderboardScope
+from app.services.badge_service import list_badges_for_user
 from app.services.gamification_service import UserNotFoundError, award_xp, record_streak_checkin
 from app.services.leaderboard_service import InvalidScopeError, get_leaderboard
+from app.services.player_rank import rank_for_xp
+from app.services.xp_rules import STREAK_CHECKIN_XP
 from app.security import require_role, get_current_user
 
 router = APIRouter(prefix="/api/gamification", tags=["gamification"])
@@ -61,7 +64,7 @@ async def streak_check_in(
     xp_awarded = 0
     message = "Already checked in today."
     if result.extended:
-        award = await award_xp(db, current_user.id, 10, "STREAK_CHECKIN")
+        award = await award_xp(db, current_user.id, STREAK_CHECKIN_XP, "STREAK_CHECKIN")
         xp_awarded = award.points_awarded
         message = "Check-in successful!"
 
@@ -85,6 +88,7 @@ def get_user_stats(
             current_streak=0,
             longest_streak=0,
             last_check_in=None,
+            rank=rank_for_xp(0).as_dict(),
         )
     return UserStatsResponse(
         user_id=profile.user_id,
@@ -92,6 +96,34 @@ def get_user_stats(
         current_streak=profile.current_streak,
         longest_streak=profile.longest_streak,
         last_check_in=profile.last_checkin_date,
+        rank=rank_for_xp(profile.total_xp).as_dict(),
+    )
+
+
+@router.get("/xp-history", response_model=XpHistoryResponse)
+def get_xp_history(
+    limit: int = Query(20, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    rows = (
+        db.query(XPTransaction)
+        .filter(XPTransaction.user_id == current_user.id)
+        .order_by(XPTransaction.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return XpHistoryResponse(
+        items=[
+            XpHistoryItem(
+                id=row.id,
+                points=row.points,
+                source_event=row.source_event,
+                metadata=row.event_metadata or {},
+                created_at=row.created_at,
+            )
+            for row in rows
+        ]
     )
 
 @router.get("/leaderboard", response_model=LeaderboardResponse)
@@ -112,29 +144,21 @@ def get_user_badges(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    all_badges = db.query(Badge).all()
-    user_awards = {
-        ub.badge_id: ub.awarded_at
-        for ub in db.query(UserBadge).filter(UserBadge.user_id == current_user.id).all()
-    }
-
-    result = []
-    for b in all_badges:
-        is_unlocked = b.id in user_awards
-        result.append(
-            BadgeItem(
-                id=b.id,
-                slug=b.slug,
-                name=b.name,
-                description=b.description,
-                icon_url=b.icon_url,
-                unlocked=is_unlocked,
-                awarded_at=user_awards.get(b.id),
-            )
+    result = [
+        BadgeItem(
+            id=b.id,
+            slug=b.slug,
+            name=b.name,
+            description=b.description,
+            icon_url=b.icon_url,
+            unlocked=awarded_at is not None,
+            awarded_at=awarded_at,
         )
+        for b, awarded_at in list_badges_for_user(db, current_user.id)
+    ]
 
     return UserBadgesResponse(
-        total_unlocked=len(user_awards),
+        total_unlocked=sum(1 for b in result if b.unlocked),
         badges=result,
     )
 
