@@ -13,7 +13,7 @@ from typing import List, Optional
 from app.database import get_db
 from app.models.challenge import Challenge, Enrollment
 from app.models.user import User
-from app.schemas.challenge import ChallengeResponse, EnrollmentResponse
+from app.schemas.challenge import ChallengeResponse, EnrollmentResponse, ChallengeCreate
 from app.schemas.workspace import (
     AdvanceStageRequest,
     AdvanceStageResponse,
@@ -30,6 +30,7 @@ from app.services.recommendation_service import get_recommended_challenges
 from app.services import workspace_service
 from app.security import get_current_user
 
+from app.services.challenge_service import challenge_service
 
 router = APIRouter(
     prefix="/api/challenges",
@@ -342,3 +343,30 @@ async def advance_workspace_stage(
         total_xp=rewards.total_xp,
         cleared_level=rewards.cleared_level,
     )
+
+@router.get("", response_model=List[ChallengeResponse])
+def get_challenges(db: Session = Depends(get_db)):
+    return db.query(Challenge).order_by(Challenge.id.desc()).all()
+
+@router.post("", response_model=ChallengeResponse, status_code=status.HTTP_201_CREATED)
+def create_challenge(challenge_in: ChallengeCreate, db: Session = Depends(get_db)):
+    new_challenge = Challenge(
+        title=challenge_in.title,
+        domain=challenge_in.domain,       # <--- Use .domain instead of .category
+        difficulty=challenge_in.difficulty,
+        description=challenge_in.description,
+        constraints=challenge_in.constraints,
+        learning_tier=challenge_in.learning_tier,
+    )
+    db.add(new_challenge)
+    db.commit()
+    db.refresh(new_challenge)
+    return new_challenge
+
+@router.get("", response_model=List[ChallengeResponse])
+def list_challenges(domain: Optional[str] = None, db: Session = Depends(get_db)):
+    return challenge_service.get_all(db=db, domain=domain)
+
+@router.post("", response_model=ChallengeResponse, status_code=status.HTTP_201_CREATED)
+def create_challenge(challenge_in: ChallengeCreate, db: Session = Depends(get_db)):
+    return challenge_service.create(db=db, data=challenge_in)

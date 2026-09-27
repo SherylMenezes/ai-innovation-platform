@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import "./ChallengeCatalog.css";
-import { listChallenges, enrollInChallenge, getEnrolledChallenges } from "../../api/challengesClient";
+import {
+  listChallenges,
+  enrollInChallenge,
+  getEnrolledChallenges,
+  createChallenge,
+} from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
+import AddChallengeModal from "../../components/AddChallengeModal";
 
 const DOMAINS = ["Healthcare", "Sustainability", "Agriculture", "Finance"];
 
@@ -14,6 +20,7 @@ function ChallengeCatalog({ onOpenChallenge }) {
   const [error, setError] = useState("");
   const [enrollingId, setEnrollingId] = useState(null);
   const [enrollError, setEnrollError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // challenge_id -> { status, current_stage }
   const [enrollments, setEnrollments] = useState({});
@@ -57,6 +64,11 @@ function ChallengeCatalog({ onOpenChallenge }) {
     loadChallenges();
   };
 
+  const handleCreateChallenge = async (payload) => {
+    const created = await createChallenge(accessToken, payload);
+    setChallenges((prev) => [created, ...prev]);
+  };
+
   const handleSelect = async (challenge) => {
     const enrollment = enrollments[challenge.id];
 
@@ -66,8 +78,6 @@ function ChallengeCatalog({ onOpenChallenge }) {
     }
 
     if (enrollment) {
-      // Already enrolled and active — resume at the saved stage, no need
-      // to hit /enroll again.
       onOpenChallenge(challenge.id, { status: enrollment.status, currentStage: enrollment.current_stage });
       return;
     }
@@ -119,6 +129,20 @@ function ChallengeCatalog({ onOpenChallenge }) {
             {d}
           </button>
         ))}
+
+        <button
+          type="button"
+          className="catalog-chip catalog-chip-add"
+          onClick={() => {
+            if (!accessToken) {
+              setEnrollError("Log in to add a challenge.");
+              return;
+            }
+            setIsModalOpen(true);
+          }}
+        >
+          + Add Challenge
+        </button>
       </form>
 
       {enrollError && <p className="catalog-error">{enrollError}</p>}
@@ -162,6 +186,12 @@ function ChallengeCatalog({ onOpenChallenge }) {
           })}
         </div>
       )}
+
+      <AddChallengeModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onCreated={handleCreateChallenge}
+      />
     </div>
   );
 }

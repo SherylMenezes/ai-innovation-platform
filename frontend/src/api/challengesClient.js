@@ -1,5 +1,5 @@
 // Thin client for backend/app/routers/challenges.py.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+const API_BASE_URL = "http://localhost:8000";
 
 async function request(path, { method = "GET", token, body } = {}) {
   let response;
@@ -111,4 +111,33 @@ export function completeWorkspaceStep(token, challengeId, stepKey) {
     token,
     body: { step_key: stepKey },
   });
+}
+
+export async function createChallenge(accessToken, challengeData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/challenges`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(challengeData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const message =
+        typeof errorData.detail === "string"
+          ? errorData.detail
+          : Array.isArray(errorData.detail)
+          ? errorData.detail.map((d) => d.msg).join(", ")
+          : `Server returned status ${response.status}`;
+      throw new Error(message);
+    }
+
+    return await response.json();
+  } catch (err) {
+    // Surface the actual error (e.g., CORS, Failed to fetch, 404)
+    throw new Error(err.message || "Failed to create challenge.");
+  }
 }
