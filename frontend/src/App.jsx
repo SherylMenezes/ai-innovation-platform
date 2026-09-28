@@ -3,7 +3,7 @@ import "./App.css";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import ChallengeCatalog from "./pages/challenges/ChallengeCatalog";
 import ProblemCanvas from "./pages/canvas/ProblemCanvas";
-import IdeationBoard from "./pages/ideation/IdeationBoard";
+import IdeatePage from "./pages/ideation/IdeatePage";
 import IdeaEvaluation from "./pages/evaluation/IdeaEvaluation";
 import SubmissionUpload from "./pages/submission/SubmissionUpload";
 import ProjectSummary from "./pages/project/ProjectSummary";
@@ -187,7 +187,7 @@ function AppShell() {
           onClick={() => goToTab("ideation")}
         >
           <span className="app-level-tab-label">LEVEL 2</span>
-          Ideation Board
+          Ideate
         </button>
         <button
           type="button"
@@ -239,9 +239,11 @@ function AppShell() {
 
       {showLevelBar && (
         <ChallengeLevelBar
-          currentLevel={unlockedLevel}
-          activeTab={page}
-          onSelectLevel={(targetPage) => goToTab(targetPage)}
+          challengeId={challengeId}
+          refreshKey={progressKey}
+          activePage={page}
+          onNavigate={goToTab}
+          onLoaded={handleWorkspaceLoaded}
         />
       )}
 
@@ -251,33 +253,30 @@ function AppShell() {
         {page === "canvas" && (
           <ProblemCanvas
             challengeId={challengeId}
-            onLoaded={handleWorkspaceLoaded}
-            onAdvance={handleStageAdvance}
+            onStageAdvance={handleStageAdvance}
             onReward={handleReward}
           />
         )}
         {page === "ideation" && (
-          <IdeationBoard
+          <IdeatePage
             challengeId={challengeId}
-            onLoaded={handleWorkspaceLoaded}
-            onAdvance={handleStageAdvance}
+            onStageAdvance={handleStageAdvance}
             onReward={handleReward}
+            onBack={() => goToTab("canvas")}
           />
         )}
         {page === "evaluation" && (
           <IdeaEvaluation
             challengeId={challengeId}
-            onLoaded={handleWorkspaceLoaded}
-            onAdvance={handleStageAdvance}
+            onStageAdvance={handleStageAdvance}
             onReward={handleReward}
           />
         )}
         {page === "submission" && (
           <SubmissionUpload
             challengeId={challengeId}
-            onLoaded={handleWorkspaceLoaded}
-            onAdvance={handleStageAdvance}
             onReward={handleReward}
+            onCompleted={() => handleStageAdvance("completed")}
           />
         )}
         {page === "summary" && <ProjectSummary challengeId={challengeId} />}

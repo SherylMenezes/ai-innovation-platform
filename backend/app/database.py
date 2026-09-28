@@ -37,7 +37,10 @@ def _resolve_database_url(url: str) -> str:
 db_url = _resolve_database_url(settings.database_url)
 
 is_sqlite = db_url.startswith("sqlite")
-connect_args = {"check_same_thread": False} if is_sqlite else {}
+connect_args = {
+    # Disables psycopg2's automatic server-side prepared statements
+    "prepare_threshold": None,
+}
 
 # The hosted database is a long network hop away, so every round trip
 # costs hundreds of milliseconds. Everything below is about spending as
@@ -46,11 +49,13 @@ connect_args = {"check_same_thread": False} if is_sqlite else {}
 #     below only pings connections that have sat unused for a while.
 #   - pool_recycle retires connections before the Supabase pooler's idle
 #     timeout can silently drop them.
+
+# Cap pool_size and eliminate overflow so local processes don't burst beyond Supabase's cap
 engine = create_engine(
     db_url,
     connect_args=connect_args,
-    pool_size=settings.db_pool_size,
-    max_overflow=10,
+    pool_size=settings.db_pool_size if hasattr(settings, 'db_pool_size') and settings.db_pool_size <= 4 else 4,
+    max_overflow=2,  # Gives headroom for warm-up + startup inspection without hitting Supabase's 15 limit
     pool_recycle=settings.db_pool_recycle_seconds,
 )
 
@@ -97,28 +102,33 @@ def _ping_if_idle(dbapi_connection, connection_record, connection_proxy):
 
 
 def warm_up_pool() -> None:
-    """Opens pool_size connections in parallel at startup. A new
-    connection to the hosted database takes several seconds (TCP + TLS +
-    pooler auth), so without this the first few page loads after a
-    restart each pay that cost."""
+    """Opens pool connections in parallel at startup to absorb TCP + TLS +
+    pooler handshake costs before incoming traffic arrives."""
     if is_sqlite:
         return
 
-    def _open(_):
-        return engine.connect()
+    # Derive warm-up capacity directly from the engine's configured pool size
+    pool_capacity = getattr(engine.pool, "size", lambda: getattr(settings, "db_pool_size", 4))()
+    # If another startup check is running, keep 1 slot free
+    warm_count = max(1, min(pool_capacity, getattr(settings, "db_pool_size", pool_capacity)) - 1)
+
+    def _warm_one(_: int) -> None:
+        # Check out to establish the socket, then close immediately back to the pool
+        with engine.connect():
+            pass
 
     started = time.perf_counter()
     try:
-        with ThreadPoolExecutor(max_workers=settings.db_pool_size) as executor:
-            connections = list(executor.map(_open, range(settings.db_pool_size)))
-        for connection in connections:
-            connection.close()
+        with ThreadPoolExecutor(max_workers=warm_count) as executor:
+            list(executor.map(_warm_one, range(warm_count)))
+
         logger.info(
-            "Warmed %s database connections in %.1fs", len(connections), time.perf_counter() - started
+            "Warmed %s database connections in %.2fs",
+            warm_count,
+            time.perf_counter() - started,
         )
     except Exception:
         logger.exception("Database pool warm-up failed — connections will open on demand instead.")
-
 
 class Base(DeclarativeBase):
     pass

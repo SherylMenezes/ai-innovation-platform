@@ -1,6 +1,6 @@
 """Per-(user, challenge) project workspace: Enrollment carries the stage
 pointer and freeform per-stage state (canvas_state/evaluation_state), so
-Problem Canvas / Ideation Board / Idea Evaluation can all resume exactly
+Problem Canvas / Ideate / Idea Evaluation can all resume exactly
 where a student left off instead of losing progress on refresh.
 
 Each stage is one Level of the challenge (see xp_rules.CHALLENGE_LEVELS).
@@ -15,7 +15,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.challenge import Challenge, Enrollment
 from app.models.gamification import Badge, XPTransaction
-from app.models.ideation import IdeationNote
 from app.models.submission import Submission
 from app.services import xp_rules
 from app.services.gamification_service import AwardXpResult, award_xp
@@ -242,8 +241,13 @@ def get_workspace_data(db: Session, user_id: str, challenge_id: int) -> dict:
     }
 
 
-def _validate_step(db: Session, enrollment: Enrollment, step_key: str) -> tuple[str, int]:
-    """Returns (stage, base XP) for a creditable step, or raises."""
+def _validate_step(
+    db: Session, enrollment: Enrollment, step_key: str, canvas_state: dict | None = None
+) -> tuple[str, int]:
+    """Returns (stage, base XP) for a creditable step, or raises.
+    canvas_state is the state about to be saved, when there is one — it's
+    checked in place of the stored state so a save can satisfy its own
+    step requirement."""
     rule = xp_rules.STEP_XP.get(step_key)
     if rule is None:
         raise InvalidStepError(f"Unknown step {step_key!r}.")
@@ -254,13 +258,9 @@ def _validate_step(db: Session, enrollment: Enrollment, step_key: str) -> tuple[
         raise WorkspaceLockedError(f"Level {level['number']} ({level['name']}) is still locked.")
 
     if step_key == "ideation_complete":
-        has_notes = (
-            db.query(IdeationNote.id)
-            .filter(IdeationNote.user_id == enrollment.user_id, IdeationNote.challenge_id == enrollment.challenge_id)
-            .first()
-        )
-        if has_notes is None:
-            raise LevelIncompleteError("Add at least one idea to your Ideation Board first.")
+        state = canvas_state if canvas_state is not None else (enrollment.canvas_state or {})
+        if not state.get("selected_idea"):
+            raise LevelIncompleteError("Select an idea to carry forward first.")
 
     return stage, base_points
 
@@ -287,7 +287,7 @@ async def save_canvas_state(
     enrollment = get_enrollment(db, user_id, challenge_id)
     _ensure_editable(enrollment)
     if mark_step_complete:
-        _validate_step(db, enrollment, mark_step_complete)
+        _validate_step(db, enrollment, mark_step_complete, canvas_state)
 
     enrollment.canvas_state = canvas_state
     db.commit()
@@ -320,10 +320,9 @@ async def save_evaluation_state(
 
 
 async def complete_step(db: Session, user_id: str, challenge_id: int, step_key: str) -> tuple[Enrollment, RewardSummary]:
-    """For stages with no JSON state blob of their own (Ideation Board's
-    "state" is its IdeationNote rows, not a field on Enrollment) — same
+    """Credits a step without saving any state alongside it — same
     idempotent XP-crediting path as save_canvas_state/save_evaluation_state,
-    just without a state payload to persist alongside it."""
+    just without a state payload to persist."""
     enrollment = get_enrollment(db, user_id, challenge_id)
     _ensure_editable(enrollment)
     rewards = await _mark_step_complete(db, enrollment, step_key)

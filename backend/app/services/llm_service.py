@@ -17,6 +17,7 @@ from app.schemas.ai import (
     GenerateIdeasResponse,
     RemixIdeasResponse,
     IdeaScoreResponse,
+    SwotScoreResponse,
     RiskAnalysisResponse,
     SWOTAnalysisResponse,
     MentorCoachResponse,
@@ -33,7 +34,8 @@ MODEL_CANDIDATES = [
     "gemini-3.7-flash",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
-    "gemini-2.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-flash-lite-latest",
 ]
 
 # No function/tool calling happens anywhere in this module (no `tools=`
@@ -416,6 +418,50 @@ Scoring Guidelines:
         )
     )
     return IdeaScoreResponse.model_validate_json(response.text)
+
+
+async def score_idea_from_swot(
+    title: str,
+    description: str,
+    strengths: str,
+    weaknesses: str,
+    opportunities: str,
+    threats: str,
+) -> SwotScoreResponse:
+    prompt = f"""
+Score the following innovation idea using the student's own SWOT analysis as evidence:
+Title: {title}
+Description: {description}
+
+SWOT analysis written by the student:
+Strengths:
+{strengths or "(none given)"}
+Weaknesses:
+{weaknesses or "(none given)"}
+Opportunities:
+{opportunities or "(none given)"}
+Threats:
+{threats or "(none given)"}
+
+Scoring Guidelines:
+- Score each criterion as an integer from 1 (very poor) to 5 (excellent). Use the full range; do not default everything to 3 or 4.
+- Feasibility: How realistic and practical is the idea to implement? Weigh the weaknesses and threats.
+- Impact: How much value or positive change could the idea create? Weigh the strengths and opportunities.
+- Innovation: How original or novel is the proposed solution compared to existing alternatives?
+- Scalability: How easily could the idea grow to support more users or use cases?
+- For each criterion, give a one-sentence reason that refers to specific points from the SWOT.
+- A thin or empty SWOT is weak evidence; do not reward it with high scores.
+- Finish with a two-sentence summary of the idea's overall standing.
+"""
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=SwotScoreResponse,
+        system_instruction=(
+            "You are an impartial innovation-programme judge. Score ideas objectively "
+            "on a 1-5 scale, grounding every score in the SWOT evidence provided."
+        )
+    )
+    return SwotScoreResponse.model_validate_json(response.text)
 
 
 async def analyze_idea_risks(title: str, description: str = "") -> RiskAnalysisResponse:

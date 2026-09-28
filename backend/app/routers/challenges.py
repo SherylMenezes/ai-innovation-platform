@@ -7,13 +7,26 @@ from fastapi import (
     File,
     status,
 )
+
 from sqlalchemy.orm import Session
+
 from typing import List, Optional
 
 from app.database import get_db
-from app.models.challenge import Challenge, Enrollment
+
+from app.models.challenge import (
+    Challenge,
+    Enrollment,
+)
+
 from app.models.user import User
-from app.schemas.challenge import ChallengeResponse, EnrollmentResponse, ChallengeCreate
+
+from app.schemas.challenge import (
+    ChallengeResponse,
+    EnrollmentResponse,
+    ChallengeCreate,
+)
+
 from app.schemas.workspace import (
     AdvanceStageRequest,
     AdvanceStageResponse,
@@ -25,12 +38,21 @@ from app.schemas.workspace import (
     WorkspaceSaveResponse,
     WorkspaceState,
 )
+
 from app.services.storage_service import storage_service
-from app.services.recommendation_service import get_recommended_challenges
+
+from app.services.recommendation_service import (
+    get_recommended_challenges,
+)
+
 from app.services import workspace_service
+
 from app.security import get_current_user
 
-from app.services.challenge_service import challenge_service
+from app.services.challenge_service import (
+    challenge_service,
+)
+
 
 router = APIRouter(
     prefix="/api/challenges",
@@ -38,15 +60,18 @@ router = APIRouter(
 )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # GET ALL CHALLENGES
-# ---------------------------------------------------------
+# =========================================================
 
-@router.get("", response_model=List[ChallengeResponse])
+@router.get(
+    "",
+    response_model=List[ChallengeResponse],
+)
 def get_challenges(
     domain: Optional[str] = Query(
         None,
-        description="Filter by domain (e.g., AI/ML, Web Development)",
+        description="Filter by domain",
     ),
     difficulty: Optional[str] = Query(
         None,
@@ -58,40 +83,59 @@ def get_challenges(
     ),
     search: Optional[str] = Query(
         None,
-        description="Search in title/description",
+        description="Search challenges",
     ),
     db: Session = Depends(get_db),
 ):
+
     query = db.query(Challenge)
 
-    if domain:
+    # Domain
+    if domain and domain.lower() != "all":
+
         query = query.filter(
-            Challenge.domain.ilike(f"%{domain}%")
+            Challenge.domain.ilike(
+                f"%{domain}%"
+            )
         )
 
+    # Difficulty
     if difficulty:
+
         query = query.filter(
             Challenge.difficulty == difficulty
         )
 
+    # Learning tier
     if tier:
+
         query = query.filter(
             Challenge.learning_tier == tier
         )
 
+    # Search
     if search:
+
+        search_term = f"%{search}%"
+
         query = query.filter(
-            Challenge.title.ilike(f"%{search}%")
-            | Challenge.description.ilike(f"%{search}%")
+            Challenge.title.ilike(search_term)
+            |
+            Challenge.description.ilike(search_term)
+            |
+            Challenge.problem.ilike(search_term)
         )
 
-    return query.all()
+    return (
+        query
+        .order_by(Challenge.id.desc())
+        .all()
+    )
 
 
-# ---------------------------------------------------------
-# PERSONALIZED CHALLENGE RECOMMENDATIONS
-# IMPORTANT: This must remain ABOVE /{id}
-# ---------------------------------------------------------
+# =========================================================
+# RECOMMENDED CHALLENGES
+# =========================================================
 
 @router.get(
     "/recommended",
@@ -102,11 +146,13 @@ def get_recommended_challenge_feed(
         10,
         ge=1,
         le=50,
-        description="Maximum number of recommendations",
     ),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user
+    ),
     db: Session = Depends(get_db),
 ):
+
     return get_recommended_challenges(
         db=db,
         user=current_user,
@@ -114,29 +160,44 @@ def get_recommended_challenge_feed(
     )
 
 
-# ---------------------------------------------------------
-# CALLER'S ENROLLED CHALLENGES (workspace status per challenge)
-# Keep this above /{id}
-# ---------------------------------------------------------
+# =========================================================
+# ENROLLED CHALLENGES
+# =========================================================
 
-@router.get("/enrolled", response_model=EnrolledChallengesResponse)
+@router.get(
+    "/enrolled",
+    response_model=EnrolledChallengesResponse,
+)
 def get_enrolled_challenges(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user
+    ),
     db: Session = Depends(get_db),
 ):
-    items = [EnrolledChallengeItem(**item) for item in workspace_service.list_enrolled(db, current_user.id)]
-    return EnrolledChallengesResponse(items=items)
+
+    items = [
+        EnrolledChallengeItem(**item)
+
+        for item in workspace_service.list_enrolled(
+            db,
+            current_user.id,
+        )
+    ]
+
+    return EnrolledChallengesResponse(
+        items=items
+    )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # TEST FILE UPLOAD
-# Keep this above /{id}
-# ---------------------------------------------------------
+# =========================================================
 
 @router.post("/test-upload")
 def test_file_upload(
     file: UploadFile = File(...)
 ):
+
     url = storage_service.upload_file(file)
 
     return {
@@ -145,9 +206,35 @@ def test_file_upload(
     }
 
 
-# ---------------------------------------------------------
+# =========================================================
+# CREATE CHALLENGE
+# =========================================================
+
+@router.post(
+    "",
+    response_model=ChallengeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_challenge(
+    challenge_in: ChallengeCreate,
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+
+    db: Session = Depends(get_db),
+):
+
+    return challenge_service.create(
+        db=db,
+        data=challenge_in,
+        user_id=current_user.id,
+    )
+
+
+# =========================================================
 # GET SINGLE CHALLENGE
-# ---------------------------------------------------------
+# =========================================================
 
 @router.get(
     "/{id}",
@@ -157,13 +244,17 @@ def get_challenge_detail(
     id: int,
     db: Session = Depends(get_db),
 ):
+
     challenge = (
         db.query(Challenge)
-        .filter(Challenge.id == id)
+        .filter(
+            Challenge.id == id
+        )
         .first()
     )
 
     if not challenge:
+
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Challenge not found",
@@ -172,9 +263,9 @@ def get_challenge_detail(
     return challenge
 
 
-# ---------------------------------------------------------
-# ENROLL IN CHALLENGE
-# ---------------------------------------------------------
+# =========================================================
+# ENROLL
+# =========================================================
 
 @router.post(
     "/{id}/enroll",
@@ -183,24 +274,30 @@ def get_challenge_detail(
 )
 def enroll_in_challenge(
     id: int,
-    current_user: User = Depends(get_current_user),
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+
     db: Session = Depends(get_db),
 ):
-    # Check whether challenge exists
+
     challenge = (
         db.query(Challenge)
-        .filter(Challenge.id == id)
+        .filter(
+            Challenge.id == id
+        )
         .first()
     )
 
     if not challenge:
+
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Challenge not found",
         )
 
-    # Check whether user is already enrolled
-    existing_enrollment = (
+    existing = (
         db.query(Enrollment)
         .filter(
             Enrollment.user_id == current_user.id,
@@ -209,59 +306,117 @@ def enroll_in_challenge(
         .first()
     )
 
-    if existing_enrollment:
+    if existing:
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Already enrolled in this challenge",
         )
 
-    # Create enrollment
     enrollment = Enrollment(
         user_id=current_user.id,
         challenge_id=id,
+        status="active",
+        current_stage="canvas",
     )
 
     db.add(enrollment)
+
     db.commit()
+
     db.refresh(enrollment)
 
     return enrollment
 
 
-# ---------------------------------------------------------
-# WORKSPACE: per-user, per-challenge saved progress
-# ---------------------------------------------------------
+# =========================================================
+# WORKSPACE
+# =========================================================
 
-@router.get("/{id}/workspace", response_model=WorkspaceState)
+@router.get(
+    "/{id}/workspace",
+    response_model=WorkspaceState,
+)
 def get_workspace(
     id: int,
-    current_user: User = Depends(get_current_user),
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+
     db: Session = Depends(get_db),
 ):
+
     try:
-        data = workspace_service.get_workspace_data(db, current_user.id, id)
+
+        return workspace_service.get_workspace_data(
+            db,
+            current_user.id,
+            id,
+        )
+
     except workspace_service.WorkspaceNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
-    return data
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
 
 
-@router.patch("/{id}/workspace/canvas", response_model=WorkspaceSaveResponse)
+# =========================================================
+# CANVAS
+# =========================================================
+
+@router.patch(
+    "/{id}/workspace/canvas",
+    response_model=WorkspaceSaveResponse,
+)
 async def save_canvas_workspace(
     id: int,
     payload: CanvasStateUpdate,
-    current_user: User = Depends(get_current_user),
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+
     db: Session = Depends(get_db),
 ):
+
     try:
-        enrollment, rewards = await workspace_service.save_canvas_state(
-            db, current_user.id, id, payload.canvas_state, payload.mark_step_complete
+
+        enrollment, rewards = (
+            await workspace_service.save_canvas_state(
+                db,
+                current_user.id,
+                id,
+                payload.canvas_state,
+                payload.mark_step_complete,
+            )
         )
+
     except workspace_service.WorkspaceNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
+
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
+
     except workspace_service.InvalidStepError as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
-    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+    except (
+        workspace_service.WorkspaceLockedError,
+        workspace_service.LevelIncompleteError,
+    ) as exc:
+
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
 
     return WorkspaceSaveResponse(
         current_stage=enrollment.current_stage,
@@ -271,23 +426,60 @@ async def save_canvas_workspace(
     )
 
 
-@router.patch("/{id}/workspace/evaluation", response_model=WorkspaceSaveResponse)
+# =========================================================
+# EVALUATION
+# =========================================================
+
+@router.patch(
+    "/{id}/workspace/evaluation",
+    response_model=WorkspaceSaveResponse,
+)
 async def save_evaluation_workspace(
     id: int,
     payload: EvaluationStateUpdate,
-    current_user: User = Depends(get_current_user),
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+
     db: Session = Depends(get_db),
 ):
+
     try:
-        enrollment, rewards = await workspace_service.save_evaluation_state(
-            db, current_user.id, id, payload.evaluation_state, payload.mark_step_complete
+
+        enrollment, rewards = (
+            await workspace_service.save_evaluation_state(
+                db,
+                current_user.id,
+                id,
+                payload.evaluation_state,
+                payload.mark_step_complete,
+            )
         )
+
     except workspace_service.WorkspaceNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
+
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
+
     except workspace_service.InvalidStepError as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
-    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+    except (
+        workspace_service.WorkspaceLockedError,
+        workspace_service.LevelIncompleteError,
+    ) as exc:
+
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
 
     return WorkspaceSaveResponse(
         current_stage=enrollment.current_stage,
@@ -297,21 +489,59 @@ async def save_evaluation_workspace(
     )
 
 
-@router.post("/{id}/workspace/complete-step", response_model=WorkspaceSaveResponse)
+# =========================================================
+# COMPLETE STEP
+# =========================================================
+
+@router.post(
+    "/{id}/workspace/complete-step",
+    response_model=WorkspaceSaveResponse,
+)
 async def complete_workspace_step(
     id: int,
     payload: StepCompleteRequest,
-    current_user: User = Depends(get_current_user),
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+
     db: Session = Depends(get_db),
 ):
+
     try:
-        enrollment, rewards = await workspace_service.complete_step(db, current_user.id, id, payload.step_key)
+
+        enrollment, rewards = (
+            await workspace_service.complete_step(
+                db,
+                current_user.id,
+                id,
+                payload.step_key,
+            )
+        )
+
     except workspace_service.WorkspaceNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
+
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
+
     except workspace_service.InvalidStepError as exc:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
-    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
+
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+    except (
+        workspace_service.WorkspaceLockedError,
+        workspace_service.LevelIncompleteError,
+    ) as exc:
+
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
 
     return WorkspaceSaveResponse(
         current_stage=enrollment.current_stage,
@@ -321,21 +551,59 @@ async def complete_workspace_step(
     )
 
 
-@router.post("/{id}/workspace/advance-stage", response_model=AdvanceStageResponse)
+# =========================================================
+# ADVANCE STAGE
+# =========================================================
+
+@router.post(
+    "/{id}/workspace/advance-stage",
+    response_model=AdvanceStageResponse,
+)
 async def advance_workspace_stage(
     id: int,
-    payload: Optional[AdvanceStageRequest] = None,
-    current_user: User = Depends(get_current_user),
+
+    payload: Optional[
+        AdvanceStageRequest
+    ] = None,
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+
     db: Session = Depends(get_db),
 ):
+
     try:
-        enrollment, rewards = await workspace_service.advance_stage(
-            db, current_user.id, id, from_stage=payload.stage if payload else None
+
+        enrollment, rewards = (
+            await workspace_service.advance_stage(
+                db,
+                current_user.id,
+                id,
+                from_stage=(
+                    payload.stage
+                    if payload
+                    else None
+                ),
+            )
         )
+
     except workspace_service.WorkspaceNotFoundError as exc:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
-    except (workspace_service.WorkspaceLockedError, workspace_service.LevelIncompleteError) as exc:
-        raise HTTPException(status.HTTP_409_CONFLICT, str(exc))
+
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
+
+    except (
+        workspace_service.WorkspaceLockedError,
+        workspace_service.LevelIncompleteError,
+    ) as exc:
+
+        raise HTTPException(
+            status_code=409,
+            detail=str(exc),
+        )
 
     return AdvanceStageResponse(
         current_stage=enrollment.current_stage,
@@ -343,30 +611,3 @@ async def advance_workspace_stage(
         total_xp=rewards.total_xp,
         cleared_level=rewards.cleared_level,
     )
-
-@router.get("", response_model=List[ChallengeResponse])
-def get_challenges(db: Session = Depends(get_db)):
-    return db.query(Challenge).order_by(Challenge.id.desc()).all()
-
-@router.post("", response_model=ChallengeResponse, status_code=status.HTTP_201_CREATED)
-def create_challenge(challenge_in: ChallengeCreate, db: Session = Depends(get_db)):
-    new_challenge = Challenge(
-        title=challenge_in.title,
-        domain=challenge_in.domain,       # <--- Use .domain instead of .category
-        difficulty=challenge_in.difficulty,
-        description=challenge_in.description,
-        constraints=challenge_in.constraints,
-        learning_tier=challenge_in.learning_tier,
-    )
-    db.add(new_challenge)
-    db.commit()
-    db.refresh(new_challenge)
-    return new_challenge
-
-@router.get("", response_model=List[ChallengeResponse])
-def list_challenges(domain: Optional[str] = None, db: Session = Depends(get_db)):
-    return challenge_service.get_all(db=db, domain=domain)
-
-@router.post("", response_model=ChallengeResponse, status_code=status.HTTP_201_CREATED)
-def create_challenge(challenge_in: ChallengeCreate, db: Session = Depends(get_db)):
-    return challenge_service.create(db=db, data=challenge_in)

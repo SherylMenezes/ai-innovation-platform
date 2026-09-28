@@ -26,6 +26,8 @@ from app.schemas.ai import (
     RemixIdeasResponse,
     IdeaScoreRequest,
     IdeaScoreResponse,
+    SwotScoreRequest,
+    SwotScoreResponse,
     RiskAnalysisResponse,
     SWOTAnalysisRequest,
     SWOTAnalysisResponse,
@@ -43,6 +45,7 @@ from app.services.llm_service import (
     generate_divergent_ideas,
     remix_ideas,
     calculate_idea_score,
+    score_idea_from_swot,
     analyze_idea_risks,
     generate_swot_analysis,
     run_mentor_coach,
@@ -93,6 +96,17 @@ async def get_remixed_ideas(payload: RemixIdeasRequest):
 @router.post("/score-idea", response_model=IdeaScoreResponse)
 async def score_single_idea(payload: IdeaScoreRequest):
     return await calculate_idea_score(payload.title, payload.description)
+
+@router.post("/score-swot", response_model=SwotScoreResponse)
+async def score_idea_with_swot(payload: SwotScoreRequest):
+    return await score_idea_from_swot(
+        payload.title,
+        payload.description,
+        payload.strengths,
+        payload.weaknesses,
+        payload.opportunities,
+        payload.threats,
+    )
 
 @router.get("/risk-analysis", response_model=RiskAnalysisResponse)
 async def get_risk_analysis(
