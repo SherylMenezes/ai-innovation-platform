@@ -1,286 +1,1200 @@
-:root {
-  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f1f5f9 100%);
-  --card-bg: rgba(255, 255, 255, 0.85);
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-light: #e0e7ff;
-}
+/* =========================================================
+   CHALLENGE CATALOG
+   Clean Professional SaaS UI
+   ========================================================= */
 
 .catalog-panel {
-  max-width: 1240px;
-  margin: 28px auto;
-  padding: 0 24px;
+  width: 100%;
+  min-height: 100%;
+  padding: 4px 0 35px;
+  color: #172033;
 }
 
-/* --- Dynamic Toolbar & Search --- */
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
 .catalog-toolbar {
+  width: 100%;
+  box-sizing: border-box;
+
   display: flex;
-  gap: 12px;
   align-items: center;
+  gap: 12px;
+
+  padding: 12px 14px;
+  margin-bottom: 22px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  border: 1px solid #e3eaf4;
+  border-radius: 17px;
+
+  box-shadow:
+    0 4px 18px rgba(15, 23, 42, 0.045);
+
   flex-wrap: wrap;
-  margin-bottom: 24px;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  padding: 12px 18px;
-  border-radius: 20px;
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.06);
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+.catalog-search-wrapper {
+  width: 310px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+
+  padding: 0 13px;
+
+  box-sizing: border-box;
+
+  background: #f8fafc;
+
+  border: 1px solid #dbe4ef;
+
+  border-radius: 11px;
+
+  transition: 0.2s ease;
+}
+
+.catalog-search-wrapper:focus-within {
+  background: #ffffff;
+
+  border-color: #6b9df8;
+
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.09);
+}
+
+.search-icon {
+  font-size: 16px;
+  line-height: 1;
 }
 
 .catalog-search {
-  flex: 1;
-  min-width: 240px;
-  padding: 10px 18px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  font-family: inherit;
-  font-size: 13.5px;
-  background: #ffffff;
-  color: #1e293b;
+  width: 100%;
+
+  border: none;
   outline: none;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  background: transparent;
+
+  padding: 0;
+
+  font-size: 13px;
+
+  color: #172033;
 }
 
-.catalog-search:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
-  transform: translateY(-1px);
+.catalog-search::placeholder {
+  color: #94a3b8;
 }
 
-/* --- Filter Chips --- */
+
+/* =========================================================
+   FILTER CHIPS
+   ========================================================= */
+
+.catalog-chips-group {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  flex-wrap: wrap;
+}
+
 .catalog-chip {
-  padding: 8px 16px;
-  font-size: 12.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #64748b;
+  height: 40px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0 14px;
+
+  border: 1px solid #dce5f0;
+
+  border-radius: 11px;
+
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
+
+  color: #64748b;
+
+  font-size: 13px;
+  font-weight: 600;
+
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  white-space: nowrap;
+
+  transition: 0.2s ease;
 }
 
 .catalog-chip:hover {
-  color: var(--primary);
-  border-color: var(--primary-light);
-  background: var(--primary-light);
+  color: #2563eb;
+
+  border-color: #b9cff5;
+
+  background: #f7faff;
+
   transform: translateY(-1px);
 }
 
 .catalog-chip-active {
-  color: #ffffff !important;
-  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important;
-  border-color: transparent !important;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
+  background: #2563eb;
+
+  color: #ffffff;
+
+  border-color: #2563eb;
+
+  box-shadow:
+    0 5px 12px rgba(37, 99, 235, 0.18);
 }
 
-/* --- + Add Challenge Button --- */
-.catalog-chip-add {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.catalog-chip-active:hover {
+  background: #1d4ed8;
+
   color: #ffffff;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border: none;
-  border-radius: 999px;
-  padding: 9px 18px;
-  font-weight: 600;
-  font-size: 12.5px;
-  margin-left: auto;
-  cursor: pointer;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+  border-color: #1d4ed8;
+}
+
+.catalog-chip-add {
+  background: #172033;
+
+  color: #ffffff;
+
+  border-color: #172033;
 }
 
 .catalog-chip-add:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  background: #0f172a;
+
+  color: #ffffff;
+
+  border-color: #0f172a;
 }
 
-/* --- Grid & Cards --- */
+.chip-icon {
+  margin-right: 5px;
+}
+
+.add-plus {
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+
+/* =========================================================
+   GRID
+   ========================================================= */
+
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 18px;
 }
+
+
+/* =========================================================
+   CARD
+   ========================================================= */
 
 .catalog-card {
   position: relative;
+
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 22px;
-  background: var(--card-bg);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 20px;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /*
+     REDUCED FROM 330px
+     This removes the large empty space.
+  */
+  min-height: 305px;
+
+  box-sizing: border-box;
+
+  padding: 19px;
+
+  background: #ffffff;
+
+  border: 1px solid #e2e9f2;
+
+  border-radius: 19px;
+
+  box-shadow:
+    0 5px 17px rgba(15, 23, 42, 0.045);
+
   overflow: hidden;
+
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    border-color 0.22s ease;
 }
 
-/* Top accent highlight */
 .catalog-card::before {
   content: "";
+
   position: absolute;
+
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #6366f1);
+
+  height: 3px;
+
+  background: linear-gradient(
+    90deg,
+    #2563eb,
+    #60a5fa
+  );
+
   opacity: 0;
-  transition: opacity 0.3s ease;
+
+  transition: opacity 0.2s ease;
 }
 
 .catalog-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 30px -8px rgba(15, 23, 42, 0.08), 0 0 1px 1px rgba(99, 102, 241, 0.15);
-  border-color: rgba(199, 210, 254, 0.8);
+  transform: translateY(-3px);
+
+  border-color: #cbdcf5;
+
+  box-shadow:
+    0 13px 28px rgba(30, 64, 175, 0.09);
 }
 
 .catalog-card:hover::before {
   opacity: 1;
 }
 
-/* --- Dynamic Domain Badges --- */
+
+/* =========================================================
+   CARD HEADER
+   ========================================================= */
+
+.catalog-card-header {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
 .catalog-card-domain {
   display: inline-flex;
   align-items: center;
-  align-self: flex-start;
-  padding: 4px 12px;
-  font-size: 11px;
-  font-weight: 700;
+
+  min-height: 27px;
+
+  padding: 0 11px;
+
+  border-radius: 9px;
+
+  background: #edf6ff;
+
+  color: #0879c1;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.45px;
+
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-radius: 999px;
-  margin-bottom: 12px;
-  transition: transform 0.2s ease;
-}
-
-/* Domain Color Themes */
-.catalog-card[data-domain="Healthcare"] .catalog-card-domain,
-.domain-healthcare {
-  color: #0284c7;
-  background: #e0f2fe;
-  border: 1px solid #bae6fd;
-}
-
-.catalog-card[data-domain="Sustainability"] .catalog-card-domain,
-.domain-sustainability {
-  color: #16a34a;
-  background: #dcfce7;
-  border: 1px solid #bbf7d0;
-}
-
-.catalog-card[data-domain="Agriculture"] .catalog-card-domain,
-.domain-agriculture {
-  color: #d97706;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
-}
-
-.catalog-card[data-domain="Finance"] .catalog-card-domain,
-.domain-finance {
-  color: #9333ea;
-  background: #f3e8ff;
-  border: 1px solid #e9d5ff;
-}
-
-/* Fallback default badge */
-.catalog-card-domain:not([class*="domain-"]) {
-  color: #4f46e5;
-  background: #eef2ff;
-  border: 1px solid #e0e7ff;
-}
-
-.catalog-card h3 {
-  margin: 0 0 8px 0;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.35;
-  color: #0f172a;
-  letter-spacing: -0.01em;
-}
-
-.catalog-card-desc {
-  margin: 0 0 16px 0;
-  font-size: 13.5px;
-  line-height: 1.55;
-  color: #64748b;
-  flex: 1;
-}
-
-.catalog-card-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: auto;
-}
-
-.catalog-card-meta {
-  font-size: 12px;
-  font-weight: 500;
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.catalog-enroll-button {
-  width: 100%;
-  padding: 10px 16px;
-  font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #ffffff;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  border: none;
-  border-radius: 12px;
-  cursor: pointer;
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.catalog-enroll-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
-  transform: translateY(-1px);
-}
-
-.catalog-enroll-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Completed Card Aesthetic */
-.catalog-card-completed {
-  background: rgba(248, 250, 252, 0.85);
-  border-color: #cbd5e1;
-}
-
-.catalog-card-completed .catalog-enroll-button {
-  background: #f1f5f9;
-  color: #475569;
-  box-shadow: none;
-  border: 1px solid #e2e8f0;
-}
-
-.catalog-card-completed .catalog-enroll-button:hover {
-  background: #e2e8f0;
-  color: #1e293b;
 }
 
 .catalog-card-badge {
-  align-self: flex-start;
-  padding: 3px 10px;
-  font-size: 11px;
+  font-size: 10px;
+
+  padding: 5px 8px;
+
+  border-radius: 8px;
+
+  background: #ecfdf3;
+
+  color: #15803d;
+
   font-weight: 700;
+}
+
+
+/* =========================================================
+   CARD CONTENT
+   ========================================================= */
+
+.catalog-card h3 {
+  margin: 0 0 8px;
+
+  color: #172033;
+
+  font-size: 17px;
+
+  line-height: 1.35;
+
+  font-weight: 750;
+
+  text-align: center;
+}
+
+.catalog-card-desc {
+  margin: 0;
+
+  color: #71829c;
+
+  font-size: 13px;
+
+  line-height: 1.55;
+
+  text-align: center;
+
+  display: -webkit-box;
+
+  -webkit-line-clamp: 4;
+
+  -webkit-box-orient: vertical;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   DIFFICULTY
+   ========================================================= */
+
+.catalog-card-meta {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  margin-top: 10px;
+
+  color: #8a99ae;
+
+  font-size: 11px;
+
+  font-weight: 600;
+}
+
+.difficulty-indicator {
+  width: 7px;
+  height: 7px;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+
+  display: inline-block;
+}
+
+.difficulty-beginner {
+  background: #22c55e;
+
+  box-shadow:
+    0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.difficulty-medium {
+  background: #f59e0b;
+
+  box-shadow:
+    0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+.difficulty-advanced {
+  background: #ef4444;
+
+  box-shadow:
+    0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+
+/* =========================================================
+   CARD FOOTER
+   ========================================================= */
+
+.catalog-card-footer {
+  margin-top: auto;
+
+  padding-top: 16px;
+}
+
+
+/* =========================================================
+   CARD ACTIONS
+   ========================================================= */
+
+.catalog-card-actions {
+  display: flex;
+
+  gap: 7px;
+
+  margin-top: 0;
+}
+
+.catalog-card-actions button {
+  flex: 1;
+
+  min-width: 0;
+}
+
+
+/* =========================================================
+   VIEW MORE BUTTON
+   ========================================================= */
+
+.catalog-view-button {
+  height: 36px;
+
+  border: 1px solid #d5dfec;
+
+  background: #ffffff;
+
+  color: #475569;
+
+  border-radius: 10px;
+
+  padding: 0 10px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.catalog-view-button:hover {
+  background: #f7faff;
+
+  color: #2563eb;
+
+  border-color: #a9c5f3;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   START BUTTON
+   ========================================================= */
+
+.catalog-enroll-button {
+  height: 36px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  padding: 0 12px;
+
+  background: linear-gradient(
+    135deg,
+    #3b82f6,
+    #2563eb
+  );
+
+  color: #ffffff;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 5px 12px rgba(37, 99, 235, 0.18);
+
+  transition: 0.2s ease;
+}
+
+.catalog-enroll-button:hover:not(:disabled) {
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #1d4ed8
+  );
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 7px 16px rgba(37, 99, 235, 0.25);
+}
+
+.catalog-enroll-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.catalog-enroll-button:disabled {
+  opacity: 0.55;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================================
+   VIEW MORE OVERLAY
+   ========================================================= */
+
+.challenge-detail-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(15, 23, 42, 0.56);
+
+  backdrop-filter: blur(7px);
+}
+
+
+/* =========================================================
+   VIEW MORE MODAL
+   ========================================================= */
+
+.challenge-detail-modal {
+  width: min(760px, 94vw);
+
+  max-height: 88vh;
+
+  overflow-y: auto;
+
+  box-sizing: border-box;
+
+  background: #ffffff;
+
+  border: 1px solid #e5ebf3;
+
+  border-radius: 22px;
+
+  box-shadow:
+    0 30px 75px rgba(15, 23, 42, 0.28);
+
+  padding: 25px;
+}
+
+
+/* =========================================================
+   MODAL SCROLLBAR
+   ========================================================= */
+
+.challenge-detail-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.challenge-detail-modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.challenge-detail-modal::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+
+  border-radius: 20px;
+}
+
+
+/* =========================================================
+   MODAL HEADER
+   ========================================================= */
+
+.challenge-detail-header {
+  position: relative;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  text-align: center;
+
+  gap: 8px;
+
+  padding: 2px 48px 20px;
+
+  border-bottom: 1px solid #e7edf5;
+}
+
+
+/* Domain badge */
+
+.challenge-detail-header .details-domain {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 7px 13px;
+
+  border-radius: 12px;
+
+  background: #edf6ff;
+
+  color: #0879c1;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.45px;
+
   text-transform: uppercase;
-  color: #16a34a;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 999px;
-  margin-bottom: 8px;
+}
+
+
+/* MAIN TITLE — CENTERED */
+
+.challenge-detail-header h2 {
+  width: 100%;
+
+  margin: 5px auto 0;
+
+  color: #172033;
+
+  font-size: 27px;
+
+  line-height: 1.25;
+
+  font-weight: 750;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+   ========================================================= */
+
+.challenge-detail-close {
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  width: 37px;
+  height: 37px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border: none;
+
+  border-radius: 50%;
+
+  background: #f1f5f9;
+
+  color: #64748b;
+
+  font-size: 17px;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.challenge-detail-close:hover {
+  background: #e2e8f0;
+
+  color: #172033;
+
+  transform: rotate(5deg);
+}
+
+
+/* =========================================================
+   MODAL SECTIONS
+   ========================================================= */
+
+.detail-section {
+  padding: 17px 5px;
+
+  border-bottom: 1px solid #edf1f6;
+
+  text-align: center;
+}
+
+.detail-section:last-of-type {
+  border-bottom: none;
+}
+
+
+/* =========================================================
+   SECTION TITLES
+   ========================================================= */
+
+.detail-section h4 {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  margin: 0 0 9px;
+
+  color: #26334a;
+
+  font-size: 12px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.035em;
+
+  text-transform: uppercase;
+}
+
+
+/*
+   Makes emoji/icons slightly cleaner
+   without changing your HTML.
+*/
+
+.detail-section h4::first-letter {
+  font-size: 14px;
+}
+
+
+/* =========================================================
+   SECTION TEXT
+   ========================================================= */
+
+.detail-section p {
+  max-width: 680px;
+
+  margin: 0 auto;
+
+  color: #60728e;
+
+  font-size: 14px;
+
+  line-height: 1.7;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   SECTION LIST
+   ========================================================= */
+
+.detail-section ul {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  margin: 0 auto;
+
+  padding: 0;
+
+  list-style: none;
+
+  color: #60728e;
+
+  font-size: 13px;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   AFFECTED GROUPS / CONSTRAINTS
+   ========================================================= */
+
+.affected-list {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  justify-content: center;
+
+  gap: 8px;
+
+  margin: 0;
+
+  padding: 0;
+
+  list-style: none;
+}
+
+.affected-list li,
+.detail-section ul li {
+  padding: 8px 12px;
+
+  border: 1px solid #dce6f2;
+
+  border-radius: 10px;
+
+  background: #f7faff;
+
+  color: #52627a;
+
+  font-size: 12px;
+
+  font-weight: 600;
+}
+
+.affected-list li::before {
+  content: "•";
+
+  margin-right: 6px;
+
+  color: #3b82f6;
+}
+
+
+/* =========================================================
+   CONSTRAINT BULLETS
+   ========================================================= */
+
+.detail-section ul li::before {
+  content: "•";
+
+  margin-right: 6px;
+
+  color: #3b82f6;
+}
+
+
+/* =========================================================
+   MODAL FOOTER
+   ========================================================= */
+
+.challenge-detail-footer {
+  display: flex;
+
+  align-items: center;
+
+  gap: 18px;
+
+  padding-top: 17px;
+
+  border-top: 1px solid #edf1f6;
+}
+
+
+/* Difficulty / Tier */
+
+.details-meta {
+  display: flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  color: #64748b;
+
+  font-size: 12px;
+}
+
+.details-meta strong {
+  color: #1e293b;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   MODAL START BUTTON
+   ========================================================= */
+
+.details-start-button {
+  margin-left: auto;
+
+  min-width: 190px;
+
+  height: 40px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: linear-gradient(
+    135deg,
+    #3b82f6,
+    #2563eb
+  );
+
+  color: #ffffff;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 6px 15px rgba(37, 99, 235, 0.2);
+
+  transition: 0.2s ease;
+}
+
+.details-start-button:hover {
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #1d4ed8
+  );
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 18px rgba(37, 99, 235, 0.26);
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.catalog-loading {
+  min-height: 220px;
+
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 10px;
+
+  color: #64748b;
+
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+
+  border: 3px solid #dbeafe;
+
+  border-top-color: #2563eb;
+
+  border-radius: 50%;
+
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   ERROR
+   ========================================================= */
+
+.catalog-error {
+  padding: 14px 16px;
+
+  color: #b91c1c;
+
+  background: #fff7f7;
+
+  border: 1px solid #fecaca;
+
+  border-radius: 12px;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   EMPTY
+   ========================================================= */
+
+.catalog-empty {
+  text-align: center;
+
+  padding: 70px 20px;
+
+  color: #64748b;
+}
+
+.empty-icon {
+  font-size: 38px;
+
+  margin-bottom: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE — 1200px
+   ========================================================= */
+
+@media (max-width: 1200px) {
+
+  .catalog-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — 900px
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+  .catalog-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 15px;
+  }
+
+  .catalog-search-wrapper {
+    width: 100%;
+  }
+
+}
+
+
+/* =========================================================
+   RESPONSIVE — 650px
+   ========================================================= */
+
+@media (max-width: 650px) {
+
+  .catalog-toolbar {
+    padding: 11px;
+
+    border-radius: 15px;
+  }
+
+  .catalog-chips-group {
+    width: 100%;
+
+    overflow-x: auto;
+
+    flex-wrap: nowrap;
+
+    padding-bottom: 2px;
+  }
+
+  .catalog-chip {
+    flex-shrink: 0;
+  }
+
+  .catalog-grid {
+    grid-template-columns: 1fr;
+
+    gap: 13px;
+  }
+
+  .catalog-card {
+    min-height: 300px;
+  }
+
+  .challenge-detail-overlay {
+    padding: 10px;
+  }
+
+  .challenge-detail-modal {
+    width: 100%;
+
+    max-height: 93vh;
+
+    padding: 20px;
+
+    border-radius: 18px;
+  }
+
+  .challenge-detail-header {
+    padding-left: 35px;
+    padding-right: 35px;
+  }
+
+  .challenge-detail-header h2 {
+    font-size: 22px;
+  }
+
+  .detail-section {
+    padding: 15px 2px;
+  }
+
+  .challenge-detail-footer {
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 10px;
+  }
+
+  .details-start-button {
+    width: 100%;
+
+    margin-left: 0;
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .catalog-card {
+    min-height: 295px;
+  }
+
+  .catalog-card h3 {
+    font-size: 16px;
+  }
+
+  .catalog-card-desc {
+    font-size: 12.5px;
+  }
+
+  .catalog-card-actions {
+    gap: 6px;
+  }
+
+  .catalog-view-button,
+  .catalog-enroll-button {
+    height: 35px;
+
+    font-size: 11px;
+  }
+
 }
