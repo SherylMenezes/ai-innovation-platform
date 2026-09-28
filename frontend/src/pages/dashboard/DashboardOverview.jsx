@@ -80,7 +80,7 @@ function DashboardOverview({ onOpenChallenge }) {
 
   return (
     <div className="dash-panel">
-      {/* 3 Metric Stat Cards - Dynamic State Classes */}
+      {/* 3 Metric Stat Cards */}
       <div className="dash-stat-row">
         <div className={`dash-stat-card card-level level-${(currentLevelNum % 5) || 1}`}>
           <span className="dash-stat-icon">🎖️</span>
@@ -113,22 +113,19 @@ function DashboardOverview({ onOpenChallenge }) {
         </div>
       </div>
 
-      {/* Row 2: Level XP Banner With Restored Subrow Styles */}
+      {/* Row 2: Level XP Banner */}
       <div className="dash-xp-card">
         <h4 className="dash-xp-title">
           Level {currentLevelNum} · {currentLevelTitle}
-          {overview?.unread_notifications > 0 && (
-            <span className="dash-notif-banner">
-              {overview.unread_notifications} new notification{overview.unread_notifications === 1 ? "" : "s"}
-            </span>
-          )}
         </h4>
 
         <div className="dash-xp-header">
           <div className="dash-xp-sub">
-          <span>Welcome back, {user?.name || "there"}</span></div>
+            <span>Welcome back, {user?.name || "there"}</span>
+          </div>
           <div className="dash-xp-sub">
-          <span>{xpInto} / {xpForNext} XP to Level {currentLevelNum + 1}</span></div>
+            <span>{xpInto} / {xpForNext} XP to Level {currentLevelNum + 1}</span>
+          </div>
         </div>
 
         <div className="dash-xp-track">
@@ -181,7 +178,7 @@ function DashboardOverview({ onOpenChallenge }) {
           <div className="dash-project-grid">
             {filteredProjects.map((item) => (
               <DetailedProjectCard
-                key={item.challenge.id}
+                key={item.challenge?.id || item.id}
                 item={item}
                 onOpenChallenge={onOpenChallenge}
               />
@@ -196,11 +193,24 @@ function DashboardOverview({ onOpenChallenge }) {
 }
 
 function DetailedProjectCard({ item, onOpenChallenge }) {
-  const { challenge, progress, status, current_stage } = item;
+  const { challenge = {}, progress = {}, status, current_stage } = item;
   const isCompleted = status === "completed";
   const currentPhaseNum = progress.current_level || 1;
   const totalPhases = progress.total_levels || 4;
-  const xpPercent = Math.min(100, Math.round((progress.xp_earned / (progress.xp_available || 1)) * 100));
+
+  // Resolve total challenge XP safely (checking challenge fields first, then progress fallbacks)
+  const xpEarned = progress.xp_earned ?? 0;
+  const xpAvailable =
+    challenge.total_xp ??
+    challenge.max_xp ??
+    challenge.xp_reward ??
+    progress.total_xp ??
+    progress.xp_available ??
+    0;
+
+  const xpPercent = xpAvailable > 0
+    ? Math.min(100, Math.round((xpEarned / xpAvailable) * 100))
+    : 0;
 
   return (
     <div className={`detailed-project-card ${isCompleted ? "completed" : ""}`}>
@@ -219,12 +229,14 @@ function DetailedProjectCard({ item, onOpenChallenge }) {
         <div className="stepper-label-row">
           <span className="stepper-title">Progression</span>
           <span className="stepper-current-phase">
-            {isCompleted ? "All Phases Completed" : `Current: Phase ${currentPhaseNum} · ${progress.current_level_name || PHASE_NAMES[currentPhaseNum - 1]}`}
+            {isCompleted
+              ? "All Phases Completed"
+              : `Current: Phase ${currentPhaseNum} · ${progress.current_level_name || PHASE_NAMES[currentPhaseNum - 1] || ""}`}
           </span>
         </div>
 
         <div className="stepper-track">
-          {progress.levels.map((phase) => (
+          {progress.levels?.map((phase) => (
             <div
               key={phase.number}
               className={`stepper-node stepper-node-${phase.status}`}
@@ -243,7 +255,7 @@ function DetailedProjectCard({ item, onOpenChallenge }) {
         <div className="project-xp-info">
           <div className="project-xp-header">
             <span>Earned XP</span>
-            <span className="project-xp-count">{progress.xp_earned} / {progress.xp_available} XP</span>
+            <span className="project-xp-count">{xpEarned} / {xpAvailable} XP</span>
           </div>
           <div className="project-xp-track">
             <div className="project-xp-fill" style={{ width: `${xpPercent}%` }} />

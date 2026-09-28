@@ -32,15 +32,17 @@ logger = logging.getLogger("uvicorn.error")
 # ("high demand") on one falls through to the next instead of failing the
 # request outright. Confirmed available on this API key via
 # client.models.list() — keep this list in sync with that if it changes.
+#MODEL_CANDIDATES = [
+ #   "gemini-3.8-flash",
+    #"gemini-3.7-flash",
+   # "gemini-3.6-flash",
+    #"gemini-3.5-flash",
+    #"gemini-3.5-flash-lite",
+    #"gemini-flash-lite-latest",
+#]
 MODEL_CANDIDATES = [
-    "gemini-3.8-flash",
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-flash-lite-latest",
+    "gemini-3.1-flash-lite",
 ]
-
 # No function/tool calling happens anywhere in this module (no `tools=`
 # is ever passed to GenerateContentConfig) — this just silences the SDK's
 # "AFC in AsyncModels.generate_content is not recommended" warning, which
