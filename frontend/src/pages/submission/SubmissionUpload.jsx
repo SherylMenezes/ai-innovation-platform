@@ -87,7 +87,18 @@ function SubmissionUpload({ challengeId, onCompleted, onReward }) {
         await announceEvaluationRewards(card);
         onCompleted?.();
       } catch {
-        // Not ready yet — keep polling.
+        // No scorecard yet — either still running, or the job failed.
+        try {
+          const status = await getSubmissionStatus(accessToken, submissionId);
+          if (status.evaluation_error) {
+            setSubmission(status);
+            setEvaluateError(`Evaluation failed: ${status.evaluation_error} You can try again.`);
+            setIsEvaluating(false);
+            return;
+          }
+        } catch {
+          // Status check failed too — keep polling.
+        }
         pollForScorecard(submissionId, attemptsLeft - 1);
       }
     }, POLL_INTERVAL_MS);

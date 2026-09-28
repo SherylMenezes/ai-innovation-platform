@@ -100,7 +100,18 @@ def get_submission_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return _get_owned_submission(db, submission_id, current_user)
+    submission = _get_owned_submission(db, submission_id, current_user)
+    response = SubmissionStatusResponse.model_validate(submission)
+
+    latest_job = (
+        db.query(EvaluationJob)
+        .filter(EvaluationJob.submission_id == submission.id)
+        .order_by(EvaluationJob.created_at.desc())
+        .first()
+    )
+    if latest_job is not None and latest_job.status == EvaluationJobStatus.failed.value:
+        response.evaluation_error = latest_job.error_message or "The AI evaluation failed."
+    return response
 
 
 @router.post("/{submission_id}/evaluate", response_model=EvaluateSubmissionResponse, status_code=status.HTTP_202_ACCEPTED)

@@ -1700,7 +1700,7 @@
 }
 
 /* =========================================
-   IDEA RANKING — switch to a higher idea
+   IDEA RANKING
    ========================================= */
 
 .ranking-verdict {
@@ -1747,26 +1747,4 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 1.45;
-}
-
-.ranking-switch-button {
-  padding: 8px 12px;
-  background: #ffffff;
-  border: 1px solid #2563eb;
-  border-radius: 8px;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.ranking-switch-button:hover:not(:disabled) {
-  background: #eff6ff;
-}
-
-.ranking-switch-button:disabled {
-  border-color: #cbd5e1;
-  color: #94a3b8;
-  cursor: not-allowed;
 }

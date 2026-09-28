@@ -43,6 +43,9 @@ logger = logging.getLogger("uvicorn.error")
 MODEL_CANDIDATES = [
     "gemini-2.5-flash-lite",
     "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash-lite"
+    
 ]
 # No function/tool calling happens anywhere in this module (no `tools=`
 # is ever passed to GenerateContentConfig) — this just silences the SDK's

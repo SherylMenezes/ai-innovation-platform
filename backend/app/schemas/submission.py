@@ -26,6 +26,9 @@ class SubmissionStatusResponse(BaseModel):
     scorecard: Optional[ScorecardResponse] = None
     # Only set on the create response: XP paid for this submission.
     xp_awarded: int = 0
+    # Set when the latest evaluation job failed (e.g. Gemini overloaded),
+    # so the page can stop polling for a scorecard that won't arrive.
+    evaluation_error: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -8,7 +8,7 @@ import {
   generateIdeas,
   rankIdeas,
 } from "../../api/aiClient";
-import { getWorkspace, saveEvaluationState, saveCanvasState, advanceStage } from "../../api/challengesClient";
+import { getWorkspace, saveEvaluationState, advanceStage } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
 import { stepLabel } from "../../utils/progression";
 
@@ -59,14 +59,13 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
   const [riskError, setRiskError] = useState("");
 
   // Idea ranking: the other ideas from Ideate, AI-scored against the
-  // current one so the student can switch to a higher-ranked idea.
+  // current one so the student can see how their idea compares.
   const [canvasState, setCanvasState] = useState({});
   const [candidateIdeas, setCandidateIdeas] = useState([]);
   const [rankedAlternatives, setRankedAlternatives] = useState(null);
   const [rankedFor, setRankedFor] = useState("");
   const [isRankingLoading, setIsRankingLoading] = useState(false);
   const [rankingError, setRankingError] = useState("");
-  const [isSwitching, setIsSwitching] = useState(false);
 
   const scoringInputKey = (ideaValue, swotValue) => JSON.stringify({ idea: ideaValue, swot: swotValue });
 
@@ -320,68 +319,6 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
     setStep(5);
     if (rankedAlternatives === null || rankedFor !== lastScoredInput) {
       handleRankIdeas();
-    }
-  };
-
-  // Swap in a higher-ranked idea and restart the evaluation from SWOT.
-  // The idea being replaced joins the candidate list so it can be ranked
-  // (and switched back to) later.
-  const handleSwitchIdea = async (alternative) => {
-    if (isSwitching) return;
-    const confirmed = window.confirm(
-      `Switch to "${alternative.title}"?\n\nYour current SWOT analysis and scores will be cleared, and you'll restart the evaluation from the SWOT step with this idea.`
-    );
-    if (!confirmed) return;
-
-    setIsSwitching(true);
-    setWorkspaceError("");
-    const nextIdea = { title: alternative.title, description: alternative.description || "" };
-    const nextCandidates = [
-      ...candidateIdeas.filter((c) => c.title !== alternative.title),
-      { title: idea.title, description: idea.description },
-    ];
-    const emptySwot = { strengths: "", weaknesses: "", opportunities: "", threats: "" };
-    const emptyScores = { feasibility: 0, impact: 0, innovation: 0, scalability: 0 };
-
-    try {
-      await saveEvaluationState(accessToken, challengeId, {
-        idea_title: nextIdea.title,
-        idea_description: nextIdea.description,
-        swot: emptySwot,
-        scores: emptyScores,
-        swot_recommendation: "",
-        score_summary: "",
-        score_reasons: null,
-        risk_analysis: null,
-        candidate_ideas: nextCandidates,
-        ranked_alternatives: null,
-        ranked_for: "",
-      });
-      // Keep the project summary's "Selected idea" in step with the switch.
-      const nextCanvas = { ...canvasState, selected_idea: nextIdea };
-      await saveCanvasState(accessToken, challengeId, nextCanvas);
-
-      setCanvasState(nextCanvas);
-      setIdea(nextIdea);
-      setSwot(emptySwot);
-      setScores(emptyScores);
-      setScoreReasons({});
-      setScoreAiSummary("");
-      setScoreAiError("");
-      setSwotAiRecommendation("");
-      setSwotAiError("");
-      setRiskAnalysis(null);
-      setRiskError("");
-      setCandidateIdeas(nextCandidates);
-      setRankedAlternatives(null);
-      setRankedFor("");
-      setLastScoredInput("");
-      setStep(1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (err) {
-      setWorkspaceError(err.message);
-    } finally {
-      setIsSwitching(false);
     }
   };
 
@@ -1021,8 +958,6 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
               <p>
                 Your idea (scored from your SWOT) compared with the other
                 ideas from Ideate, scored by AI on the same four criteria.
-                If another idea ranks higher, you can switch to it and
-                restart the evaluation from SWOT analysis.
               </p>
 
             </div>
@@ -1048,7 +983,7 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
             {!isRankingLoading && rankedAlternatives && (
               <p className={`ranking-verdict ${higherRankedCount > 0 ? "ranking-verdict-switch" : "ranking-verdict-top"}`}>
                 {higherRankedCount > 0
-                  ? `${higherRankedCount} idea${higherRankedCount === 1 ? "" : "s"} scored higher than yours. You can switch below — your evaluation will restart from SWOT analysis with the new idea.`
+                  ? `${higherRankedCount} idea${higherRankedCount === 1 ? "" : "s"} scored higher than yours.`
                   : "Your idea ranks highest. Continue to submission when you're ready."}
               </p>
             )}
@@ -1066,7 +1001,6 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
                     <th>Innovation</th>
                     <th>Scalability</th>
                     <th>Overall Score</th>
-                    <th></th>
                   </tr>
                 </thead>
 
@@ -1094,19 +1028,6 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
                         <span className="overall-ranking-score">
                           {row.overall.toFixed(1)} / 5
                         </span>
-                      </td>
-
-                      <td>
-                        {!row.isCurrent && row.overall > currentOverall && (
-                          <button
-                            type="button"
-                            className="ranking-switch-button"
-                            onClick={() => handleSwitchIdea(row)}
-                            disabled={isSwitching}
-                          >
-                            {isSwitching ? "Switching..." : "Switch to this idea"}
-                          </button>
-                        )}
                       </td>
                     </tr>
                   ))}
