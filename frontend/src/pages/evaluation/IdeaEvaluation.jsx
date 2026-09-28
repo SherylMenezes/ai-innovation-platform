@@ -53,7 +53,7 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
 
   const scoringInputKey = (ideaValue, swotValue) => JSON.stringify({ idea: ideaValue, swot: swotValue });
 
-  const isSwotComplete = Object.values(swot).every((value) => value.trim());
+  const isSwotComplete = Object.values(swot).every((value) => String(value ?? "").trim());
   const hasScores = Object.values(scores).every((value) => value > 0);
 
   // Load (or resume) this challenge's saved evaluation progress. Prefills

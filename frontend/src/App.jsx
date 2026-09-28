@@ -11,6 +11,7 @@ import GamificationPanel from "./pages/gamification/GamificationPanel";
 import AuthPage from "./pages/auth/AuthPage";
 import ChallengeLevelBar from "./components/ChallengeLevelBar";
 import RewardToast from "./components/RewardToast";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { getUserStats } from "./api/gamificationClient";
 import { CHALLENGE_LEVELS, badgeIcon, pageForStage, unlockedLevelForStage } from "./utils/progression";
@@ -229,6 +230,7 @@ function AppShell() {
       )}
 
       <main className="app-main-content">
+        <ErrorBoundary key={`${page}-${challengeId}`} onReset={() => setPage("dashboard")}>
         {page === "dashboard" && <DashboardOverview onOpenChallenge={openChallenge} />}
         {page === "challenges" && <ChallengeCatalog onOpenChallenge={openChallenge} />}
         {page === "canvas" && (
@@ -262,21 +264,20 @@ function AppShell() {
         )}
         {page === "summary" && <ProjectSummary challengeId={challengeId} />}
         {page === "progress" && <GamificationPanel key={progressKey} onReward={handleReward} />}
+        </ErrorBoundary>
       </main>
 
-      <div className="toast-container">
-        {toasts.map((toast) => (
-          <RewardToast key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
-        ))}
-      </div>
+      <RewardToast toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ErrorBoundary onReset={() => window.location.reload()} resetLabel="Reload app">
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
