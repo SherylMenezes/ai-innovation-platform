@@ -44,9 +44,9 @@
   overflow: hidden;
 }
 
-.dash-stat-card:hover {
+/*.dash-stat-card:hover {
   transform: translateY(-6px) scale(1.02);
-}
+}*/
 
 /* Card 1: Active Projects -> Electric Indigo & Blue */
 .dash-stat-card:nth-child(1) {
