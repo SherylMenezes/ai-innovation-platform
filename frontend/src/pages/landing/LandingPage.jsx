@@ -12,7 +12,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
     {
       icon: "🧠",
       theme: "icon-purple",
-      title: "4-Level Framework",
+      title: "4-Phase Framework",
       desc: "Progress step-by-step from Problem Canvas to Ideation, Evaluation, and Project Delivery."
     },
     {
@@ -52,7 +52,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           Empowering the Next Wave of Problem Solvers
         </div>
         <h1 className="landing-title">
-          Turn Bold Challenges into <span className="landing-title-gradient">Impactful Solutions</span>
+          Turn Challenges into <span className="landing-title-gradient">Impactful Solutions</span>
         </h1>
         <p className="landing-subtitle">
           An enterprise-grade innovation playground designed to guide you through ideation, 
@@ -63,7 +63,7 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           <button type="button" className="btn-primary btn-hero-lg" onClick={onGetStarted}>
             Explore Challenges →
           </button>
-          <button type="button" className="btn-secondary btn-hero-lg" onClick={onLogin}>
+          <button type="button" className="btn-primary btn-hero-lg" onClick={onLogin}>
             Sign In to Dashboard
           </button>
         </div>
