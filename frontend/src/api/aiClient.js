@@ -61,8 +61,14 @@ export function remixIdeas(ideaIds, ideaDescriptions) {
 }
 
 // POST /api/ai/problem-refine — ProblemRefineRequest -> ProblemRefineResponse
-export function refineProblem(problemStatement) {
-  return postJson("/api/ai/problem-refine", { problem_statement: problemStatement });
+// existingWhys (optional): whys the user has already typed, in order. When
+// given, the backend continues that exact chain instead of generating all
+// 5 from scratch — see ProblemCanvas.jsx's handleGetAiRootCause.
+export function refineProblem(problemStatement, existingWhys) {
+  return postJson("/api/ai/problem-refine", {
+    problem_statement: problemStatement,
+    existing_whys: existingWhys && existingWhys.length > 0 ? existingWhys : undefined,
+  });
 }
 
 // POST /api/ai/problem-score — ProblemScoreRequest -> ProblemScoreResponse

@@ -1,25 +1,50 @@
 """
-JWT/session logic. Access and refresh tokens are both HS256 JWTs signed
-with JWT_SECRET_KEY. get_current_user() decodes the bearer token and loads
-the corresponding user; require_role() layers RBAC on top of that.
+JWT/session and password security.
+
+Access tokens are short-lived JWTs.
+Refresh tokens are longer-lived JWTs used to silently renew sessions.
+
+Passwords are never stored as plain text. They are hashed with bcrypt.
 """
+
 import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import get_db
 from app.models.user import User
-from app.config import settings
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/api/auth/login",
+    auto_error=False,
+)
+
+
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+)
+
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
-    "student": ["project:view", "project:submit", "leaderboard:view"],
-    "mentor": ["project:view", "project:review", "leaderboard:view", "student:feedback"],
+    "student": [
+        "project:view",
+        "project:submit",
+        "leaderboard:view",
+    ],
+    "mentor": [
+        "project:view",
+        "project:review",
+        "leaderboard:view",
+        "student:feedback",
+    ],
     "admin": [
         "project:view",
         "project:review",
@@ -31,12 +56,37 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
 }
 
 
+def hash_password(password: str) -> str:
+    """
+    Hash a user's password using bcrypt.
+    """
+    return pwd_context.hash(password)
+
+
+def verify_password(password: str, hashed_password: str | None) -> bool:
+    """
+    Verify a plain password against its bcrypt hash.
+    """
+    if not hashed_password:
+        return False
+
+    try:
+        return pwd_context.verify(password, hashed_password)
+    except ValueError:
+        return False
+
+
 def get_permissions(role: str) -> list[str]:
     return ROLE_PERMISSIONS.get(role, [])
 
 
-def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> str:
+def _create_token(
+    subject: str,
+    expires_delta: timedelta,
+    token_type: str,
+) -> str:
     now = datetime.now(timezone.utc)
+
     payload = {
         "sub": subject,
         "type": token_type,
@@ -44,26 +94,42 @@ def _create_token(subject: str, expires_delta: timedelta, token_type: str) -> st
         "exp": now + expires_delta,
         "jti": str(uuid.uuid4()),
     }
-    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+    return jwt.encode(
+        payload,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
 
 
 def create_access_token(user_id: str) -> str:
     return _create_token(
-        user_id, timedelta(minutes=settings.access_token_expire_minutes), "access"
+        user_id,
+        timedelta(minutes=settings.access_token_expire_minutes),
+        "access",
     )
 
 
 def create_refresh_token(user_id: str) -> str:
     return _create_token(
-        user_id, timedelta(days=settings.refresh_token_expire_days), "refresh"
+        user_id,
+        timedelta(days=settings.refresh_token_expire_days),
+        "refresh",
     )
 
 
 def decode_token(token: str) -> dict:
     try:
-        return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+        return jwt.decode(
+            token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm],
+        )
     except JWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token.")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid or expired token.",
+        )
 
 
 def get_current_user(
@@ -71,24 +137,54 @@ def get_current_user(
     db: Session = Depends(get_db),
 ) -> User:
     if token is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token.")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Missing bearer token.",
+        )
 
     payload = decode_token(token)
+
     if payload.get("type") != "access":
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Expected an access token.")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Expected an access token.",
+        )
 
     user_id = payload.get("sub")
+
+    if not user_id:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Invalid access token.",
+        )
+
     user = db.get(User, user_id)
+
     if user is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found.")
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "User not found.",
+        )
+
+    if not user.is_verified:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "User email is not verified.",
+        )
 
     return user
 
 
 def require_role(*roles: str):
-    def dependency(current_user: User = Depends(get_current_user)) -> User:
+    def dependency(
+        current_user: User = Depends(get_current_user),
+    ) -> User:
         if current_user.role not in roles:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "Insufficient permissions.")
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "Insufficient permissions.",
+            )
+
         return current_user
 
     return dependency

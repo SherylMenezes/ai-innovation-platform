@@ -6,30 +6,39 @@
   justify-content: center;
 
   padding: 24px;
+
   background: #f5f8ff;
 }
+
 
 .auth-card {
   width: 100%;
   max-width: 420px;
 
   background: white;
+
   border: 1px solid #e0eaff;
   border-radius: 16px;
 
   padding: 32px 28px;
-  box-shadow: 0 12px 32px rgba(37, 99, 235, 0.08);
+
+  box-shadow:
+    0 12px 32px
+    rgba(37, 99, 235, 0.08);
 }
+
 
 .auth-title {
   margin: 0 0 20px;
 
   font-size: 20px;
   font-weight: 700;
+
   color: #1e293b;
 
   text-align: center;
 }
+
 
 .auth-mode-tabs {
   display: flex;
@@ -39,15 +48,17 @@
   padding: 6px;
 
   background: #edf4ff;
+
   border: 1px solid #e0eaff;
   border-radius: 12px;
 }
 
-.auth-mode-tabs button,
-.auth-channel-toggle button {
+
+.auth-mode-tabs button {
   flex: 1;
 
   background: transparent;
+
   border: none;
   border-radius: 8px;
 
@@ -56,46 +67,49 @@
   font-family: inherit;
   font-size: 14px;
   font-weight: 500;
+
   color: #64748b;
 
   cursor: pointer;
+
   transition: all 0.2s ease;
 }
 
-.auth-mode-tabs button.active,
-.auth-channel-toggle button.active {
+
+.auth-mode-tabs button.active {
   background: #2563eb;
   color: white;
   font-weight: 600;
 }
 
-.auth-channel-toggle {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 6px;
-}
 
 .auth-form {
   display: flex;
   flex-direction: column;
+
   gap: 14px;
 }
+
 
 .auth-field {
   display: flex;
   flex-direction: column;
+
   gap: 6px;
 
   font-size: 13px;
   font-weight: 600;
+
   color: #334155;
 }
+
 
 .auth-field input,
 .auth-field select {
   font-family: inherit;
   font-size: 14px;
   font-weight: 400;
+
   color: #1e293b;
 
   padding: 10px 12px;
@@ -106,30 +120,43 @@
   outline: none;
 }
 
+
 .auth-field input:focus,
 .auth-field select:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(37, 99, 235, 0.12);
 }
+
 
 .auth-hint {
   margin: 0;
+
   font-size: 12.5px;
   line-height: 1.5;
+
   color: #64748b;
 }
 
+
 .auth-error {
   margin: 0;
+
   padding: 8px 10px;
 
   font-size: 12.5px;
+
   color: #b91c1c;
 
   background: #fef2f2;
+
   border: 1px solid #fecaca;
+
   border-radius: 8px;
 }
+
 
 .auth-submit {
   padding: 11px 16px;
@@ -137,44 +164,57 @@
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
+
   color: white;
 
   background: #2563eb;
+
   border: none;
   border-radius: 10px;
 
   cursor: pointer;
-  transition: background 0.2s ease;
+
+  transition:
+    background 0.2s ease;
 }
+
 
 .auth-submit:hover:not(:disabled) {
   background: #1d4ed8;
 }
+
 
 .auth-submit:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
+
 .auth-otp-actions {
   display: flex;
+
   justify-content: space-between;
 
   margin-top: -4px;
 }
 
+
 .auth-link-button {
   background: none;
+
   border: none;
 
   font-family: inherit;
   font-size: 12.5px;
   font-weight: 600;
+
   color: #2563eb;
 
   cursor: pointer;
+
   padding: 0;
 }
+
 
 .auth-link-button:disabled {
   color: #94a3b8;

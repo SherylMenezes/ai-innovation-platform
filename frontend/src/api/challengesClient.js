@@ -1,5 +1,6 @@
 // Thin client for backend/app/routers/challenges.py.
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+import { authenticatedRequest } from "./apiClient";
 
 async function request(path, { method = "GET", token, body } = {}) {
   let response;
@@ -50,12 +51,12 @@ export function getChallenge(id) {
 
 // POST /api/challenges/{id}/enroll
 export function enrollInChallenge(token, id) {
-  return request(`/api/challenges/${id}/enroll`, { method: "POST", token });
+  return authenticatedRequest(`/api/challenges/${id}/enroll`, { method: "POST", token });
 }
 
 // GET /api/challenges/enrolled
 export function getEnrolledChallenges(token) {
-  return request("/api/challenges/enrolled", { token });
+  return authenticatedRequest("/api/challenges/enrolled", { token });
 }
 
 // The Level bar and the page under it both load the workspace on mount —
@@ -67,7 +68,7 @@ const inflightWorkspaceRequests = new Map();
 export function getWorkspace(token, challengeId) {
   const key = `${token}:${challengeId}`;
   if (!inflightWorkspaceRequests.has(key)) {
-    const pending = request(`/api/challenges/${challengeId}/workspace`, { token }).finally(() =>
+    const pending = authenticatedRequest(`/api/challenges/${challengeId}/workspace`, { token }).finally(() =>
       inflightWorkspaceRequests.delete(key)
     );
     inflightWorkspaceRequests.set(key, pending);
@@ -77,7 +78,7 @@ export function getWorkspace(token, challengeId) {
 
 // PATCH /api/challenges/{id}/workspace/canvas
 export function saveCanvasState(token, challengeId, canvasState, markStepComplete) {
-  return request(`/api/challenges/${challengeId}/workspace/canvas`, {
+  return authenticatedRequest(`/api/challenges/${challengeId}/workspace/canvas`, {
     method: "PATCH",
     token,
     body: { canvas_state: canvasState, mark_step_complete: markStepComplete || null },
@@ -86,7 +87,7 @@ export function saveCanvasState(token, challengeId, canvasState, markStepComplet
 
 // PATCH /api/challenges/{id}/workspace/evaluation
 export function saveEvaluationState(token, challengeId, evaluationState, markStepComplete) {
-  return request(`/api/challenges/${challengeId}/workspace/evaluation`, {
+  return authenticatedRequest(`/api/challenges/${challengeId}/workspace/evaluation`, {
     method: "PATCH",
     token,
     body: { evaluation_state: evaluationState, mark_step_complete: markStepComplete || null },
@@ -97,7 +98,7 @@ export function saveEvaluationState(token, challengeId, evaluationState, markSte
 // `stage` is the Level the calling page is finishing — if the student is
 // already past it, the backend treats the call as a no-op.
 export function advanceStage(token, challengeId, stage) {
-  return request(`/api/challenges/${challengeId}/workspace/advance-stage`, {
+  return authenticatedRequest(`/api/challenges/${challengeId}/workspace/advance-stage`, {
     method: "POST",
     token,
     body: { stage: stage || null },
@@ -106,7 +107,7 @@ export function advanceStage(token, challengeId, stage) {
 
 // POST /api/challenges/{id}/workspace/complete-step
 export function completeWorkspaceStep(token, challengeId, stepKey) {
-  return request(`/api/challenges/${challengeId}/workspace/complete-step`, {
+  return authenticatedRequest(`/api/challenges/${challengeId}/workspace/complete-step`, {
     method: "POST",
     token,
     body: { step_key: stepKey },

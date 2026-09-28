@@ -6,6 +6,14 @@ from pydantic import BaseModel, Field
 
 class ProblemRefineRequest(BaseModel):
     problem_statement: str = Field(..., min_length=3, description="Initial problem statement to refine")
+    # When the user has already typed one or more Whys themselves, the
+    # service continues that exact chain instead of generating all 5 from
+    # scratch. Sequential/contiguous — the caller stops at the first
+    # blank Why (see ProblemCanvas.jsx's handleGetAiRootCause).
+    existing_whys: Optional[List[str]] = Field(
+        default=None,
+        description="Whys the user has already answered, in order. When provided, the AI continues this chain instead of generating all 5 from scratch.",
+    )
 
 
 class HMWGenerateRequest(BaseModel):

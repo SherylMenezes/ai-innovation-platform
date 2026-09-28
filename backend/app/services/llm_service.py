@@ -23,10 +23,23 @@ from app.schemas.ai import (
 
 logger = logging.getLogger("uvicorn.error")
 
-# Supported models for the google-genai SDK
+# Supported models for the google-genai SDK. Ordered newest-first; a 503
+# ("high demand") on one falls through to the next instead of failing the
+# request outright. Confirmed available on this API key via
+# client.models.list() — keep this list in sync with that if it changes.
 MODEL_CANDIDATES = [
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
     "gemini-3.6-flash",
+    "gemini-3.5-flash",
+    "gemini-2.5-flash",
 ]
+
+# No function/tool calling happens anywhere in this module (no `tools=`
+# is ever passed to GenerateContentConfig) — this just silences the SDK's
+# "AFC in AsyncModels.generate_content is not recommended" warning, which
+# fires regardless of whether tools are in use. Purely cosmetic.
+_AFC_DISABLED = types.AutomaticFunctionCallingConfig(disable=True)
 
 def _get_client() -> genai.Client:
     api_key = os.getenv("GEMINI_API_KEY")
@@ -50,6 +63,7 @@ async def _generate_with_fallback(prompt: str, response_schema=None, system_inst
                 response_mime_type="application/json" if response_schema else None,
                 response_schema=response_schema if response_schema else None,
                 system_instruction=system_instruction if system_instruction else None,
+                automatic_function_calling=_AFC_DISABLED,
             )
             response = await client.aio.models.generate_content(
                 model=model_name,
@@ -74,8 +88,32 @@ async def _generate_with_fallback(prompt: str, response_schema=None, system_inst
         raise last_exception
 
 
-async def refine_problem_statement(problem_statement: str) -> ProblemRefineResponse:
-    prompt = f"""
+async def refine_problem_statement(
+    problem_statement: str,
+    existing_whys: list[str] | None = None,
+) -> ProblemRefineResponse:
+    """
+    Three modes, chosen by how much of the 5-Whys chain the user has
+    already filled in themselves:
+
+    1. Nothing typed yet (existing_whys empty/None) — generate all 5 from
+       scratch. Byte-for-byte the original behavior; nothing changes here
+       for a blank start.
+    2. Some Whys typed, some remaining — continue the exact chain the
+       user started instead of regenerating it. The prompt explicitly
+       forbids restating/rephrasing what's already there, and the
+       response is spliced together in Python (existing_whys + only the
+       newly generated ones) so the user's own words are never silently
+       swapped for the model's paraphrase of them.
+    3. All 5 already typed — nothing left to continue; just synthesize
+       the root-cause summary from what's there.
+    """
+    existing_whys = [w.strip() for w in (existing_whys or []) if w and w.strip()]
+    remaining = max(0, 5 - len(existing_whys))
+
+    # --- Mode 1: blank start — unchanged from before this feature ---
+    if not existing_whys:
+        prompt = f"""
 You are an expert product design and engineering coach specializing in rigorous root cause analysis.
 Analyze the following problem statement deeply and methodically:
 "{problem_statement}"
@@ -87,15 +125,74 @@ Instructions:
 
 Ensure the output maps precisely to the required schema fields (`five_whys` and `synthesized_root_cause`).
 """
+        try:
+            response = await _generate_with_fallback(
+                prompt=prompt,
+                response_schema=ProblemRefineResponse,
+                system_instruction="You are an elite product strategy mentor. Provide deep, analytical, and highly structured root-cause insights."
+            )
+            return ProblemRefineResponse.model_validate_json(response.text)
+        except Exception as e:
+            logger.error(f"Gemini API Error in refine_problem_statement: {e}", exc_info=True)
+            raise e
+
+    numbered_existing = "\n".join(f"{i + 1}. {w}" for i, w in enumerate(existing_whys))
+
+    # --- Mode 3: chain already complete — synthesize only ---
+    if remaining == 0:
+        prompt = f"""
+You are an expert product design and engineering coach specializing in rigorous root cause analysis.
+
+Original problem statement:
+"{problem_statement}"
+
+The user has already completed a full '5 Whys' analysis themselves:
+{numbered_existing}
+
+Do not add, remove, or rephrase any of these answers. Based solely on this existing chain, formulate a precise, punchy, single-sentence "synthesized_root_cause" that captures the underlying core issue. Return the same {len(existing_whys)} answers in five_whys, unchanged.
+"""
+        try:
+            response = await _generate_with_fallback(
+                prompt=prompt,
+                response_schema=ProblemRefineResponse,
+                system_instruction="You are an elite product strategy mentor. Provide deep, analytical, and highly structured root-cause insights."
+            )
+            parsed = ProblemRefineResponse.model_validate_json(response.text)
+            # existing_whys, not parsed.five_whys, is authoritative — the
+            # user's own words are never replaced by the model's echo of them.
+            return ProblemRefineResponse(five_whys=existing_whys, synthesized_root_cause=parsed.synthesized_root_cause)
+        except Exception as e:
+            logger.error(f"Gemini API Error in refine_problem_statement (synthesis-only): {e}", exc_info=True)
+            raise e
+
+    # --- Mode 2: continue the chain from wherever the user stopped ---
+    prompt = f"""
+You are an expert product design and engineering coach specializing in rigorous root cause analysis.
+
+Original problem statement:
+"{problem_statement}"
+
+The user has already worked through the following step(s) of a '5 Whys' analysis themselves:
+{numbered_existing}
+
+Continue this exact line of reasoning from where the user left off — do not restate, rephrase, or repeat the answers above. Building directly on the last answer given, provide exactly {remaining} more sequential 'Why' answer(s), each one level deeper than the last, continuing logically until the fundamental root cause is reached.
+
+Also provide a precise, punchy, single-sentence "synthesized_root_cause" that captures the underlying core issue, taking into account the user's own reasoning together with the continuation you provide.
+
+Return only the {remaining} new answer(s) in five_whys — do not include the user's original answers in that list.
+"""
     try:
         response = await _generate_with_fallback(
             prompt=prompt,
             response_schema=ProblemRefineResponse,
             system_instruction="You are an elite product strategy mentor. Provide deep, analytical, and highly structured root-cause insights."
         )
-        return ProblemRefineResponse.model_validate_json(response.text)
+        parsed = ProblemRefineResponse.model_validate_json(response.text)
+        continuation = list(parsed.five_whys)[:remaining]
+        combined_whys = existing_whys + continuation
+        return ProblemRefineResponse(five_whys=combined_whys, synthesized_root_cause=parsed.synthesized_root_cause)
     except Exception as e:
-        logger.error(f"Gemini API Error in refine_problem_statement: {e}", exc_info=True)
+        logger.error(f"Gemini API Error in refine_problem_statement (continuation): {e}", exc_info=True)
         raise e
 
 
@@ -201,31 +298,6 @@ Provide objective rationale for each categorization.
         response_schema=IdeaEvaluationResponse,
         system_instruction="You are a technical product manager. Evaluate project trade-offs objectively based on developer effort versus user value."
     )
-    return MindMapResponse.model_validate_json(response.text) if False else await _generate_with_fallback(prompt, response_schema=IdeaEvaluationResponse, system_instruction="You are a technical product manager.") # keeping clean call pattern below
-    # (Note: standardizing call structure)
-    
-async def evaluate_ideation_list(ideas: list) -> IdeaEvaluationResponse:
-    ideas_text = "\n".join([
-        f"- ID: {getattr(i, 'id', idx)}, Title: {getattr(i, 'title', str(i))}, Description: {getattr(i, 'description', '')}"
-        for idx, i in enumerate(ideas)
-    ])
-    prompt = f"""
-Evaluate the following list of software project ideas across Feasibility and Impact to map them into a 2x2 matrix:
-{ideas_text}
-
-Quadrants mapping rules:
-- 'Quick Win': High impact, low implementation complexity.
-- 'Major Project': High impact, high implementation complexity.
-- 'Fill-in': Low impact, low complexity.
-- 'Thankless Task': Low impact, high complexity.
-
-Provide objective rationale for each categorization.
-"""
-    response = await _generate_with_fallback(
-        prompt=prompt,
-        response_schema=IdeaEvaluationResponse,
-        system_instruction="You are a technical product manager. Evaluate project trade-offs objectively based on developer effort versus user value."
-    )
     return IdeaEvaluationResponse.model_validate_json(response.text)
 
 
@@ -249,9 +321,15 @@ Instructions:
 
 
 async def remix_ideas(descriptions: list) -> RemixIdeasResponse:
+    # Fixed: descriptions previously weren't actually interpolated into
+    # the prompt (the join() call sat outside the f-string's {} braces
+    # and was sent to Gemini as literal text) — the remix endpoint was
+    # unknowingly asking Gemini to merge ideas without ever telling it
+    # what they were.
+    joined_descriptions = "\n".join(descriptions)
     prompt = f"""
 Synthesize and cross-pollinate the following distinct project ideas into a single, cohesive, hybrid solution:
-" + "\n".join(descriptions) + "
+{joined_descriptions}
 
 Instructions:
 1. Extract the strongest unique value propositions from each individual concept.
@@ -390,6 +468,7 @@ Provide a concise, context-aware mentoring response that unblocks the student's 
                 config=types.GenerateContentConfig(
                     temperature=0.7,
                     system_instruction=system_instruction,
+                    automatic_function_calling=_AFC_DISABLED,
                 ),
             )
 
