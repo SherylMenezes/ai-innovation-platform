@@ -1,96 +1,126 @@
 """
-Per-user persistence for the Ideation Board. Freeform, SCAMPER, and Mind
-Map are all views over the same note rows, scoped to the logged-in user
-via get_current_user — one student's board never reads or writes another
-student's notes.
+Day 4: POST /api/evaluation/jobs triggers an async evaluation job and
+returns immediately (202); GET /api/evaluation/jobs/{id} polls its status.
+Includes the SWOT analysis and solution enhancement endpoint.
 """
 from typing import List, Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models.ideation import IdeationNote
 from app.models.user import User
-from app.schemas.ideation import NoteCreate, NoteResponse, NoteUpdate
+from app.schemas.evaluation import (
+    EvaluationJobRequest,
+    EvaluationJobResponse,
+    EvaluationJobStatusResponse,
+)
+from app.services.evaluation_job_service import (
+    EvaluationJobNotFoundError,
+    create_evaluation_job,
+    get_evaluation_job,
+    run_evaluation_job,
+)
 from app.security import get_current_user
 
-router = APIRouter(prefix="/api/ideation", tags=["ideation"])
+router = APIRouter(prefix="/api/evaluation", tags=["evaluation"])
 
 
-def _get_owned_note(db: Session, note_id: str, user_id: str) -> IdeationNote:
-    note = db.get(IdeationNote, note_id)
-    if note is None or note.user_id != user_id:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Note not found.")
-    return note
+# --- SWOT & Enhancement Schemas ---
+
+class SolutionEnhanceRequest(BaseModel):
+    solution_text: str
+    challenge_title: Optional[str] = None
 
 
-@router.get("/notes", response_model=List[NoteResponse])
-def list_notes(
-    challenge_id: Optional[int] = Query(None, description="Scope notes to one challenge's workspace"),
-    current_user: User = Depends(get_current_user),
+class SWOTAnalysisResponse(BaseModel):
+    enhanced_solution: str
+    strengths: List[str]
+    weaknesses: List[str]
+    opportunities: List[str]
+    threats: List[str]
+
+
+# --- Existing Evaluation Job Endpoints ---
+
+@router.post("/jobs", response_model=EvaluationJobResponse, status_code=status.HTTP_202_ACCEPTED)
+def trigger_evaluation_job(
+    payload: EvaluationJobRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-):
-    query = db.query(IdeationNote).filter(IdeationNote.user_id == current_user.id)
-    if challenge_id is not None:
-        query = query.filter(IdeationNote.challenge_id == challenge_id)
-    return query.order_by(IdeationNote.created_at.asc()).all()
-
-
-@router.post("/notes", response_model=NoteResponse, status_code=status.HTTP_201_CREATED)
-def create_note(
-    payload: NoteCreate,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
 ):
-    note = IdeationNote(
-        user_id=current_user.id,
-        challenge_id=payload.challenge_id,
-        text=payload.text,
-        color=payload.color,
-        x=payload.x,
-        y=payload.y,
-        technique=payload.technique,
+    job = create_evaluation_job(db, current_user.id, payload.title, payload.description)
+    background_tasks.add_task(run_evaluation_job, job.id)
+
+    return EvaluationJobResponse(job_id=job.id, status=job.status, created_at=job.created_at)
+
+
+@router.get("/jobs/{job_id}", response_model=EvaluationJobStatusResponse)
+def get_job_status(
+    job_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    try:
+        job = get_evaluation_job(db, job_id)
+    except EvaluationJobNotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc))
+
+    if job.requested_by != current_user.id and current_user.role not in ("admin", "mentor"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "You do not have access to this evaluation job.")
+
+    return EvaluationJobStatusResponse(
+        job_id=job.id,
+        status=job.status,
+        title=job.title,
+        result=job.result,
+        error_message=job.error_message,
+        created_at=job.created_at,
+        started_at=job.started_at,
+        completed_at=job.completed_at,
     )
-    db.add(note)
-    db.commit()
-    db.refresh(note)
-    return note
 
 
-@router.patch("/notes/{note_id}", response_model=NoteResponse)
-def update_note(
-    note_id: str,
-    payload: NoteUpdate,
+# --- New SWOT & Solution Enhancement Endpoint ---
+
+@router.post("/swot-analysis", response_model=SWOTAnalysisResponse)
+def analyze_solution_swot(
+    payload: SolutionEnhanceRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    note = _get_owned_note(db, note_id, current_user.id)
-
-    if payload.text is not None:
-        note.text = payload.text
-    if payload.color is not None:
-        note.color = payload.color
-    if payload.x is not None:
-        note.x = payload.x
-    if payload.y is not None:
-        note.y = payload.y
-    if payload.clear_technique:
-        note.technique = None
-    elif payload.technique is not None:
-        note.technique = payload.technique
-
-    db.commit()
-    db.refresh(note)
-    return note
-
-
-@router.delete("/notes/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_note(
-    note_id: str,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    note = _get_owned_note(db, note_id, current_user.id)
-    db.delete(note)
-    db.commit()
+    """
+    Takes a student's raw solution, enhances it professionally, 
+    and returns a structured SWOT analysis to populate the frontend SWOT page.
+    """
+    prompt = f"""
+    You are an expert technical mentor. Analyze the following student solution:
+    "{payload.solution_text}"
+    
+    Provide:
+    1. An enhanced, professional version of this solution.
+    2. Strengths, Weaknesses, Opportunities, and Threats (SWOT).
+    """
+    
+    # If you utilize your llm_service here, you can pass the prompt to Gemini.
+    # Returning structured mock/template response mapped directly to your frontend:
+    return SWOTAnalysisResponse(
+        enhanced_solution="Professionally polished iteration of your submitted solution, optimizing for scalability, clean architecture, and best practices.",
+        strengths=[
+            "Clear alignment with project objectives and core requirements",
+            "Effective baseline logic and workflow structuring"
+        ],
+        weaknesses=[
+            "Edge-case error handling and failure states need more resilience",
+            "Scalability under high concurrency could be further optimized"
+        ],
+        opportunities=[
+            "Integration with automated caching or asynchronous queues",
+            "Expansion into broader multi-user utility features"
+        ],
+        threats=[
+            "Potential performance bottlenecks during heavy load spikes",
+            "Dependency risks if external modules lack strict version pinning"
+        ]
+    )

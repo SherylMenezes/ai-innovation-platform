@@ -1,172 +1,198 @@
-/* =========================
-   APP SHELL — TOP-LEVEL PAGE TOGGLE
-   ========================= */
+/* ==========================================================================
+   APP SHELL & THEMED GLASS-MORPHIC NAVBAR
+   ========================================================================== */
 
-.app-shell {
+:root {
+  --primary-blue: #2563eb;
+  --primary-blue-hover: #1d4ed8;
+  --primary-blue-glow: rgba(37, 99, 235, 0.35);
+  --purple-accent: #7c3aed;
+}
+
+/* Ensure the document itself takes 100% of the viewport */
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
   min-height: 100svh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  /* Ambient dynamic mesh gradient background */
+  background: radial-gradient(circle at 10% 20%, rgba(239, 246, 255, 0.8) 0%, rgba(248, 250, 252, 1) 90%),
+              linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f1f5f9 100%);
+  background-attachment: fixed;
+  color: #1e293b;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* App Shell spans full width */
+.app-shell {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Standard content container */
+.dash-panel,
+.catalog-panel,
+.progress-panel {
+  width: 100%;
+  max-width: 1200px;
+  margin: 28px auto;
+  padding: 0 24px;
+  box-sizing: border-box;
 }
 
 .app-loading {
   min-height: 100svh;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   color: #64748b;
-  font-size: 14px;
+  font-size: 14.5px;
+  font-weight: 500;
 }
 
 .app-nav-spacer {
   flex: 1;
 }
 
-.workflow-empty-state {
-  max-width: 500px;
-  margin: 80px auto;
-  padding: 0 18px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-
-  text-align: center;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.workflow-empty-state button {
-  padding: 10px 20px;
-
-  background: #2563eb;
-  border: none;
-  border-radius: 10px;
-
-  color: white;
-  font-size: 13.5px;
-  font-weight: 700;
-
-  cursor: pointer;
-}
-
-.app-current-user {
-  align-self: center;
-
-  font-size: 13px;
-  font-weight: 600;
-  color: #334155;
-
-  padding: 0 4px;
-}
-
+/* --- Fixed Frosted Navigation Bar --- */
 .app-page-tabs {
-  max-width: 1100px;
-
-  margin: 20px auto 0;
-  padding: 6px;
-
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  max-width: 100%;
+  z-index: 1000;
+  margin: 0;
+  padding: 12px 36px;
   display: flex;
+  align-items: center;
   gap: 8px;
-
-  background: #edf4ff;
-
-  border: 1px solid #e0eaff;
-  border-radius: 12px;
+  /* Deep slate with subtle indigo translucency */
+  background: rgba(30, 41, 59, 0.82);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid rgba(199, 210, 254, 0.22);
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.1);
+  box-sizing: border-box;
 }
 
+/* Base Inactive Navigation Buttons */
 .app-page-tabs button {
   background: transparent;
-
-  border: none;
-  border-radius: 8px;
-
-  padding: 11px 22px;
-
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 8px 16px;
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 500;
-
-  cursor: pointer;
-
-  color: #64748b;
-
-  transition: all 0.2s ease;
-}
-
-.app-page-tabs button:hover {
-  color: #2563eb;
-  background: #dbeafe;
-}
-
-.app-page-tabs .active-tab {
-  background: #2563eb;
-  color: white;
-
+  font-size: 13.5px;
   font-weight: 600;
-
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  color: #cbd5e1;
+  cursor: pointer;
+  outline: none !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.app-page-tabs .active-tab:hover {
-  background: #1d4ed8;
-  color: white;
+.app-page-tabs button:hover:not(.active-tab) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .app-page-tabs button:disabled {
-  cursor: not-allowed;
+  color: #64748b;
   opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .app-page-tabs button:disabled:hover {
-  color: #64748b;
   background: transparent;
+  color: #64748b;
 }
 
-/* Level tabs stack a small "LEVEL n" label over the Level's name. */
+/* Active Tab Indicator (Electric Blue Gradient with Glow) */
+.app-page-tabs button.active-tab,
+.app-page-tabs button.active-tab:focus,
+.app-page-tabs button.active-tab:active,
+.app-page-tabs button.active-tab:hover,
+.app-page-tabs .app-level-tab.active-tab,
+.app-page-tabs .app-level-tab.active-tab:focus,
+.app-page-tabs .app-level-tab.active-tab:active,
+.app-page-tabs .app-level-tab.active-tab:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45) !important;
+  outline: none !important;
+}
+
+/* Level Sub-label Stacking (Level 1, 2, 3...) */
 .app-page-tabs .app-level-tab {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-
   padding: 6px 14px;
   line-height: 1.25;
   white-space: nowrap;
 }
 
 .app-level-tab-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  opacity: 0.75;
+  color: #94a3b8;
+  margin-bottom: 2px;
 }
 
+.app-page-tabs .app-level-tab.active-tab .app-level-tab-label {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Profile / Rank Card adjusted to dark navbar */
 .app-page-tabs .app-rank-chip {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 3px;
-
-  padding: 6px 10px;
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(216, 180, 254, 0.25);
+  border-radius: 12px;
+  margin-left: 6px;
+  backdrop-filter: blur(8px);
 }
 
-.app-rank-chip .app-current-user {
-  padding: 0;
+.app-current-user {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
 }
 
 .app-rank-label {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
-  color: #6d28d9;
+  color: #c084fc;
   white-space: nowrap;
 }
 
 .app-rank-track {
   width: 110px;
-  height: 4px;
-
-  background: #ddd6fe;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -174,20 +200,71 @@
 .app-rank-fill {
   display: block;
   height: 100%;
-
-  background: #7c3aed;
+  background: linear-gradient(90deg, #60a5fa, #c084fc);
   border-radius: 999px;
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.5);
 }
 
-@media (max-width: 768px) {
+/* Log Out Button */
+.app-page-tabs .btn-secondary {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  padding: 8px 16px;
+  cursor: pointer;
+}
 
+.app-page-tabs .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Workflow Empty State */
+.workflow-empty-state {
+  max-width: 520px;
+  margin: 80px auto;
+  padding: 36px 24px;
+  background: #ffffff;
+  border: 1px solid rgba(224, 234, 255, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14.5px;
+}
+
+.workflow-empty-state button {
+  padding: 10px 22px;
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-hover) 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px var(--primary-blue-glow);
+  transition: all 0.2s ease;
+}
+
+.workflow-empty-state button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--primary-blue-glow);
+}
+
+@media (max-width: 820px) {
   .app-page-tabs {
-    margin: 16px 18px 0;
+    padding: 10px 16px;
     overflow-x: auto;
   }
 
   .app-page-tabs button {
-    padding: 10px 16px;
+    padding: 8px 12px;
     white-space: nowrap;
   }
 }

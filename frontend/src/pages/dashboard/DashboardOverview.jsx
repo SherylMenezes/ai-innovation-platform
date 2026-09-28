@@ -14,6 +14,7 @@ function DashboardOverview({ onOpenChallenge }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(() => !readCache(cacheKey)?.overview);
   const [projects, setProjects] = useState(() => readCache(cacheKey)?.projects || []);
+  const userBadges = (typeof overview !== "undefined" && overview?.badges) || [];
 
   useEffect(() => {
     if (!accessToken) return;
@@ -52,16 +53,21 @@ function DashboardOverview({ onOpenChallenge }) {
     <div className="dash-panel">
       <div className="dash-stat-row">
         <div className="dash-stat-card">
-          <span className="dash-stat-value">{overview.active_projects}</span>
-          <span className="dash-stat-label">Active projects</span>
+          <span style={{ fontSize: "24px", marginBottom: "4px" }}>🚀</span>
+          <span className="dash-stat-value">{overview?.active_projects ?? 0}</span>
+          <span className="dash-stat-label">Active Projects</span>
         </div>
+
         <div className="dash-stat-card">
-          <span className="dash-stat-value">{overview.completed_projects}</span>
-          <span className="dash-stat-label">Completed projects</span>
+          <span style={{ fontSize: "24px", marginBottom: "4px" }}>🎉</span>
+          <span className="dash-stat-value">{overview?.completed_projects ?? 0}</span>
+          <span className="dash-stat-label">Completed Projects</span>
         </div>
+
         <div className="dash-stat-card">
-          <span className="dash-stat-value">{overview.unread_notifications}</span>
-          <span className="dash-stat-label">Unread notifications</span>
+          <span style={{ fontSize: "24px", marginBottom: "4px" }}>🔔</span>
+          <span className="dash-stat-value">{overview?.unread_notifications ?? 0}</span>
+          <span className="dash-stat-label">Unread Notifications</span>
         </div>
       </div>
 
@@ -86,23 +92,43 @@ function DashboardOverview({ onOpenChallenge }) {
         <p className="dash-xp-total">{overview.rank.total_xp} XP earned in total</p>
       </div>
 
-      <div className="dash-badges">
-        <h4>Badges</h4>
-        {overview.badges.length === 0 ? (
-          <p className="dash-empty">No badges available yet.</p>
-        ) : (
-          <div className="dash-badge-list">
-            {overview.badges.map((b) => (
-              <span
-                key={b.slug}
-                className={`dash-badge ${b.earned ? "dash-badge-earned" : "dash-badge-locked"}`}
-                title={b.earned ? b.description : `Locked — ${BADGES[b.slug]?.hint || b.description}`}
-              >
-                {b.earned ? badgeIcon(b.slug) : "🔒"} {b.name}
-              </span>
-            ))}
+      <div className="badges-card">
+        <div className="badges-header">
+          <div>
+            <h3 className="badges-title">Achievements & Badges</h3>
+            <p className="badges-subtitle">Unlock milestones by completing challenge levels and tasks</p>
           </div>
-        )}
+          <span className="badges-count-chip">
+            {userBadges.filter(b => b.unlocked).length} / {userBadges.length} Unlocked
+          </span>
+        </div>
+
+        <div className="badges-grid">
+          {userBadges.map((badge) => {
+            const isUnlocked = badge.unlocked; // or check if badge exists in user's unlocked list
+            return (
+              <div 
+                key={badge.slug || badge.name} 
+                className={`badge-item-card ${isUnlocked ? "unlocked" : "locked"}`}
+              >
+                <div className="badge-icon-shield">
+                  <span className="badge-icon-symbol">
+                    {isUnlocked ? badge.icon || "🏅" : "🔒"}
+                  </span>
+                </div>
+
+                <div className="badge-info">
+                  <span className="badge-name">{badge.name}</span>
+                  <span className="badge-description">{badge.description || "Complete challenges to unlock"}</span>
+                </div>
+
+                <div className="badge-status-tag">
+                  {isUnlocked ? "Unlocked" : "Locked"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="dash-quick-links">

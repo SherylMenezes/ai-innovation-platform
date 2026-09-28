@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 load_dotenv()  # This loads the variables from your .env file into Python's environment
 import os
 
+from app.routers import challenges
+
 from dotenv import load_dotenv
 
 # Must run before any module reads os.getenv() at call time — e.g.
@@ -12,6 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI
+
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -35,6 +38,8 @@ from app.routers import (
     submissions,
 )
 from app.services.gamification_listeners import register_gamification_listeners
+
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,6 +70,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from app.routers import leaderboard
+app.include_router(leaderboard.router)
+
 # CORS configuration for Vite frontend
 app.add_middleware(
     CORSMiddleware,
@@ -84,6 +92,7 @@ app.include_router(gamification_router.router)
 app.include_router(evaluation_router.router)
 app.include_router(ideation_router.router)
 app.include_router(notification_router.router)
+app.include_router(challenges.router)
 
 # Resolve path relative to backend root directory
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -107,3 +116,14 @@ def health_check():
     return {"status": "healthy"}
 
 app.include_router(submissions.router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)

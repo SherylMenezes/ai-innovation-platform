@@ -1,69 +1,275 @@
+:root {
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f1f5f9 100%);
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-light: #e0e7ff;
+}
+
 .catalog-panel {
-  max-width: 1100px;
-  margin: 24px auto;
-  padding: 0 18px;
+  max-width: 1240px;
+  margin: 28px auto;
+  padding: 0 24px;
 }
 
-.catalog-loading {
-  color: #64748b;
-  font-size: 14px;
-  text-align: center;
-  padding: 40px 0;
-}
-
+/* --- Dynamic Toolbar & Search --- */
 .catalog-toolbar {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+  align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  padding: 12px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 4px 20px -2px rgba(99, 102, 241, 0.06);
 }
 
 .catalog-search {
   flex: 1;
-  min-width: 200px;
-  padding: 9px 12px;
-  border: 1px solid #e0eaff;
-  border-radius: 10px;
+  min-width: 240px;
+  padding: 10px 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 13.5px;
+  background: #ffffff;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.catalog-search:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  transform: translateY(-1px);
+}
+
+/* --- Filter Chips --- */
 .catalog-chip {
-  padding: 8px 14px;
-  font-size: 13px;
+  padding: 8px 16px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: #2563eb;
-  background: white;
-  border: 1px solid #e0eaff;
+  letter-spacing: 0.02em;
+  color: #64748b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 999px;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.catalog-chip:hover {
+  color: var(--primary);
+  border-color: var(--primary-light);
+  background: var(--primary-light);
+  transform: translateY(-1px);
 }
 
 .catalog-chip-active {
-  color: white;
-  background: #2563eb;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%) !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.28);
 }
 
+/* --- + Add Challenge Button --- */
+.catalog-chip-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: none;
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 600;
+  font-size: 12.5px;
+  margin-left: auto;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.catalog-chip-add:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+/* --- Grid & Cards --- */
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
 }
 
 .catalog-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-
-  padding: 16px 18px;
-
-  background: white;
-  border: 1px solid #e0eaff;
-  border-radius: 14px;
+  justify-content: space-between;
+  padding: 22px;
+  background: var(--card-bg);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
+/* Top accent highlight */
+.catalog-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.catalog-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 30px -8px rgba(15, 23, 42, 0.08), 0 0 1px 1px rgba(99, 102, 241, 0.15);
+  border-color: rgba(199, 210, 254, 0.8);
+}
+
+.catalog-card:hover::before {
+  opacity: 1;
+}
+
+/* --- Dynamic Domain Badges --- */
+.catalog-card-domain {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 999px;
+  margin-bottom: 12px;
+  transition: transform 0.2s ease;
+}
+
+/* Domain Color Themes */
+.catalog-card[data-domain="Healthcare"] .catalog-card-domain,
+.domain-healthcare {
+  color: #0284c7;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
+}
+
+.catalog-card[data-domain="Sustainability"] .catalog-card-domain,
+.domain-sustainability {
+  color: #16a34a;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.catalog-card[data-domain="Agriculture"] .catalog-card-domain,
+.domain-agriculture {
+  color: #d97706;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+}
+
+.catalog-card[data-domain="Finance"] .catalog-card-domain,
+.domain-finance {
+  color: #9333ea;
+  background: #f3e8ff;
+  border: 1px solid #e9d5ff;
+}
+
+/* Fallback default badge */
+.catalog-card-domain:not([class*="domain-"]) {
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #e0e7ff;
+}
+
+.catalog-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.catalog-card-desc {
+  margin: 0 0 16px 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #64748b;
+  flex: 1;
+}
+
+.catalog-card-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.catalog-card-meta {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.catalog-enroll-button {
+  width: 100%;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.2);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.catalog-enroll-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.32);
+  transform: translateY(-1px);
+}
+
+.catalog-enroll-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Completed Card Aesthetic */
 .catalog-card-completed {
-  opacity: 0.85;
+  background: rgba(248, 250, 252, 0.85);
+  border-color: #cbd5e1;
+}
+
+.catalog-card-completed .catalog-enroll-button {
+  background: #f1f5f9;
+  color: #475569;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+}
+
+.catalog-card-completed .catalog-enroll-button:hover {
+  background: #e2e8f0;
+  color: #1e293b;
 }
 
 .catalog-card-badge {
@@ -72,71 +278,9 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #15803d;
+  color: #16a34a;
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
   border-radius: 999px;
-}
-
-.catalog-card-domain {
-  align-self: flex-start;
-  padding: 3px 10px;
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #1d4ed8;
-  background: #eff6ff;
-  border-radius: 999px;
-}
-
-.catalog-card h3 {
-  margin: 0;
-  font-size: 16px;
-  color: #1e293b;
-}
-
-.catalog-card-desc {
-  margin: 0;
-  font-size: 13px;
-  color: #64748b;
-  flex: 1;
-}
-
-.catalog-card-meta {
-  font-size: 12px;
-  color: #94a3b8;
-}
-
-.catalog-enroll-button {
-  padding: 9px 14px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: white;
-  background: #2563eb;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.catalog-enroll-button:hover:not(:disabled) {
-  background: #1d4ed8;
-}
-
-.catalog-enroll-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.catalog-empty {
-  color: #94a3b8;
-  font-size: 14px;
-  text-align: center;
-  padding: 40px 0;
-}
-
-.catalog-error {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: #b91c1c;
+  margin-bottom: 8px;
 }
