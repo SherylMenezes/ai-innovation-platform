@@ -14,6 +14,8 @@ from app.schemas.ai import (
     HMWGenerateResponse,
     ProblemScoreRequest,
     ProblemScoreResponse,
+    ProblemCanvasScoreRequest,
+    ProblemCanvasScoreResponse,
     ScamperPromptRequest,
     ScamperPromptResponse,
     MindMapRequest,
@@ -37,6 +39,7 @@ from app.schemas.ai import (
 )
 from app.services.llm_service import (
     refine_problem_statement,
+    score_problem_canvas,
     generate_hmw_statements,
     score_problem_statement,
     generate_scamper_prompts,
@@ -58,7 +61,33 @@ router = APIRouter(prefix="/api/ai", tags=["AI"])
 
 @router.post("/problem-refine", response_model=ProblemRefineResponse)
 async def refine_problem(payload: ProblemRefineRequest):
-    return await refine_problem_statement(payload.problem_statement, payload.existing_whys)
+    previous_answers = payload.previous_answers
+    current_step = payload.current_step
+    current_answer = payload.current_answer
+
+    # Preserve the previous contract if an older caller still sends
+    # existing_whys instead of the new sequential fields.
+    if not previous_answers and payload.existing_whys:
+        previous_answers = [item for item in payload.existing_whys if item and item.strip()]
+        current_step = min(len(previous_answers), 4)
+        current_answer = ""
+
+    return await refine_problem_statement(
+        problem_statement=payload.problem_statement,
+        previous_answers=previous_answers,
+        current_step=current_step,
+        current_answer=current_answer,
+        help_me_answer=payload.help_me_answer,
+    )
+
+@router.post("/problem-canvas-score", response_model=ProblemCanvasScoreResponse)
+async def score_problem_canvas_endpoint(payload: ProblemCanvasScoreRequest):
+    return await score_problem_canvas(
+        problem_statement=payload.problem_statement,
+        why_answers=payload.why_answers,
+        root_cause=payload.root_cause,
+        refined_problem_statement=payload.refined_problem_statement,
+    )
 
 @router.post("/hmw-generate", response_model=HMWGenerateResponse)
 async def generate_hmw(payload: HMWGenerateRequest):
