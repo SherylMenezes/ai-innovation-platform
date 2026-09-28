@@ -101,8 +101,18 @@ class MentorStreamRequest(BaseModel):
 # --- Response Schemas ---
 
 class ProblemRefineResponse(BaseModel):
+    # The "Why" questions in order — the student's own, followed by any the
+    # AI continued the chain with.
     five_whys: List[str]
     synthesized_root_cause: str
+    # Feed the root-cause tree's insight cards. Required (no defaults) so
+    # Gemini's structured output always fills them; the frontend still
+    # guards with ?. in case it ever gets a response without them.
+    refined_problem_statement: str
+    hidden_variables: List[str]
+    stakeholders: List[str]
+    market_gaps: List[str]
+    trend_insights: List[str]
 
 
 class HMWItem(BaseModel):
