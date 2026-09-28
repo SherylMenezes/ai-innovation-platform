@@ -9,11 +9,12 @@ import SubmissionUpload from "./pages/submission/SubmissionUpload";
 import ProjectSummary from "./pages/project/ProjectSummary";
 import GamificationPanel from "./pages/gamification/GamificationPanel";
 import AuthPage from "./pages/auth/AuthPage";
-import ChallengeLevelBar from "./components/ChallengeLevelBar";
+import ChallengePhaseBar from "./components/ChallengePhaseBar";
 import RewardToast from "./components/RewardToast";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { getUserStats } from "./api/gamificationClient";
-import { CHALLENGE_LEVELS, badgeIcon, pageForStage, unlockedLevelForStage } from "./utils/progression";
+import { CHALLENGE_PHASES, badgeIcon, pageForStage, unlockedLevelForStage } from "./utils/progression";
 import LandingPage from "./pages/landing/LandingPage";
 // [AI MENTOR] mounted once below so it's available on every page
 import AiMentorDrawer from "./pages/ideation/AiMentorDrawer";
@@ -36,12 +37,12 @@ function AppShell() {
   const [page, setPage] = useState("dashboard");
   const [challengeId, setChallengeId] = useState(null);
   const [challengeStage, setChallengeStage] = useState(null);
-  const [rank, setRank] = useState(null);
+  const [level, setLevel] = useState(null);
   const [progressKey, setProgressKey] = useState(0);
   const [toasts, setToasts] = useState([]);
   const [showAuthScreen, setShowAuthScreen] = useState(false);
 
-  const rankRef = useRef(null);
+  const levelRef = useRef(null);
   const toastSeq = useRef(0);
 
   const { user, isAuthenticated, isLoading, logout, accessToken } = useAuth();
@@ -57,16 +58,25 @@ function AppShell() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const refreshRank = useCallback(async () => {
+  const refreshLevel = useCallback(async () => {
     if (!accessToken) return;
     try {
       const stats = await getUserStats(accessToken);
-      const previous = rankRef.current;
-      if (previous && stats.rank.rank > previous.rank) {
-        pushToast({ tone: "rank", title: `Rank up! You're now Rank ${stats.rank.rank}`, detail: stats.rank.title });
+      const userLevelData = stats.level || stats.rank;
+      const currentLevelNum = userLevelData?.level || userLevelData?.rank || 1;
+      const currentLevelTitle = userLevelData?.title || "Explorer";
+
+      const previous = levelRef.current;
+      const prevLevelNum = previous?.level || previous?.rank;
+      if (previous && currentLevelNum > prevLevelNum) {
+        pushToast({
+          tone: "level",
+          title: `Level up! You're now Level ${currentLevelNum}`,
+          detail: currentLevelTitle,
+        });
       }
-      rankRef.current = stats.rank;
-      setRank(stats.rank);
+      levelRef.current = userLevelData;
+      setLevel(userLevelData);
     } catch {
       // Non-fatal
     }
@@ -76,8 +86,9 @@ function AppShell() {
     if (!accessToken) return;
     getUserStats(accessToken)
       .then((stats) => {
-        rankRef.current = stats.rank;
-        setRank(stats.rank);
+        const userLevelData = stats.level || stats.rank;
+        levelRef.current = userLevelData;
+        setLevel(userLevelData);
       })
       .catch(() => {});
   }, [accessToken]);
@@ -85,11 +96,12 @@ function AppShell() {
   const handleReward = useCallback(
     (reward = {}) => {
       const xp = reward.xp_awarded || 0;
-      if (reward.cleared_level) {
+      const clearedPhase = reward.cleared_phase || reward.cleared_level;
+      if (clearedPhase) {
         pushToast({
-          tone: "level",
-          title: `Level ${reward.cleared_level.number} cleared!`,
-          detail: `${reward.cleared_level.name} complete${xp > 0 ? ` · +${xp} XP` : ""}`,
+          tone: "phase",
+          title: `Phase ${clearedPhase.number} cleared!`,
+          detail: `${clearedPhase.name} complete${xp > 0 ? ` · +${xp} XP` : ""}`,
         });
       } else if (xp > 0) {
         pushToast({ tone: "xp", title: `+${xp} XP`, detail: reward.label });
@@ -98,9 +110,9 @@ function AppShell() {
         pushToast({ tone: "badge", title: `${badgeIcon(badge.slug)} Badge unlocked`, detail: badge.name });
       });
       setProgressKey((key) => key + 1);
-      refreshRank();
+      refreshLevel();
     },
-    [pushToast, refreshRank]
+    [pushToast, refreshLevel]
   );
 
   const handleWorkspaceLoaded = useCallback((data) => {
@@ -136,7 +148,6 @@ function AppShell() {
     if (showAuthScreen) {
       return <AuthPage onBack={() => setShowAuthScreen(false)} />;
     }
-
     return (
       <LandingPage
         onGetStarted={() => setShowAuthScreen(true)}
@@ -146,14 +157,20 @@ function AppShell() {
   }
 
   // Authenticated workspace shell
-  const unlockedLevel = challengeStage ? unlockedLevelForStage(challengeStage) : CHALLENGE_LEVELS.length;
-  const showLevelBar = challengeId && (WORKFLOW_TABS.has(page) || page === "summary");
+  const totalPhases = (CHALLENGE_PHASES || []).length || 4;
+  const unlockedPhase = challengeStage ? unlockedLevelForStage(challengeStage) : totalPhases;
+  const showPhaseBar = challengeId && (WORKFLOW_TABS.has(page) || page === "summary");
 
-  // [AI MENTOR] Inside a challenge's Levels the mentor uses that challenge's
-  // thread (one conversation carried across Levels, with the backend loading
+  // [AI MENTOR] Inside a challenge's Phases the mentor uses that challenge's
+  // thread (one conversation carried across Phases, with the backend loading
   // the real saved workspace as context). On Dashboard / Challenges /
   // My Progress it's a general mentor on the shared "default" thread.
-  const mentorWorkspaceId = showLevelBar ? String(challengeId) : "default";
+  const mentorWorkspaceId = showPhaseBar ? String(challengeId) : "default";
+
+  const userLevelNum = level?.level || level?.rank || 1;
+  const userLevelTitle = level?.title || "Explorer";
+  const xpIntoLevel = level?.xp_into_level ?? level?.xp_into_rank ?? 0;
+  const xpForNextLevel = level?.xp_for_next_level ?? level?.xp_for_next_rank ?? 100;
 
   return (
     <div className="app-shell">
@@ -174,37 +191,37 @@ function AppShell() {
         </button>
         <button
           type="button"
-          className={`app-level-tab ${page === "canvas" ? "active-tab" : ""}`}
+          className={`app-phase-tab ${page === "canvas" ? "active-tab" : ""}`}
           onClick={() => goToTab("canvas")}
         >
-          <span className="app-level-tab-label">LEVEL 1</span>
+          <span className="app-phase-tab-label">PHASE 1</span>
           Problem Canvas
         </button>
         <button
           type="button"
-          className={`app-level-tab ${page === "ideation" ? "active-tab" : ""}`}
-          disabled={unlockedLevel < 2}
+          className={`app-phase-tab ${page === "ideation" ? "active-tab" : ""}`}
+          disabled={unlockedPhase < 2}
           onClick={() => goToTab("ideation")}
         >
-          <span className="app-level-tab-label">LEVEL 2</span>
+          <span className="app-phase-tab-label">PHASE 2</span>
           Ideate
         </button>
         <button
           type="button"
-          className={`app-level-tab ${page === "evaluation" ? "active-tab" : ""}`}
-          disabled={unlockedLevel < 3}
+          className={`app-phase-tab ${page === "evaluation" ? "active-tab" : ""}`}
+          disabled={unlockedPhase < 3}
           onClick={() => goToTab("evaluation")}
         >
-          <span className="app-level-tab-label">LEVEL 3</span>
+          <span className="app-phase-tab-label">PHASE 3</span>
           Idea Evaluation
         </button>
         <button
           type="button"
-          className={`app-level-tab ${page === "submission" ? "active-tab" : ""}`}
-          disabled={unlockedLevel < 4}
+          className={`app-phase-tab ${page === "submission" ? "active-tab" : ""}`}
+          disabled={unlockedPhase < 4}
           onClick={() => goToTab("submission")}
         >
-          <span className="app-level-tab-label">LEVEL 4</span>
+          <span className="app-phase-tab-label">PHASE 4</span>
           Submit Project
         </button>
         <button
@@ -217,16 +234,16 @@ function AppShell() {
 
         <div className="app-nav-spacer" />
 
-        {rank && (
-          <div className="app-rank-chip">
+        {level && (
+          <div className="app-level-chip">
             <span className="app-current-user">{user?.name}</span>
-            <span className="app-rank-label">
-              Rank {rank.rank} · {rank.title}
+            <span className="app-level-label">
+              Level {userLevelNum} · {userLevelTitle}
             </span>
-            <div className="app-rank-track">
+            <div className="app-level-track">
               <span
-                className="app-rank-fill"
-                style={{ width: `${Math.min(100, Math.round((rank.xp_into_rank / rank.xp_for_next_rank) * 100))}%` }}
+                className="app-level-fill"
+                style={{ width: `${Math.min(100, Math.round((xpIntoLevel / xpForNextLevel) * 100))}%` }}
               />
             </div>
           </div>
@@ -237,8 +254,8 @@ function AppShell() {
         </button>
       </nav>
 
-      {showLevelBar && (
-        <ChallengeLevelBar
+      {showPhaseBar && (
+        <ChallengePhaseBar
           challengeId={challengeId}
           refreshKey={progressKey}
           activePage={page}
@@ -248,39 +265,41 @@ function AppShell() {
       )}
 
       <main className="app-main-content">
-        {page === "dashboard" && <DashboardOverview onOpenChallenge={openChallenge} />}
-        {page === "challenges" && <ChallengeCatalog onOpenChallenge={openChallenge} />}
-        {page === "canvas" && (
-          <ProblemCanvas
-            challengeId={challengeId}
-            onStageAdvance={handleStageAdvance}
-            onReward={handleReward}
-          />
-        )}
-        {page === "ideation" && (
-          <IdeatePage
-            challengeId={challengeId}
-            onStageAdvance={handleStageAdvance}
-            onReward={handleReward}
-            onBack={() => goToTab("canvas")}
-          />
-        )}
-        {page === "evaluation" && (
-          <IdeaEvaluation
-            challengeId={challengeId}
-            onStageAdvance={handleStageAdvance}
-            onReward={handleReward}
-          />
-        )}
-        {page === "submission" && (
-          <SubmissionUpload
-            challengeId={challengeId}
-            onReward={handleReward}
-            onCompleted={() => handleStageAdvance("completed")}
-          />
-        )}
-        {page === "summary" && <ProjectSummary challengeId={challengeId} />}
-        {page === "progress" && <GamificationPanel key={progressKey} onReward={handleReward} />}
+        <ErrorBoundary key={`${page}-${challengeId}`} onReset={() => setPage("dashboard")}>
+          {page === "dashboard" && <DashboardOverview onOpenChallenge={openChallenge} />}
+          {page === "challenges" && <ChallengeCatalog onOpenChallenge={openChallenge} />}
+          {page === "canvas" && (
+            <ProblemCanvas
+              challengeId={challengeId}
+              onStageAdvance={handleStageAdvance}
+              onReward={handleReward}
+            />
+          )}
+          {page === "ideation" && (
+            <IdeatePage
+              challengeId={challengeId}
+              onStageAdvance={handleStageAdvance}
+              onReward={handleReward}
+              onBack={() => goToTab("canvas")}
+            />
+          )}
+          {page === "evaluation" && (
+            <IdeaEvaluation
+              challengeId={challengeId}
+              onStageAdvance={handleStageAdvance}
+              onReward={handleReward}
+            />
+          )}
+          {page === "submission" && (
+            <SubmissionUpload
+              challengeId={challengeId}
+              onReward={handleReward}
+              onCompleted={() => handleStageAdvance("completed")}
+            />
+          )}
+          {page === "summary" && <ProjectSummary challengeId={challengeId} />}
+          {page === "progress" && <GamificationPanel key={progressKey} onReward={handleReward} />}
+        </ErrorBoundary>
       </main>
 
       {/* [AI MENTOR] available on every page */}
@@ -290,19 +309,17 @@ function AppShell() {
         workspaceId={mentorWorkspaceId}
       />
 
-      <div className="toast-container">
-        {toasts.map((toast) => (
-          <RewardToast key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
-        ))}
-      </div>
+      <RewardToast toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppShell />
-    </AuthProvider>
+    <ErrorBoundary onReset={() => window.location.reload()} resetLabel="Reload app">
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

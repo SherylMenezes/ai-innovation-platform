@@ -15,8 +15,8 @@
   padding: 50px 0;
 }
 
-/* --- Hero Rank Banner --- */
-.gami-rank-card {
+/* --- Hero Level Banner --- */
+.gami-level-card {
   position: relative;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(245, 243, 255, 0.95));
   border: 1px solid rgba(221, 214, 254, 0.8);
@@ -27,7 +27,7 @@
   overflow: hidden;
 }
 
-.gami-rank-header {
+.gami-level-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -36,14 +36,14 @@
   margin-bottom: 12px;
 }
 
-.gami-rank-title {
+.gami-level-title {
   font-size: 20px;
   font-weight: 800;
   color: #6d28d9;
   letter-spacing: -0.01em;
 }
 
-.gami-rank-next {
+.gami-level-next {
   font-size: 13px;
   font-weight: 600;
   color: #7c3aed;
@@ -54,7 +54,7 @@
 }
 
 /* Progress Fill Track */
-.gami-rank-track {
+.gami-level-track {
   width: 100%;
   height: 12px;
   background: #ede9fe;
@@ -63,7 +63,7 @@
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-.gami-rank-fill {
+.gami-level-fill {
   height: 100%;
   background: linear-gradient(90deg, #7c3aed 0%, #a855f7 50%, #ec4899 100%);
   border-radius: 999px;

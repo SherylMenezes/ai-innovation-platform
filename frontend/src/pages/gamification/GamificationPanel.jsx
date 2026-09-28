@@ -4,7 +4,7 @@ import { getUserStats, checkIn, getBadges, getLeaderboard, getXpHistory } from "
 import { useAuth } from "../../context/AuthContext";
 import { BADGES, badgeIcon, describeXpEvent } from "../../utils/progression";
 
-function GamificationPanel() {
+function GamificationPanel({ onReward }) {
   const { accessToken } = useAuth();
   const [stats, setStats] = useState(null);
   const [error, setError] = useState("");
@@ -29,7 +29,7 @@ function GamificationPanel() {
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
     getXpHistory(accessToken)
-      .then((data) => setXpHistory(data.items))
+      .then((data) => setXpHistory(data.items || []))
       .catch(() => {
         // Non-fatal — the history list just stays empty.
       });
@@ -61,6 +61,17 @@ function GamificationPanel() {
     try {
       const result = await checkIn(accessToken);
       setCheckInMessage(result.message);
+
+      if (onReward && result.reward) {
+        onReward(result.reward);
+      } else if (onReward && result.xp_awarded) {
+        onReward({
+          xp_awarded: result.xp_awarded,
+          label: result.message || "Daily check-in completed",
+          badges: result.badges || [],
+        });
+      }
+
       loadStats();
     } catch (err) {
       setError(err.message);
@@ -83,33 +94,49 @@ function GamificationPanel() {
 
   const allBadges = badges?.badges || [];
 
+  // Adapt to either stats.level or stats.rank payload from backend
+  const userLevel = stats?.level || stats?.rank || {
+    level: 1,
+    title: "Explorer",
+    xp_into_level: 0,
+    xp_for_next_level: 100,
+    progress_percent: 0,
+  };
+
+  const levelNum = userLevel.level || userLevel.rank || 1;
+  const levelTitle = userLevel.title || "Explorer";
+  const xpInto = userLevel.xp_into_level ?? userLevel.xp_into_rank ?? 0;
+  const xpForNext = userLevel.xp_for_next_level ?? userLevel.xp_for_next_rank ?? 100;
+  const progressPercent = userLevel.progress_percent ?? 0;
+
   return (
     <div className="gami-panel">
-      <div className="gami-rank-card">
-        <div className="gami-rank-header">
-          <span className="gami-rank-title">
-            Rank {stats.rank.rank} · {stats.rank.title}
+      {/* User Progress Header */}
+      <div className="gami-level-card">
+        <div className="gami-level-header">
+          <span className="gami-level-title">
+            Level {levelNum} · {levelTitle}
           </span>
-          <span className="gami-rank-next">
-            {stats.rank.xp_into_rank} / {stats.rank.xp_for_next_rank} XP to Rank {stats.rank.rank + 1}
+          <span className="gami-level-next">
+            {xpInto} / {xpForNext} XP to Level {levelNum + 1}
           </span>
         </div>
-        <div className="gami-rank-track">
-          <div className="gami-rank-fill" style={{ width: `${stats.rank.progress_percent}%` }} />
+        <div className="gami-level-track">
+          <div className="gami-level-fill" style={{ width: `${progressPercent}%` }} />
         </div>
       </div>
 
       <div className="gami-stat-row">
         <div className="gami-stat-card">
-          <span className="gami-stat-value">{stats.xp}</span>
+          <span className="gami-stat-value">{stats?.xp ?? 0}</span>
           <span className="gami-stat-label">XP</span>
         </div>
         <div className="gami-stat-card">
-          <span className="gami-stat-value">{stats.current_streak}</span>
+          <span className="gami-stat-value">{stats?.current_streak ?? 0}</span>
           <span className="gami-stat-label">Current streak</span>
         </div>
         <div className="gami-stat-card">
-          <span className="gami-stat-value">{stats.longest_streak}</span>
+          <span className="gami-stat-value">{stats?.longest_streak ?? 0}</span>
           <span className="gami-stat-label">Longest streak</span>
         </div>
       </div>
@@ -139,7 +166,7 @@ function GamificationPanel() {
       <div className="gami-history">
         <h4>Recent XP</h4>
         {xpHistory.length === 0 ? (
-          <p className="gami-empty">No XP yet — clear a Level in any challenge to start earning.</p>
+          <p className="gami-empty">No XP yet — clear a Phase in any challenge to start earning.</p>
         ) : (
           <ul className="gami-history-list">
             {xpHistory.map((item) => (
@@ -186,7 +213,7 @@ function GamificationPanel() {
               <tr>
                 <th>Rank</th>
                 <th>Name</th>
-                <th>Title</th>
+                <th>Level</th>
                 <th>XP</th>
                 <th>Streak</th>
               </tr>
@@ -196,7 +223,7 @@ function GamificationPanel() {
                 <tr key={entry.user_id} className={entry.is_current_user ? "gami-leaderboard-you" : ""}>
                   <td>{entry.rank}</td>
                   <td>{entry.name}</td>
-                  <td>{entry.rank_title}</td>
+                  <td>{entry.rank_title || `Level ${entry.level || 1}`}</td>
                   <td>{entry.xp}</td>
                   <td>{entry.current_streak}</td>
                 </tr>
