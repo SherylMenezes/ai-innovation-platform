@@ -55,7 +55,7 @@ router = APIRouter(prefix="/api/ai", tags=["AI"])
 
 @router.post("/problem-refine", response_model=ProblemRefineResponse)
 async def refine_problem(payload: ProblemRefineRequest):
-    return await refine_problem_statement(payload.problem_statement)
+    return await refine_problem_statement(payload.problem_statement, payload.existing_whys)
 
 @router.post("/hmw-generate", response_model=HMWGenerateResponse)
 async def generate_hmw(payload: HMWGenerateRequest):

@@ -286,7 +286,16 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
     setIsAiRootCauseLoading(true);
     setAiRootCauseError("");
     try {
-      const result = await refineProblem(problem);
+      // Only the contiguous run of filled-in Whys, starting from Why 1 —
+      // a gap after a blank one doesn't represent a continuable chain.
+      // Empty (nothing typed yet) means the backend generates all 5 from
+      // scratch, exactly as before this change.
+      const answeredWhys = [];
+      for (const why of whys) {
+        if (!why.trim()) break;
+        answeredWhys.push(why.trim());
+      }
+      const result = await refineProblem(problem, answeredWhys);
       setAiRootCause(result);
     } catch (err) {
       setAiRootCauseError(err.message);
@@ -476,7 +485,11 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
               onClick={handleGetAiRootCause}
               disabled={!problem.trim() || isAiRootCauseLoading}
             >
-              {isAiRootCauseLoading ? "Asking AI..." : "✦ Get AI Root Cause Suggestions"}
+              {isAiRootCauseLoading
+                ? "Asking AI..."
+                : whys.some((why) => why.trim())
+                  ? "✦ Continue My Whys with AI"
+                  : "✦ Get AI Root Cause Suggestions"}
             </button>
 
             {aiRootCauseError && <p className="error-message">{aiRootCauseError}</p>}
@@ -487,6 +500,18 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
                 {aiRootCause.five_whys?.length > 0 && (
                   <ul>{aiRootCause.five_whys.map((why, i) => <li key={i}>{why}</li>)}</ul>
                 )}
+                <button
+                  type="button"
+                  className="use-ai-suggestion-button"
+                  onClick={() => {
+                    const filled = [...aiRootCause.five_whys, "", "", "", "", ""].slice(0, 5);
+                    setWhys(filled);
+                    setWhysScore(scoreWhyAnswers(filled));
+                    setError("");
+                  }}
+                >
+                  Fill in my Whys with this
+                </button>
                 <button
                   type="button"
                   className="use-ai-suggestion-button"

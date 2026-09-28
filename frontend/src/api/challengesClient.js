@@ -1,22 +1,31 @@
 // Thin client for backend/app/routers/challenges.py.
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+import { authenticatedRequest } from "./apiClient";
 
 async function request(path, { method = "GET", token, body } = {}) {
   let response;
+
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
+        ...(body !== undefined
+          ? { "Content-Type": "application/json" }
+          : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new Error("Could not reach the backend — is the server running?");
+    throw new Error(
+      "Could not reach the backend — is the server running?"
+    );
   }
 
   let data = null;
+
   try {
     data = await response.json();
   } catch {
@@ -25,22 +34,38 @@ async function request(path, { method = "GET", token, body } = {}) {
 
   if (!response.ok) {
     const detail = data?.detail;
-    const message = Array.isArray(detail) ? detail.map((d) => d.msg).join("; ") : detail;
-    throw new Error(message || `Request failed (${response.status}).`);
+
+    const message = Array.isArray(detail)
+      ? detail.map((d) => d.msg).join("; ")
+      : detail;
+
+    throw new Error(
+      message || `Request failed (${response.status}).`
+    );
   }
 
   return data;
 }
 
 // GET /api/challenges?domain=&difficulty=&tier=&search=
-export function listChallenges({ domain, difficulty, tier, search } = {}) {
+export function listChallenges({
+  domain,
+  difficulty,
+  tier,
+  search,
+} = {}) {
   const params = new URLSearchParams();
+
   if (domain) params.set("domain", domain);
   if (difficulty) params.set("difficulty", difficulty);
   if (tier) params.set("tier", tier);
   if (search) params.set("search", search);
+
   const qs = params.toString();
-  return request(`/api/challenges${qs ? `?${qs}` : ""}`);
+
+  return request(
+    `/api/challenges${qs ? `?${qs}` : ""}`
+  );
 }
 
 // GET /api/challenges/{id}
@@ -48,96 +73,138 @@ export function getChallenge(id) {
   return request(`/api/challenges/${id}`);
 }
 
+// POST /api/challenges
+// Creates a new challenge.
+// Requires authentication.
+export function createChallenge(token, payload) {
+  return authenticatedRequest("/api/challenges", {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
 // POST /api/challenges/{id}/enroll
 export function enrollInChallenge(token, id) {
-  return request(`/api/challenges/${id}/enroll`, { method: "POST", token });
+  return authenticatedRequest(
+    `/api/challenges/${id}/enroll`,
+    {
+      method: "POST",
+      token,
+    }
+  );
 }
 
 // GET /api/challenges/enrolled
 export function getEnrolledChallenges(token) {
-  return request("/api/challenges/enrolled", { token });
+  return authenticatedRequest(
+    "/api/challenges/enrolled",
+    {
+      token,
+    }
+  );
 }
 
-// The Level bar and the page under it both load the workspace on mount —
-// concurrent identical calls share one in-flight request instead of
-// hitting the backend twice.
+// The Level bar and the page under it both load the workspace
+// on mount — concurrent identical calls share one in-flight
+// request instead of hitting the backend twice.
 const inflightWorkspaceRequests = new Map();
 
 // GET /api/challenges/{id}/workspace
 export function getWorkspace(token, challengeId) {
   const key = `${token}:${challengeId}`;
+
   if (!inflightWorkspaceRequests.has(key)) {
-    const pending = request(`/api/challenges/${challengeId}/workspace`, { token }).finally(() =>
-      inflightWorkspaceRequests.delete(key)
-    );
+    const pending = authenticatedRequest(
+      `/api/challenges/${challengeId}/workspace`,
+      {
+        token,
+      }
+    ).finally(() => {
+      inflightWorkspaceRequests.delete(key);
+    });
+
     inflightWorkspaceRequests.set(key, pending);
   }
+
   return inflightWorkspaceRequests.get(key);
 }
 
 // PATCH /api/challenges/{id}/workspace/canvas
-export function saveCanvasState(token, challengeId, canvasState, markStepComplete) {
-  return request(`/api/challenges/${challengeId}/workspace/canvas`, {
-    method: "PATCH",
-    token,
-    body: { canvas_state: canvasState, mark_step_complete: markStepComplete || null },
-  });
+export function saveCanvasState(
+  token,
+  challengeId,
+  canvasState,
+  markStepComplete
+) {
+  return authenticatedRequest(
+    `/api/challenges/${challengeId}/workspace/canvas`,
+    {
+      method: "PATCH",
+      token,
+      body: {
+        canvas_state: canvasState,
+        mark_step_complete: markStepComplete || null,
+      },
+    }
+  );
 }
 
 // PATCH /api/challenges/{id}/workspace/evaluation
-export function saveEvaluationState(token, challengeId, evaluationState, markStepComplete) {
-  return request(`/api/challenges/${challengeId}/workspace/evaluation`, {
-    method: "PATCH",
-    token,
-    body: { evaluation_state: evaluationState, mark_step_complete: markStepComplete || null },
-  });
+export function saveEvaluationState(
+  token,
+  challengeId,
+  evaluationState,
+  markStepComplete
+) {
+  return authenticatedRequest(
+    `/api/challenges/${challengeId}/workspace/evaluation`,
+    {
+      method: "PATCH",
+      token,
+      body: {
+        evaluation_state: evaluationState,
+        mark_step_complete: markStepComplete || null,
+      },
+    }
+  );
 }
 
 // POST /api/challenges/{id}/workspace/advance-stage
-// `stage` is the Level the calling page is finishing — if the student is
-// already past it, the backend treats the call as a no-op.
-export function advanceStage(token, challengeId, stage) {
-  return request(`/api/challenges/${challengeId}/workspace/advance-stage`, {
-    method: "POST",
-    token,
-    body: { stage: stage || null },
-  });
+// `stage` is the Level the calling page is finishing.
+// If the student is already past it, the backend treats
+// the call as a no-op.
+export function advanceStage(
+  token,
+  challengeId,
+  stage
+) {
+  return authenticatedRequest(
+    `/api/challenges/${challengeId}/workspace/advance-stage`,
+    {
+      method: "POST",
+      token,
+      body: {
+        stage: stage || null,
+      },
+    }
+  );
 }
 
 // POST /api/challenges/{id}/workspace/complete-step
-export function completeWorkspaceStep(token, challengeId, stepKey) {
-  return request(`/api/challenges/${challengeId}/workspace/complete-step`, {
-    method: "POST",
-    token,
-    body: { step_key: stepKey },
-  });
-}
-
-export async function createChallenge(accessToken, challengeData) {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/challenges`, {
+export function completeWorkspaceStep(
+  token,
+  challengeId,
+  stepKey
+) {
+  return authenticatedRequest(
+    `/api/challenges/${challengeId}/workspace/complete-step`,
+    {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      token,
+      body: {
+        step_key: stepKey,
       },
-      body: JSON.stringify(challengeData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const message =
-        typeof errorData.detail === "string"
-          ? errorData.detail
-          : Array.isArray(errorData.detail)
-          ? errorData.detail.map((d) => d.msg).join(", ")
-          : `Server returned status ${response.status}`;
-      throw new Error(message);
     }
-
-    return await response.json();
-  } catch (err) {
-    // Surface the actual error (e.g., CORS, Failed to fetch, 404)
-    throw new Error(err.message || "Failed to create challenge.");
-  }
+  );
 }
