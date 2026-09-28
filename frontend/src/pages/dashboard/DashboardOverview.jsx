@@ -3,8 +3,14 @@ import "./DashboardOverview.css";
 import { getDashboardOverview } from "../../api/dashboardClient";
 import { getEnrolledChallenges } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
-import { BADGES, badgeIcon } from "../../utils/progression";
 import { readCache, writeCache } from "../../utils/cache";
+
+const PHASE_NAMES = [
+  "Problem Canvas",
+  "Ideate",
+  "Idea Evaluation",
+  "Submit Project"
+];
 
 function DashboardOverview({ onOpenChallenge }) {
   const { accessToken, user } = useAuth();
@@ -13,43 +19,7 @@ function DashboardOverview({ onOpenChallenge }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(() => !readCache(cacheKey)?.overview);
   const [projects, setProjects] = useState(() => readCache(cacheKey)?.projects || []);
-
-  const rawBadges = overview?.badges || [];
-
-  const defaultBadgeDefs = [
-    {
-      slug: "challenge-completer",
-      name: "Challenge Completer",
-      description: "Submitted and completed a full project challenge.",
-      icon: "🎯",
-    },
-    {
-      slug: "high-achiever",
-      name: "High Achiever",
-      description: "Scored 16/20 or higher on an AI-evaluated submission.",
-      icon: "⚡",
-    },
-    {
-      slug: "perfectionist",
-      name: "Perfectionist",
-      description: "Scored 19/20 or higher on an AI-evaluated submission.",
-      icon: "💎",
-    },
-  ];
-
-  const userBadges = defaultBadgeDefs.map((def) => {
-    const matchingBadge = rawBadges.find((b) => (b.slug || b) === def.slug);
-    const unlocked = Boolean(
-      matchingBadge &&
-      (typeof matchingBadge === "object" ? matchingBadge.unlocked : true)
-    );
-
-    return {
-      ...def,
-      icon: badgeIcon ? badgeIcon(def.slug) : def.icon,
-      unlocked,
-    };
-  });
+  const [projectFilter, setProjectFilter] = useState("all");
 
   useEffect(() => {
     if (!accessToken) return;
@@ -67,9 +37,7 @@ function DashboardOverview({ onOpenChallenge }) {
         setProjects(data.items || []);
         writeCache(cacheKey, { ...readCache(cacheKey), projects: data.items || [] });
       })
-      .catch(() => {
-        // Non-fatal
-      });
+      .catch(() => {});
   }, [accessToken, cacheKey]);
 
   if (isLoading) {
@@ -100,104 +68,123 @@ function DashboardOverview({ onOpenChallenge }) {
   const progressPercent = levelData.progress_percent ?? 0;
   const totalXp = levelData.total_xp ?? overview?.xp ?? 0;
 
+  const activeProjectsCount = overview?.active_projects ?? 0;
+  const completedProjectsCount = overview?.completed_projects ?? 0;
+  const totalEnrolled = projects?.length ?? (activeProjectsCount + completedProjectsCount);
+
+  const filteredProjects = projects.filter((item) => {
+    if (projectFilter === "active") return item.status !== "completed";
+    if (projectFilter === "completed") return item.status === "completed";
+    return true;
+  });
+
   return (
     <div className="dash-panel">
+      {/* 3 Metric Stat Cards - Dynamic State Classes */}
       <div className="dash-stat-row">
-        {/* Cell 1: Level */}
-        <div className="dash-stat-card">
-          <span style={{ fontSize: "24px", marginBottom: "4px" }}>🎖️</span>
+        <div className={`dash-stat-card card-level level-${(currentLevelNum % 5) || 1}`}>
+          <span className="dash-stat-icon">🎖️</span>
           <span className="dash-stat-value">Level {currentLevelNum}</span>
           <span className="dash-stat-label">{currentLevelTitle}</span>
         </div>
 
-        {/* Cell 2: Active Projects */}
-        <div className="dash-stat-card">
-          <span style={{ fontSize: "24px", marginBottom: "4px" }}>🚀</span>
-          <span className="dash-stat-value">{overview?.active_projects ?? 0}</span>
-          <span className="dash-stat-label">Active Projects</span>
+        <div className={`dash-stat-card card-completed ${completedProjectsCount > 0 ? "has-completed" : "zero-count"}`}>
+          <span className="dash-stat-icon">🎉</span>
+          <div className="dash-stat-fraction">
+            <span className="fraction-current">{completedProjectsCount}</span>
+            <span className="fraction-divider">/</span>
+            <span className="fraction-total">{totalEnrolled}</span>
+          </div>
+          <span className="dash-stat-label">
+            Completed {completedProjectsCount === 1 ? "Project" : "Projects"}
+          </span>
         </div>
 
-        {/* Cell 3: Completed Projects */}
-        <div className="dash-stat-card">
-          <span style={{ fontSize: "24px", marginBottom: "4px" }}>🎉</span>
-          <span className="dash-stat-value">{overview?.completed_projects ?? 0}</span>
-          <span className="dash-stat-label">Completed Projects</span>
+        <div className={`dash-stat-card card-active ${activeProjectsCount > 0 ? "has-active" : "zero-count"}`}>
+          <span className="dash-stat-icon">🚀</span>
+          <div className="dash-stat-fraction">
+            <span className="fraction-current">{activeProjectsCount}</span>
+            <span className="fraction-divider">/</span>
+            <span className="fraction-total">{totalEnrolled}</span>
+          </div>
+          <span className="dash-stat-label">
+            Active {activeProjectsCount === 1 ? "Project" : "Projects"}
+          </span>
         </div>
       </div>
 
+      {/* Row 2: Level XP Banner With Restored Subrow Styles */}
       <div className="dash-xp-card">
-        <h4>
+        <h4 className="dash-xp-title">
           Level {currentLevelNum} · {currentLevelTitle}
           {overview?.unread_notifications > 0 && (
-            <span className="dash-notif-banner" style={{ marginLeft: 10 }}>
-              {overview.unread_notifications} new notification
-              {overview.unread_notifications === 1 ? "" : "s"}
+            <span className="dash-notif-banner">
+              {overview.unread_notifications} new notification{overview.unread_notifications === 1 ? "" : "s"}
             </span>
           )}
         </h4>
+
         <div className="dash-xp-header">
-          <span>Welcome back, {user?.name || "there"}</span>
-          <span>
-            {xpInto} / {xpForNext} XP to Level {currentLevelNum + 1}
-          </span>
+          <div className="dash-xp-sub">
+          <span>Welcome back, {user?.name || "there"}</span></div>
+          <div className="dash-xp-sub">
+          <span>{xpInto} / {xpForNext} XP to Level {currentLevelNum + 1}</span></div>
         </div>
+
         <div className="dash-xp-track">
           <div className="dash-xp-fill" style={{ width: `${progressPercent}%` }} />
         </div>
-        <p className="dash-xp-total">{totalXp} XP earned in total</p>
+
+        <p className="dash-xp-sub">{totalXp} XP earned in total</p>
       </div>
 
-      <div className="badges-card">
-        <div className="badges-header">
+      {/* Row 3: Expanded Projects Section */}
+      <div className="dash-projects-section">
+        <div className="dash-section-header">
           <div>
-            <h3 className="badges-title">Achievements & Badges</h3>
-            <p className="badges-subtitle">Unlock milestones by completing challenge phases and tasks</p>
+            <h3 className="dash-section-title">Your Projects</h3>
+            <p className="dash-section-subtitle">Track your progress and continue working through challenge phases</p>
           </div>
-          <span className="badges-count-chip">
-            {userBadges.filter((b) => b.unlocked).length} / {userBadges.length} Unlocked
-          </span>
+
+          <div className="dash-filter-chips">
+            <button
+              type="button"
+              className={`dash-filter-btn ${projectFilter === "all" ? "active" : ""}`}
+              onClick={() => setProjectFilter("all")}
+            >
+              All ({projects.length})
+            </button>
+            <button
+              type="button"
+              className={`dash-filter-btn ${projectFilter === "active" ? "active" : ""}`}
+              onClick={() => setProjectFilter("active")}
+            >
+              In Progress ({projects.filter((p) => p.status !== "completed").length})
+            </button>
+            <button
+              type="button"
+              className={`dash-filter-btn ${projectFilter === "completed" ? "active" : ""}`}
+              onClick={() => setProjectFilter("completed")}
+            >
+              Completed ({projects.filter((p) => p.status === "completed").length})
+            </button>
+          </div>
         </div>
 
-        <div className="badges-grid">
-          {userBadges.map((badge) => {
-            const isUnlocked = Boolean(badge.unlocked);
-            return (
-              <div
-                key={badge.slug || badge.name}
-                className={`badge-item-card ${isUnlocked ? "unlocked" : "locked"}`}
-              >
-                <div className="badge-icon-shield">
-                  <span className="badge-icon-symbol">
-                    {isUnlocked ? badge.icon || "🏅" : "🔒"}
-                  </span>
-                </div>
-
-                <div className="badge-info">
-                  <span className="badge-name">{badge.name}</span>
-                  <span className="badge-description">
-                    {badge.description || "Complete phases to unlock"}
-                  </span>
-                </div>
-
-                <div className="badge-status-tag">
-                  {isUnlocked ? "Unlocked" : "Locked"}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="dash-quick-links">
-        <h4>Your Projects</h4>
-        {projects.length === 0 ? (
-          <p className="dash-empty">
-            Browse the Challenges tab to start your first project.
-          </p>
+        {filteredProjects.length === 0 ? (
+          <div className="dash-empty-card">
+            <span style={{ fontSize: "36px" }}>💡</span>
+            <h4>No projects in this view</h4>
+            <p>Visit the Challenges catalog to start solving new problems.</p>
+          </div>
         ) : (
-          <div className="dash-project-list">
-            {projects.map((item) => (
-              <ProjectCard key={item.challenge.id} item={item} onOpenChallenge={onOpenChallenge} />
+          <div className="dash-project-grid">
+            {filteredProjects.map((item) => (
+              <DetailedProjectCard
+                key={item.challenge.id}
+                item={item}
+                onOpenChallenge={onOpenChallenge}
+              />
             ))}
           </div>
         )}
@@ -208,49 +195,70 @@ function DashboardOverview({ onOpenChallenge }) {
   );
 }
 
-function ProjectCard({ item, onOpenChallenge }) {
-  const { progress } = item;
+function DetailedProjectCard({ item, onOpenChallenge }) {
+  const { challenge, progress, status, current_stage } = item;
+  const isCompleted = status === "completed";
+  const currentPhaseNum = progress.current_level || 1;
+  const totalPhases = progress.total_levels || 4;
+  const xpPercent = Math.min(100, Math.round((progress.xp_earned / (progress.xp_available || 1)) * 100));
 
   return (
-    <button
-      type="button"
-      className="dash-project-card"
-      onClick={() =>
-        onOpenChallenge?.(item.challenge.id, {
-          status: item.status,
-          currentStage: item.current_stage,
-        })
-      }
-    >
-      <span className="dash-project-main">
-        <span className="dash-project-title">{item.challenge.title}</span>
-        <span className="dash-project-level">
-          {progress.is_completed
-            ? `All ${progress.total_levels} phases cleared`
-            : `Phase ${progress.current_level} of ${progress.total_levels} · ${progress.current_level_name}`}
-        </span>
-      </span>
+    <div className={`detailed-project-card ${isCompleted ? "completed" : ""}`}>
+      <div className="project-card-top">
+        <div className="project-tag-row">
+          <span className="project-category-badge">{challenge.category || "Challenge"}</span>
+          <span className={`project-status-badge ${status}`}>
+            {isCompleted ? "✓ Completed" : `Phase ${currentPhaseNum} of ${totalPhases}`}
+          </span>
+        </div>
+        <h4 className="project-card-title">{challenge.title}</h4>
+        {challenge.summary && <p className="project-card-summary">{challenge.summary}</p>}
+      </div>
 
-      <span className="dash-project-side">
-        <span
-          className="dash-level-segments"
-          aria-label={`${progress.levels_completed} of ${progress.total_levels} phases cleared`}
-        >
+      <div className="project-stepper">
+        <div className="stepper-label-row">
+          <span className="stepper-title">Progression</span>
+          <span className="stepper-current-phase">
+            {isCompleted ? "All Phases Completed" : `Current: Phase ${currentPhaseNum} · ${progress.current_level_name || PHASE_NAMES[currentPhaseNum - 1]}`}
+          </span>
+        </div>
+
+        <div className="stepper-track">
           {progress.levels.map((phase) => (
-            <span
+            <div
               key={phase.number}
-              className={`dash-level-segment dash-level-segment-${phase.status}`}
-              title={`Phase ${phase.number} · ${phase.name} (${phase.status})`}
-            />
+              className={`stepper-node stepper-node-${phase.status}`}
+              title={`Phase ${phase.number}: ${phase.name} (${phase.status})`}
+            >
+              <div className="stepper-node-circle">
+                {phase.status === "completed" ? "✓" : phase.status === "locked" ? "🔒" : phase.number}
+              </div>
+              <span className="stepper-node-text">{phase.name}</span>
+            </div>
           ))}
-        </span>
-        <span className={`dash-project-status dash-project-status-${item.status}`}>
-          {progress.is_completed
-            ? "Completed"
-            : `${progress.xp_earned} / ${progress.xp_available} XP`}
-        </span>
-      </span>
-    </button>
+        </div>
+      </div>
+
+      <div className="project-card-bottom">
+        <div className="project-xp-info">
+          <div className="project-xp-header">
+            <span>Earned XP</span>
+            <span className="project-xp-count">{progress.xp_earned} / {progress.xp_available} XP</span>
+          </div>
+          <div className="project-xp-track">
+            <div className="project-xp-fill" style={{ width: `${xpPercent}%` }} />
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="btn-continue-project"
+          onClick={() => onOpenChallenge?.(challenge.id, { status, currentStage: current_stage })}
+        >
+          {isCompleted ? "View Summary" : `Continue Phase ${currentPhaseNum} →`}
+        </button>
+      </div>
+    </div>
   );
 }
 
