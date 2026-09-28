@@ -18,6 +18,7 @@ import { CHALLENGE_PHASES, badgeIcon, pageForStage, unlockedLevelForStage } from
 import LandingPage from "./pages/landing/LandingPage";
 // [AI MENTOR] mounted once below so it's available on every page
 import AiMentorDrawer from "./pages/ideation/AiMentorDrawer";
+import { getLevelTitle } from "./utils/levelTitles";
 
 const WORKFLOW_TABS = new Set(["canvas", "ideation", "evaluation", "submission"]);
 const TOAST_DURATION_MS = 4000;
@@ -63,11 +64,11 @@ function AppShell() {
     try {
       const stats = await getUserStats(accessToken);
       const userLevelData = stats.level || stats.rank;
-      const currentLevelNum = userLevelData?.level || userLevelData?.rank || 1;
-      const currentLevelTitle = userLevelData?.title || "Explorer";
+      const currentLevelNum = Number(userLevelData?.level || userLevelData?.rank || 1);
+      const currentLevelTitle = userLevelData?.title || getLevelTitle(currentLevelNum);
 
       const previous = levelRef.current;
-      const prevLevelNum = previous?.level || previous?.rank;
+      const prevLevelNum = Number(previous?.level || previous?.rank || 1);
       if (previous && currentLevelNum > prevLevelNum) {
         pushToast({
           tone: "level",
@@ -161,14 +162,11 @@ function AppShell() {
   const unlockedPhase = challengeStage ? unlockedLevelForStage(challengeStage) : totalPhases;
   const showPhaseBar = challengeId && (WORKFLOW_TABS.has(page) || page === "summary");
 
-  // [AI MENTOR] Inside a challenge's Phases the mentor uses that challenge's
-  // thread (one conversation carried across Phases, with the backend loading
-  // the real saved workspace as context). On Dashboard / Challenges /
-  // My Progress it's a general mentor on the shared "default" thread.
   const mentorWorkspaceId = showPhaseBar ? String(challengeId) : "default";
 
-  const userLevelNum = level?.level || level?.rank || 1;
-  const userLevelTitle = level?.title || "Explorer";
+  const userLevelNum = Number(level?.level || level?.rank || user?.level || user?.rank || 1);
+  // Call getLevelTitle directly so your map always controls the title:
+  const userLevelTitle = getLevelTitle(userLevelNum);
   const xpIntoLevel = level?.xp_into_level ?? level?.xp_into_rank ?? 0;
   const xpForNextLevel = level?.xp_for_next_level ?? level?.xp_for_next_rank ?? 100;
 
@@ -302,7 +300,6 @@ function AppShell() {
         </ErrorBoundary>
       </main>
 
-      {/* [AI MENTOR] available on every page */}
       <AiMentorDrawer
         currentStage={MENTOR_STAGE_LABELS[page] || "Exploring the platform"}
         workspaceContext={{ page }}

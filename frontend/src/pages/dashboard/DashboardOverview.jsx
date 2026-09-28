@@ -4,6 +4,7 @@ import { getDashboardOverview } from "../../api/dashboardClient";
 import { getEnrolledChallenges } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
 import { readCache, writeCache } from "../../utils/cache";
+import { getLevelTitle } from "../../utils/levelTitles";
 
 const PHASE_NAMES = [
   "Problem Canvas",
@@ -11,6 +12,21 @@ const PHASE_NAMES = [
   "Idea Evaluation",
   "Submit Project"
 ];
+
+/* 1. Map of level numbers to titles
+const LEVEL_TITLES = {
+  1: "Explorer",
+  2: "Problem Solver",
+  3: "Ideation Specialist",
+  4: "Product Architect",
+  5: "Innovation Lead",
+  6: "Master Strategist"
+};
+
+// Helper function to resolve title dynamically
+function getLevelTitle(levelNum) {
+  return LEVEL_TITLES[levelNum] || `Level ${levelNum} Innovator`;
+}*/
 
 function DashboardOverview({ onOpenChallenge }) {
   const { accessToken, user } = useAuth();
@@ -54,15 +70,16 @@ function DashboardOverview({ onOpenChallenge }) {
 
   const levelData = overview?.level || overview?.rank || {
     level: 1,
-    title: "Explorer",
+    title: "",
     xp_into_level: 0,
     xp_for_next_level: 100,
     progress_percent: 0,
     total_xp: 0,
   };
 
-  const currentLevelNum = levelData.level || levelData.rank || 1;
-  const currentLevelTitle = levelData.title || "Explorer";
+  const currentLevelNum = Number(levelData.level || levelData.rank || 1);
+  const currentLevelTitle = getLevelTitle(currentLevelNum);
+
   const xpInto = levelData.xp_into_level ?? levelData.xp_into_rank ?? 0;
   const xpForNext = levelData.xp_for_next_level ?? levelData.xp_for_next_rank ?? 100;
   const progressPercent = levelData.progress_percent ?? 0;
@@ -198,7 +215,6 @@ function DetailedProjectCard({ item, onOpenChallenge }) {
   const currentPhaseNum = progress.current_level || 1;
   const totalPhases = progress.total_levels || 4;
 
-  // Resolve total challenge XP safely (checking challenge fields first, then progress fallbacks)
   const xpEarned = progress.xp_earned ?? 0;
   const xpAvailable =
     challenge.total_xp ??
