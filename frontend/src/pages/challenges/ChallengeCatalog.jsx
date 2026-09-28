@@ -581,7 +581,7 @@ function ChallengeCatalog({ onOpenChallenge }) {
             <div className="detail-section">
 
               <h4>
-                📋 ABOUT THE CHALLENGE
+                📝 DESCRIPTION
               </h4>
 
               <p>
