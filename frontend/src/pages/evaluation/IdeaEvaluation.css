@@ -259,6 +259,11 @@
   background: #1d4ed8;
 }
 
+.evaluation-actions-right {
+  display: flex;
+  gap: 10px;
+}
+
 
 /* RESPONSIVE */
 
@@ -286,7 +291,8 @@
     grid-template-columns: 1fr;
   }
 
-  .evaluation-actions {
+  .evaluation-actions,
+  .evaluation-actions-right {
     flex-direction: column;
     gap: 10px;
   }
@@ -734,6 +740,37 @@
   background: #2563eb;
   border-color: #2563eb;
   color: #ffffff;
+}
+
+/* AI-assigned scores: shown as pills but not clickable. */
+.score-options.read-only .score-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: default;
+}
+
+.score-options.read-only .score-option:hover {
+  border-color: #cbd5e1;
+}
+
+.score-options.read-only .score-option.selected {
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.ai-score-reason {
+  margin: 12px 0 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.continue-evaluation-button:disabled {
+  background: #94a3b8;
+  border-color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .overall-score {

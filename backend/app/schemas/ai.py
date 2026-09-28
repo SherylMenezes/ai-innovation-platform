@@ -75,6 +75,15 @@ class SWOTAnalysisRequest(BaseModel):
     description: str = ""
 
 
+class SwotScoreRequest(BaseModel):
+    title: str
+    description: str = ""
+    strengths: str = ""
+    weaknesses: str = ""
+    opportunities: str = ""
+    threats: str = ""
+
+
 class MentorCoachRequest(BaseModel):
     workspace_context: str
     user_query: str
@@ -178,6 +187,21 @@ class IdeaScoreResponse(BaseModel):
     feasibility_score: int = Field(..., ge=0, le=100)
     impact_score: int = Field(..., ge=0, le=100)
     complexity_score: int = Field(..., ge=0, le=100)
+    summary: str
+
+
+class CriterionScore(BaseModel):
+    # Same 1-5 scale the evaluation page displays, so the frontend can use
+    # it as-is instead of normalizing from 0-100.
+    score: int = Field(..., ge=1, le=5)
+    reason: str
+
+
+class SwotScoreResponse(BaseModel):
+    feasibility: CriterionScore
+    impact: CriterionScore
+    innovation: CriterionScore
+    scalability: CriterionScore
     summary: str
 
 

@@ -10,7 +10,6 @@ from app.main import app
 from app.models.challenge import Challenge, Enrollment
 from app.models.evaluation import EvaluationJob
 from app.models.gamification import Badge, UserBadge, UserGamificationProfile
-from app.models.ideation import IdeationNote
 from app.models.notification import Notification
 from app.models.submission import Submission
 from app.models.user import User
@@ -22,7 +21,7 @@ from app.services.player_rank import rank_for_xp
 
 client = TestClient(app)
 
-CANVAS_STEPS = ["canvas_step_1", "canvas_step_2", "canvas_step_3", "canvas_step_4"]
+CANVAS_STEPS = ["canvas_step_1", "canvas_step_2", "canvas_step_3"]
 
 
 @pytest.fixture(autouse=True)
@@ -114,17 +113,24 @@ def test_difficulty_scales_step_xp():
     assert resp.json()["xp_awarded"] == 22  # round(15 * 1.5)
 
 
-def test_ideation_complete_requires_a_note():
+def _save_canvas(challenge_id, headers, canvas_state, step_key=None):
+    return _request(
+        "patch",
+        f"/api/challenges/{challenge_id}/workspace/canvas",
+        json={"canvas_state": canvas_state, "mark_step_complete": step_key},
+        headers=headers,
+    )
+
+
+def test_ideation_complete_requires_a_selected_idea():
     user_id, challenge_id, headers = _setup(stage="ideation")
     assert _complete_step(challenge_id, headers, "ideation_complete").status_code == 409
+    assert _save_canvas(challenge_id, headers, {"hmw": "HMW cut waste?"}, "ideation_complete").status_code == 409
+    assert _total_xp(user_id) == 0
 
-    db = SessionLocal()
-    db.add(IdeationNote(user_id=user_id, challenge_id=challenge_id, text="Pre-orders"))
-    db.commit()
-    db.close()
-
-    resp = _complete_step(challenge_id, headers, "ideation_complete")
-    assert resp.status_code == 200
+    idea = {"title": "Pre-orders", "description": "Order ahead so kitchens cook less."}
+    resp = _save_canvas(challenge_id, headers, {"hmw": "HMW cut waste?", "selected_idea": idea}, "ideation_complete")
+    assert resp.status_code == 200, resp.text
     assert resp.json()["xp_awarded"] == 20
 
 
@@ -150,7 +156,7 @@ def test_clearing_a_level_pays_bonus_and_unlocks_next():
     assert body["current_stage"] == "ideation"
     assert body["xp_awarded"] == xp_rules.LEVEL_CLEAR_XP
     assert body["cleared_level"] == {"number": 1, "name": "Problem Canvas"}
-    assert _total_xp(user_id) == 5 + 15 + 15 + 10 + 20
+    assert _total_xp(user_id) == 5 + 15 + 15 + 20
 
 
 def test_advancing_from_an_earlier_level_is_a_noop():
@@ -169,10 +175,10 @@ def test_workspace_reports_level_progress():
 
     progress = _request("get", f"/api/challenges/{challenge_id}/workspace", headers=headers).json()["progress"]
     assert progress["current_level"] == 2
-    assert progress["current_level_name"] == "Ideation Board"
+    assert progress["current_level_name"] == "Ideate"
     assert progress["levels_completed"] == 1
     assert [level["status"] for level in progress["levels"]] == ["completed", "current", "locked", "locked"]
-    assert progress["levels"][0]["xp_earned"] == progress["levels"][0]["xp_available"] == 65
+    assert progress["levels"][0]["xp_earned"] == progress["levels"][0]["xp_available"] == 55
 
     enrolled = _request("get", "/api/challenges/enrolled", headers=headers).json()["items"]
     assert enrolled[0]["progress"]["current_level"] == 2

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./IdeaEvaluation.css";
-import { getSwotAnalysis, scoreIdea, getRiskAnalysis, mentorCoach } from "../../api/aiClient";
+import { getSwotAnalysis, scoreIdeaFromSwot, getRiskAnalysis, mentorCoach } from "../../api/aiClient";
 import { getWorkspace, saveEvaluationState, advanceStage } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
 import { stepLabel } from "../../utils/progression";
@@ -42,13 +42,19 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
   const [isScoreAiLoading, setIsScoreAiLoading] = useState(false);
   const [scoreAiError, setScoreAiError] = useState("");
   const [scoreAiSummary, setScoreAiSummary] = useState("");
+  const [scoreReasons, setScoreReasons] = useState({});
+  // Snapshot of the idea + SWOT the current scores were produced from, so
+  // continuing to Scoring only re-runs the AI when that input has changed.
+  const [lastScoredInput, setLastScoredInput] = useState("");
 
   const [riskAnalysis, setRiskAnalysis] = useState(null);
   const [isRiskLoading, setIsRiskLoading] = useState(false);
   const [riskError, setRiskError] = useState("");
 
-  // AI scores land on a 0-100 scale; the scoring UI here uses 1-5.
-  const normalizeToFive = (value) => Math.max(1, Math.min(5, Math.round(value / 20)));
+  const scoringInputKey = (ideaValue, swotValue) => JSON.stringify({ idea: ideaValue, swot: swotValue });
+
+  const isSwotComplete = Object.values(swot).every((value) => value.trim());
+  const hasScores = Object.values(scores).every((value) => value > 0);
 
   // Load (or resume) this challenge's saved evaluation progress. Prefills
   // the idea title/description from the challenge itself the first time,
@@ -61,14 +67,21 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
       .then((data) => {
         setIsLocked(data.status === "completed");
         const saved = data.evaluation_state || {};
-        setIdea({
+        const loadedIdea = {
           title: saved.idea_title || data.canvas_state?.selected_idea?.title || data.challenge.title,
           description: saved.idea_description || data.canvas_state?.selected_idea?.description || "",
-        });
+        };
+        setIdea(loadedIdea);
         if (saved.swot) setSwot(saved.swot);
-        if (saved.scores) setScores(saved.scores);
         if (saved.swot_recommendation) setSwotAiRecommendation(saved.swot_recommendation);
-        if (saved.score_summary) setScoreAiSummary(saved.score_summary);
+        // Only trust saved scores that came from the SWOT-based AI scorer
+        // (those carry score_reasons); older hand-picked scores get re-scored.
+        if (saved.scores && saved.score_reasons) {
+          setScores(saved.scores);
+          setScoreReasons(saved.score_reasons);
+          if (saved.score_summary) setScoreAiSummary(saved.score_summary);
+          if (saved.swot) setLastScoredInput(scoringInputKey(loadedIdea, saved.swot));
+        }
         if (saved.risk_analysis) setRiskAnalysis(saved.risk_analysis);
       })
       .catch((err) => setWorkspaceError(err.message))
@@ -82,6 +95,7 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
     scores,
     swot_recommendation: swotAiRecommendation,
     score_summary: scoreAiSummary,
+    score_reasons: scoreReasons,
     risk_analysis: riskAnalysis,
     ...overrides,
   });
@@ -138,20 +152,25 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
     }
   };
 
+  // Scores come only from the AI, based on the idea and the student's SWOT.
   const handleScoreWithAi = async () => {
     if (!idea.title.trim() || isScoreAiLoading) return;
     setIsScoreAiLoading(true);
     setScoreAiError("");
     try {
-      const result = await scoreIdea(idea.title, idea.description);
-      const nextScores = {
-        ...scores,
-        feasibility: normalizeToFive(result.feasibility_score),
-        impact: normalizeToFive(result.impact_score),
-      };
+      const result = await scoreIdeaFromSwot(idea.title, idea.description, swot);
+      const criteria = ["feasibility", "impact", "innovation", "scalability"];
+      const nextScores = Object.fromEntries(criteria.map((key) => [key, result[key].score]));
+      const nextReasons = Object.fromEntries(criteria.map((key) => [key, result[key].reason]));
       setScores(nextScores);
+      setScoreReasons(nextReasons);
       setScoreAiSummary(result.summary);
-      await persistStep("eval_scoring", { scores: nextScores, score_summary: result.summary });
+      setLastScoredInput(scoringInputKey(idea, swot));
+      await persistStep("eval_scoring", {
+        scores: nextScores,
+        score_reasons: nextReasons,
+        score_summary: result.summary,
+      });
     } catch (err) {
       setScoreAiError(err.message);
     } finally {
@@ -180,11 +199,12 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
     }));
   };
 
-  const handleScoreChange = (field, value) => {
-    setScores((previous) => ({
-      ...previous,
-      [field]: value,
-    }));
+  const handleContinueToScoring = () => {
+    if (!isSwotComplete) return;
+    setStep(2);
+    if (!hasScores || scoringInputKey(idea, swot) !== lastScoredInput) {
+      handleScoreWithAi();
+    }
   };
 
   const overallScore =
@@ -384,11 +404,17 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
           </div>
 
           <div className="evaluation-actions">
+            {!isSwotComplete && (
+              <p className="score-description">
+                Fill in all four SWOT sections to get your AI score.
+              </p>
+            )}
             <button
               className="continue-evaluation-button"
-              onClick={() => setStep(2)}
+              onClick={handleContinueToScoring}
+              disabled={!isSwotComplete || !idea.title.trim()}
             >
-              Continue to Scoring →
+              Continue to AI Scoring →
             </button>
           </div>
         </>
@@ -403,11 +429,11 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
           <div className="evaluation-header">
             <p className="section-label">IDEA EVALUATION</p>
 
-            <h1>Score Your Idea</h1>
+            <h1>AI Idea Score</h1>
 
             <p>
-              Rate your idea from 1 to 5 across four evaluation
-              criteria.
+              Your idea is scored from 1 to 5 across four evaluation
+              criteria by AI, based on your SWOT analysis.
             </p>
           </div>
 
@@ -416,21 +442,33 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
             <h2>Evaluation Criteria</h2>
 
             <p className="score-description">
-              Select a score from 1 to 5 for each criterion, or let AI score
-              feasibility and impact from your idea description.
+              Scores are assigned automatically. To change them, go back and
+              improve your SWOT, then continue again to re-score.
             </p>
 
-            <button
-              type="button"
-              className="ai-autofill-button"
-              onClick={handleScoreWithAi}
-              disabled={!idea.title.trim() || isScoreAiLoading}
-            >
-              {isScoreAiLoading ? "Scoring with AI..." : "✦ Score Feasibility & Impact with AI"}
-            </button>
+            {isScoreAiLoading && (
+              <p className="ai-recommendation-text">✦ AI is scoring your idea from your SWOT...</p>
+            )}
 
-            {scoreAiError && <p className="ai-error-text">{scoreAiError}</p>}
-            {scoreAiSummary && <p className="ai-recommendation-text">{scoreAiSummary}</p>}
+            {scoreAiError && (
+              <>
+                <p className="ai-error-text">{scoreAiError}</p>
+                <button
+                  type="button"
+                  className="ai-autofill-button"
+                  onClick={handleScoreWithAi}
+                  disabled={isScoreAiLoading}
+                >
+                  ↻ Retry AI scoring
+                </button>
+              </>
+            )}
+
+            {scoreAiSummary && !isScoreAiLoading && (
+              <p className="ai-recommendation-text">
+                <strong>AI summary:</strong> {scoreAiSummary}
+              </p>
+            )}
 
             <button
               type="button"
@@ -456,124 +494,33 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
             )}
 
             <div className="score-grid">
+              {[
+                ["feasibility", "Feasibility", "How realistic and practical is the idea to implement?"],
+                ["impact", "Impact", "How much value or positive change could the idea create?"],
+                ["innovation", "Innovation", "How original or innovative is the proposed solution?"],
+                ["scalability", "Scalability", "How easily could the idea grow to support more users or use cases?"],
+              ].map(([key, label, question]) => (
+                <div className="score-card" key={key}>
+                  <h3>{label}</h3>
 
-              <div className="score-card">
-                <h3>Feasibility</h3>
+                  <p>{question}</p>
 
-                <p>
-                  How realistic and practical is the idea to implement?
-                </p>
+                  <div className="score-options read-only" aria-label={`${label} score: ${scores[key] || "not scored"} out of 5`}>
+                    {[1, 2, 3, 4, 5].map((number) => (
+                      <span
+                        key={number}
+                        className={`score-option ${scores[key] === number ? "selected" : ""}`}
+                      >
+                        {number}
+                      </span>
+                    ))}
+                  </div>
 
-                <div className="score-options">
-                  {[1, 2, 3, 4, 5].map((number) => (
-                    <button
-                      key={number}
-                      className={`score-option ${
-                        scores.feasibility === number
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleScoreChange(
-                          "feasibility",
-                          number
-                        )
-                      }
-                    >
-                      {number}
-                    </button>
-                  ))}
+                  {scoreReasons[key] && !isScoreAiLoading && (
+                    <p className="ai-score-reason">{scoreReasons[key]}</p>
+                  )}
                 </div>
-              </div>
-
-              <div className="score-card">
-                <h3>Impact</h3>
-
-                <p>
-                  How much value or positive change could the idea create?
-                </p>
-
-                <div className="score-options">
-                  {[1, 2, 3, 4, 5].map((number) => (
-                    <button
-                      key={number}
-                      className={`score-option ${
-                        scores.impact === number
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleScoreChange(
-                          "impact",
-                          number
-                        )
-                      }
-                    >
-                      {number}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="score-card">
-                <h3>Innovation</h3>
-
-                <p>
-                  How original or innovative is the proposed solution?
-                </p>
-
-                <div className="score-options">
-                  {[1, 2, 3, 4, 5].map((number) => (
-                    <button
-                      key={number}
-                      className={`score-option ${
-                        scores.innovation === number
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleScoreChange(
-                          "innovation",
-                          number
-                        )
-                      }
-                    >
-                      {number}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="score-card">
-                <h3>Scalability</h3>
-
-                <p>
-                  How easily could the idea grow to support more users
-                  or use cases?
-                </p>
-
-                <div className="score-options">
-                  {[1, 2, 3, 4, 5].map((number) => (
-                    <button
-                      key={number}
-                      className={`score-option ${
-                        scores.scalability === number
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleScoreChange(
-                          "scalability",
-                          number
-                        )
-                      }
-                    >
-                      {number}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
+              ))}
             </div>
 
             <div className="overall-score">
@@ -601,6 +548,7 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
             <button
               className="continue-evaluation-button"
               onClick={() => setStep(3)}
+              disabled={!hasScores || isScoreAiLoading}
             >
               Complete Evaluation →
             </button>
@@ -1025,12 +973,22 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
               ← Back to Chart
             </button>
 
-            <button
-              className="continue-evaluation-button"
-              onClick={() => setStep(6)}
-            >
-              Open AI Mentor →
-            </button>
+            <div className="evaluation-actions-right">
+              <button
+                className="back-evaluation-button"
+                onClick={() => setStep(6)}
+              >
+                Ask AI Mentor
+              </button>
+
+              <button
+                className="continue-evaluation-button"
+                onClick={handleFinishEvaluation}
+                disabled={savingStep === "eval_complete"}
+              >
+                {savingStep === "eval_complete" ? "Saving..." : "Continue to Submit Project →"}
+              </button>
+            </div>
 
           </div>
         </>
@@ -1239,7 +1197,7 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
               <p className="mentor-week3-note">
                 Prompt pills above call the real Socratic AI mentor. For
                 free-form questions with saved history, use the AI Mentor
-                drawer on the Ideation Board.
+                drawer in Level 2 (Ideate).
               </p>
 
             </div>

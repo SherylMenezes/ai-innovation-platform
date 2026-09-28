@@ -8,7 +8,7 @@ game is a one-file change."""
 # evaluated.
 CHALLENGE_LEVELS = [
     {"number": 1, "stage": "canvas", "name": "Problem Canvas"},
-    {"number": 2, "stage": "ideation", "name": "Ideation Board"},
+    {"number": 2, "stage": "ideation", "name": "Ideate"},
     {"number": 3, "stage": "evaluation", "name": "Idea Evaluation"},
     {"number": 4, "stage": "submission", "name": "Submit Project"},
 ]
@@ -22,8 +22,7 @@ STEP_XP: dict[str, tuple[str, int]] = {
     "canvas_step_1": ("canvas", 5),        # read the problem statement
     "canvas_step_2": ("canvas", 15),       # 5 Whys
     "canvas_step_3": ("canvas", 15),       # root cause + How Might We
-    "canvas_step_4": ("canvas", 10),       # pick an idea to carry forward
-    "ideation_complete": ("ideation", 20),
+    "ideation_complete": ("ideation", 20), # SCAMPER / Mind Map + pick an idea
     "eval_swot": ("evaluation", 15),       # AI SWOT — optional bonus task
     "eval_scoring": ("evaluation", 15),    # AI scoring — optional bonus task
     "eval_complete": ("evaluation", 10),
@@ -33,7 +32,7 @@ STEP_XP: dict[str, tuple[str, int]] = {
 # eval_scoring are only recorded when the student uses the AI helpers, so
 # they're bonus XP rather than a gate.
 LEVEL_REQUIRED_STEPS: dict[str, list[str]] = {
-    "canvas": ["canvas_step_1", "canvas_step_2", "canvas_step_3", "canvas_step_4"],
+    "canvas": ["canvas_step_1", "canvas_step_2", "canvas_step_3"],
     "ideation": ["ideation_complete"],
     "evaluation": ["eval_complete"],
 }

@@ -2,9 +2,9 @@
 // Levels of a challenge, and the App page each one lives on.
 export const CHALLENGE_LEVELS = [
   { number: 1, stage: "canvas", name: "Problem Canvas", page: "canvas" },
-  { number: 2, stage: "ideation", name: "Ideation Board", page: "ideation" },
+  { number: 2, stage: "ideation", name: "Ideate", page: "ideation" },
   { number: 3, stage: "evaluation", name: "Idea Evaluation", page: "evaluation" },
-  { number: 4, stage: "submission", name: "Submit Project", page: "submit" },
+  { number: 4, stage: "submission", name: "Submit Project", page: "submission" },
 ];
 
 // Enrollment.current_stage -> App page. "submission" and "completed"
@@ -36,7 +36,7 @@ const STEP_LABELS = {
   canvas_step_2: "5 Whys",
   canvas_step_3: "Root cause & How Might We",
   canvas_step_4: "Picked an idea",
-  ideation_complete: "Ideation complete",
+  ideation_complete: "Ideation complete — idea picked",
   eval_swot: "AI SWOT analysis",
   eval_scoring: "AI idea scoring",
   eval_complete: "Evaluation complete",

@@ -91,6 +91,11 @@ export function scoreIdea(title, description) {
   return postJson("/api/ai/score-idea", { title, description });
 }
 
+// POST /api/ai/score-swot — SwotScoreRequest -> SwotScoreResponse
+export function scoreIdeaFromSwot(title, description, swot) {
+  return postJson("/api/ai/score-swot", { title, description, ...swot });
+}
+
 // GET /api/ai/risk-analysis — query params -> RiskAnalysisResponse
 export function getRiskAnalysis(title, description) {
   const params = new URLSearchParams({ title, description: description || "" });
