@@ -1,0 +1,187 @@
+/* Root-cause chain + insight cards shown under "Continue My Whys with AI".
+   Separate file so ProblemCanvas.css (and any team edits to it) is untouched. */
+
+.refined-problem {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1e1b4b;
+}
+
+.refined-problem span {
+  display: block;
+  margin-bottom: 2px;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6d28d9;
+}
+
+/* Vertical causal chain: Problem -> Why 1..5 -> Root cause */
+.why-chain {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0 0 0 18px;
+
+  text-align: left;
+  border-left: 2px solid #bfdbfe;
+}
+
+.why-chain-node {
+  position: relative;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+
+  background: #ffffff;
+  border: 1px solid #e0eaff;
+  border-radius: 10px;
+
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0f172a;
+}
+
+.why-chain-node::before {
+  content: "";
+  position: absolute;
+  left: -27px;
+  top: 16px;
+
+  width: 12px;
+  height: 12px;
+
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+}
+
+.why-chain-node > span {
+  display: block;
+  margin-bottom: 2px;
+
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #2563eb;
+}
+
+.why-chain-start::before {
+  background: #94a3b8;
+}
+
+.why-chain-start > span {
+  color: #64748b;
+}
+
+.why-chain-root {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.why-chain-root::before {
+  background: #7c3aed;
+}
+
+.why-chain-root > span {
+  color: #6d28d9;
+}
+
+/* Hidden variables / stakeholders / market gaps / trends */
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+
+  margin: 14px 0;
+  text-align: left;
+}
+
+.insight-card {
+  padding: 12px 14px;
+
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.insight-card h5 {
+  margin: 0 0 6px;
+
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.insight-card ul {
+  margin: 0;
+  padding-left: 18px;
+
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.insight-card li + li {
+  margin-top: 4px;
+}
+
+/* Score of the refined problem statement ("✦ Score this problem") */
+.refined-score {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+
+  background: #ffffff;
+  border: 1px solid #e0eaff;
+  border-radius: 10px;
+
+  text-align: left;
+}
+
+.refined-score-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+
+  margin: 8px 0;
+}
+
+.refined-score-metric strong {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.refined-score-metric span {
+  display: block;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.refined-score ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+/* Side-by-side "Continue My Whys" / "Generate All 5 Whys" buttons */
+.ai-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

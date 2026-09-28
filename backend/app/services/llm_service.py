@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+import time
 from typing import AsyncGenerator
 from google import genai
 from google.genai import types
@@ -53,13 +54,29 @@ def _get_client() -> genai.Client:
     return genai.Client(api_key=api_key)
 
 
+# The 503 fallback below only triggers when a model *errors*. A model that
+# accepts the request and then never answers would hang the whole call (and
+# the UI's "Asking AI..." spinner) forever, so every attempt gets its own
+# cap, and the whole call gets a total budget so several slow models can't
+# add up to minutes. Raise these if healthy responses are being cut off.
+MODEL_TIMEOUT_SECONDS = 25
+TOTAL_TIMEOUT_SECONDS = 75
+
+
 async def _generate_with_fallback(prompt: str, response_schema=None, system_instruction: str = ""):
-    """Helper that retries across supported models if API deprecations or server errors occur."""
+    """Helper that retries across supported models if API deprecations, server errors, or timeouts occur."""
     client = _get_client()
     last_exception = None
+    deadline = time.monotonic() + TOTAL_TIMEOUT_SECONDS
 
     for model_name in MODEL_CANDIDATES:
+        time_left = deadline - time.monotonic()
+        if time_left <= 0:
+            logger.warning("Gemini time budget used up; giving up.")
+            break
+
         try:
+            logger.info(f"Trying model '{model_name}'...")
             config = types.GenerateContentConfig(
                 temperature=0.7,
                 response_mime_type="application/json" if response_schema else None,
@@ -67,12 +84,22 @@ async def _generate_with_fallback(prompt: str, response_schema=None, system_inst
                 system_instruction=system_instruction if system_instruction else None,
                 automatic_function_calling=_AFC_DISABLED,
             )
-            response = await client.aio.models.generate_content(
-                model=model_name,
-                contents=prompt,
-                config=config,
+            response = await asyncio.wait_for(
+                client.aio.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=config,
+                ),
+                timeout=min(MODEL_TIMEOUT_SECONDS, time_left),
             )
             return response
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"Model '{model_name}' did not respond in time. "
+                f"Attempting fallback to next model..."
+            )
+            last_exception = TimeoutError(f"Model '{model_name}' did not respond in time.")
+            continue
         except (ServerError, APIError, ClientError) as e:
             logger.warning(
                 f"Model '{model_name}' failed with error ({type(e).__name__}: {e}). "
@@ -88,6 +115,21 @@ async def _generate_with_fallback(prompt: str, response_schema=None, system_inst
 
     if last_exception:
         raise last_exception
+    raise TimeoutError("The AI service did not respond in time.")
+
+
+# Shared by all three modes below, so the insight cards are always built
+# from the same instructions no matter how much of the chain the student
+# wrote themselves.
+_REFINE_EXTRAS = """
+Also fill in these fields. Keep every list item to one concise sentence, and be specific to THIS problem rather than generic:
+- "synthesized_root_cause": the underlying cause the line of questioning arrives at, in one precise sentence.
+- "refined_problem_statement": one or two sentences restating the problem so it is specific and actionable — who is affected, what goes wrong, and why it persists — ready to inspire solution ideas.
+- "hidden_variables": exactly 3 factors the questions have not explicitly covered that may be driving or worsening the problem (for example incentives, regulation, infrastructure, culture, cost, timing).
+- "stakeholders": 3 to 5 people or groups affected by, or able to influence, the problem — each written as "Who — their stake".
+- "market_gaps": 2 or 3 gaps in how existing solutions or players address this narrowed-down problem.
+- "trend_insights": 2 or 3 current technology, policy, or behavior trends that create an opening to address it.
+"""
 
 
 async def refine_problem_statement(
@@ -95,43 +137,51 @@ async def refine_problem_statement(
     existing_whys: list[str] | None = None,
 ) -> ProblemRefineResponse:
     """
-    Three modes, chosen by how much of the 5-Whys chain the user has
-    already filled in themselves:
+    Generates the "Why" QUESTIONS of a 5 Whys analysis — the questions that
+    narrow a broad problem down to a specific one — plus a refined problem
+    statement and insight cards (hidden variables, stakeholders, market
+    gaps, trends). Never the answers to the Whys. Three modes, chosen by
+    how much of the chain the student has already written themselves:
 
-    1. Nothing typed yet (existing_whys empty/None) — generate all 5 from
-       scratch. Byte-for-byte the original behavior; nothing changes here
-       for a blank start.
-    2. Some Whys typed, some remaining — continue the exact chain the
-       user started instead of regenerating it. The prompt explicitly
-       forbids restating/rephrasing what's already there, and the
-       response is spliced together in Python (existing_whys + only the
-       newly generated ones) so the user's own words are never silently
-       swapped for the model's paraphrase of them.
-    3. All 5 already typed — nothing left to continue; just synthesize
-       the root-cause summary from what's there.
+    1. Nothing typed yet (existing_whys empty/None) — generate all 5
+       questions from scratch.
+    2. Some typed, some remaining — continue the student's own line of
+       inquiry with only the remaining questions. five_whys is spliced
+       together in Python (existing_whys + only the new ones) so the
+       student's own wording is never swapped for the model's paraphrase.
+    3. All 5 already typed — nothing left to generate; only the refined
+       problem statement and insights are produced.
     """
     existing_whys = [w.strip() for w in (existing_whys or []) if w and w.strip()]
     remaining = max(0, 5 - len(existing_whys))
 
-    # --- Mode 1: blank start — unchanged from before this feature ---
+    system_instruction = (
+        "You are an elite product strategy mentor. Help students narrow a broad "
+        "problem down to a specific, addressable one by asking sharp, well-aimed "
+        "'Why' questions. You write questions, never answers."
+    )
+
+    # --- Mode 1: blank start ---
     if not existing_whys:
         prompt = f"""
 You are an expert product design and engineering coach specializing in rigorous root cause analysis.
-Analyze the following problem statement deeply and methodically:
+
+Problem statement:
 "{problem_statement}"
 
-Instructions:
-1. Execute a rigorous '5 Whys' root-cause methodology. Dig deep into technical, human, and systemic gaps rather than stating superficial symptoms.
-2. Formulate exactly 5 sequential, logical 'Why' questions and answers that flow naturally into one another.
-3. Formulate a precise, punchy, single-sentence "synthesized_root_cause" summary that captures the underlying core issue.
+Generate the five 'Why' questions of a 5 Whys analysis for this problem. Do NOT answer them — the student will investigate the answers themselves.
 
-Ensure the output maps precisely to the required schema fields (`five_whys` and `synthesized_root_cause`).
+Instructions:
+1. Write exactly 5 sequential 'Why' questions in five_whys. The first asks why the problem happens at all; each next question digs one level deeper into the most likely underlying cause implied by the question before it.
+2. Every question must be specific and must narrow the focus toward a particular, addressable problem — not a broad restatement of the one before.
+3. Write each as a single question sentence: no answers, explanations, or numbering.
+{_REFINE_EXTRAS}
 """
         try:
             response = await _generate_with_fallback(
                 prompt=prompt,
                 response_schema=ProblemRefineResponse,
-                system_instruction="You are an elite product strategy mentor. Provide deep, analytical, and highly structured root-cause insights."
+                system_instruction=system_instruction,
             )
             return ProblemRefineResponse.model_validate_json(response.text)
         except Exception as e:
@@ -140,59 +190,60 @@ Ensure the output maps precisely to the required schema fields (`five_whys` and 
 
     numbered_existing = "\n".join(f"{i + 1}. {w}" for i, w in enumerate(existing_whys))
 
-    # --- Mode 3: chain already complete — synthesize only ---
+    # --- Mode 3: all five already written — insights only ---
     if remaining == 0:
         prompt = f"""
 You are an expert product design and engineering coach specializing in rigorous root cause analysis.
 
-Original problem statement:
+Problem statement:
 "{problem_statement}"
 
-The user has already completed a full '5 Whys' analysis themselves:
+The student has written all five 'Why' questions of their 5 Whys analysis:
 {numbered_existing}
 
-Do not add, remove, or rephrase any of these answers. Based solely on this existing chain, formulate a precise, punchy, single-sentence "synthesized_root_cause" that captures the underlying core issue. Return the same {len(existing_whys)} answers in five_whys, unchanged.
+Do not add, remove, or rephrase any of them. Return the same {len(existing_whys)} questions in five_whys, unchanged.
+{_REFINE_EXTRAS}
+Base every field on the student's line of questioning above.
 """
         try:
             response = await _generate_with_fallback(
                 prompt=prompt,
                 response_schema=ProblemRefineResponse,
-                system_instruction="You are an elite product strategy mentor. Provide deep, analytical, and highly structured root-cause insights."
+                system_instruction=system_instruction,
             )
             parsed = ProblemRefineResponse.model_validate_json(response.text)
             # existing_whys, not parsed.five_whys, is authoritative — the
-            # user's own words are never replaced by the model's echo of them.
-            return ProblemRefineResponse(five_whys=existing_whys, synthesized_root_cause=parsed.synthesized_root_cause)
+            # student's own words are never replaced by the model's echo.
+            return parsed.model_copy(update={"five_whys": existing_whys})
         except Exception as e:
-            logger.error(f"Gemini API Error in refine_problem_statement (synthesis-only): {e}", exc_info=True)
+            logger.error(f"Gemini API Error in refine_problem_statement (insights-only): {e}", exc_info=True)
             raise e
 
-    # --- Mode 2: continue the chain from wherever the user stopped ---
+    # --- Mode 2: continue the student's line of questioning ---
     prompt = f"""
 You are an expert product design and engineering coach specializing in rigorous root cause analysis.
 
-Original problem statement:
+Problem statement:
 "{problem_statement}"
 
-The user has already worked through the following step(s) of a '5 Whys' analysis themselves:
+The student has already written the first {len(existing_whys)} 'Why' question(s) of a 5 Whys analysis themselves:
 {numbered_existing}
 
-Continue this exact line of reasoning from where the user left off — do not restate, rephrase, or repeat the answers above. Building directly on the last answer given, provide exactly {remaining} more sequential 'Why' answer(s), each one level deeper than the last, continuing logically until the fundamental root cause is reached.
+Continue this exact line of inquiry. Do not restate or rephrase what the student wrote, and do NOT answer any question. In five_whys, write exactly {remaining} more sequential 'Why' question(s). Each one digs a level deeper into the most likely underlying cause implied by the question before it, narrowing toward a specific, addressable problem. Do not include the student's own questions in five_whys.
 
-Also provide a precise, punchy, single-sentence "synthesized_root_cause" that captures the underlying core issue, taking into account the user's own reasoning together with the continuation you provide.
-
-Return only the {remaining} new answer(s) in five_whys — do not include the user's original answers in that list.
+Write each as a single question sentence: no answers, explanations, or numbering.
+{_REFINE_EXTRAS}
+Base every field on the full line of questioning — the student's questions plus yours.
 """
     try:
         response = await _generate_with_fallback(
             prompt=prompt,
             response_schema=ProblemRefineResponse,
-            system_instruction="You are an elite product strategy mentor. Provide deep, analytical, and highly structured root-cause insights."
+            system_instruction=system_instruction,
         )
         parsed = ProblemRefineResponse.model_validate_json(response.text)
         continuation = list(parsed.five_whys)[:remaining]
-        combined_whys = existing_whys + continuation
-        return ProblemRefineResponse(five_whys=combined_whys, synthesized_root_cause=parsed.synthesized_root_cause)
+        return parsed.model_copy(update={"five_whys": existing_whys + continuation})
     except Exception as e:
         logger.error(f"Gemini API Error in refine_problem_statement (continuation): {e}", exc_info=True)
         raise e
