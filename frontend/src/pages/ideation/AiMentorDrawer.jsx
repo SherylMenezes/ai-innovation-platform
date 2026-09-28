@@ -4,6 +4,9 @@ import ChatThread from "./ChatThread";
 import { getMentorHistory, streamMentorChat } from "../../api/aiClient";
 import { useAuth } from "../../context/AuthContext";
 
+// Mounted once in App.jsx so it's available on every page, not just the
+// Ideation Board. workspaceId is the open challenge's id (one mentor thread
+// per challenge, shared across its Levels) or "default" outside a challenge.
 function AiMentorDrawer({ currentStage, workspaceContext, workspaceId }) {
   const { accessToken } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -15,13 +18,21 @@ function AiMentorDrawer({ currentStage, workspaceContext, workspaceId }) {
 
   const effectiveWorkspaceId = workspaceId || "default";
 
-  // Fetch history when drawer opens
+  // This component now outlives page changes, so switching to a different
+  // thread (another challenge, or out of a challenge) must not keep showing
+  // the previous thread's messages.
+  useEffect(() => {
+    setMessages([]);
+    setLoadError("");
+  }, [effectiveWorkspaceId]);
+
+  // Fetch history when the drawer opens (or the thread changes while open)
   useEffect(() => {
     if (isOpen && accessToken) {
       fetchMentorHistory();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, accessToken]);
+  }, [isOpen, accessToken, effectiveWorkspaceId]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -82,6 +93,15 @@ function AiMentorDrawer({ currentStage, workspaceContext, workspaceId }) {
       }
     } catch (err) {
       console.error("Streaming error:", err);
+      // Only replace an empty bubble — if part of a reply already streamed
+      // in, keep it rather than overwrite it with an error.
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === aiMsgId && !msg.content
+            ? { ...msg, content: "Sorry — the mentor couldn't respond just now. Please try again in a moment." }
+            : msg
+        )
+      );
     } finally {
       setIsLoading(false);
     }

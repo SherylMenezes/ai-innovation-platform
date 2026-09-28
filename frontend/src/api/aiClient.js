@@ -19,35 +19,56 @@ async function handleJsonResponse(response) {
   return response.json();
 }
 
-async function postJson(path, body, token) {
-  let response;
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body)
-    });
-  } catch {
-    throw new Error("Could not reach the AI service — is the backend running?");
-  }
+// The backend gives up on a slow model after ~75s in total (see
+// llm_service.py); this is slightly longer, so a hung request always ends
+// with a message instead of an endless "Asking AI...".
+const REQUEST_TIMEOUT_MS = 90_000;
 
-  return handleJsonResponse(response);
+async function requestJson(path, options, token) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    let response;
+    try {
+      response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: {
+          ...(options.headers || {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: controller.signal,
+      });
+    } catch (err) {
+      if (err.name === "AbortError") throw err;
+      throw new Error("Could not reach the AI service — is the backend running?");
+    }
+
+    return await handleJsonResponse(response);
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("The AI service took too long to respond. Please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-async function getJson(path, token) {
-  let response;
-  try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-  } catch {
-    throw new Error("Could not reach the AI service — is the backend running?");
-  }
+function postJson(path, body, token) {
+  return requestJson(
+    path,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    },
+    token
+  );
+}
 
-  return handleJsonResponse(response);
+function getJson(path, token) {
+  return requestJson(path, {}, token);
 }
 
 // POST /api/ai/generate-ideas — GenerateIdeasRequest -> GenerateIdeasResponse

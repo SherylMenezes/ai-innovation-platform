@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./ProblemCanvas.css";
+import "./WhysInsights.css";
 import {
   scoreWhyAnswers,
   scoreHMW
@@ -107,6 +108,14 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
   const [aiRootCause, setAiRootCause] = useState(null);
   const [isAiRootCauseLoading, setIsAiRootCauseLoading] = useState(false);
   const [aiRootCauseError, setAiRootCauseError] = useState("");
+  // "continue" (extend the Whys I typed) or "scratch" (generate all 5) —
+  // only used to show "Asking AI..." on the button that was clicked.
+  const [aiRootCauseMode, setAiRootCauseMode] = useState(null);
+
+  // Score of the AI's refined problem statement (separate, on-demand call).
+  const [refinedScore, setRefinedScore] = useState(null);
+  const [isRefinedScoreLoading, setIsRefinedScoreLoading] = useState(false);
+  const [refinedScoreError, setRefinedScoreError] = useState("");
 
   const [aiHmwSuggestions, setAiHmwSuggestions] = useState([]);
   const [isAiHmwLoading, setIsAiHmwLoading] = useState(false);
@@ -281,26 +290,48 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
     }
   };
 
-  const handleGetAiRootCause = async () => {
+  // fromScratch = true: ignore whatever is typed and have the AI write all
+  // 5 Whys. false: continue the Whys already typed (the contiguous run of
+  // filled-in ones, starting from Why 1 — a gap after a blank one doesn't
+  // represent a continuable chain).
+  const handleGetAiRootCause = async (fromScratch = false) => {
     if (!problem.trim() || isAiRootCauseLoading) return;
     setIsAiRootCauseLoading(true);
+    setAiRootCauseMode(fromScratch ? "scratch" : "continue");
     setAiRootCauseError("");
     try {
-      // Only the contiguous run of filled-in Whys, starting from Why 1 —
-      // a gap after a blank one doesn't represent a continuable chain.
-      // Empty (nothing typed yet) means the backend generates all 5 from
-      // scratch, exactly as before this change.
       const answeredWhys = [];
-      for (const why of whys) {
-        if (!why.trim()) break;
-        answeredWhys.push(why.trim());
+      if (!fromScratch) {
+        for (const why of whys) {
+          if (!why.trim()) break;
+          answeredWhys.push(why.trim());
+        }
       }
       const result = await refineProblem(problem, answeredWhys);
       setAiRootCause(result);
+      setRefinedScore(null);
+      setRefinedScoreError("");
     } catch (err) {
       setAiRootCauseError(err.message);
     } finally {
       setIsAiRootCauseLoading(false);
+    }
+  };
+
+  // Scores the AI's refined problem statement with the same scorer the
+  // step 1 "Get AI Feedback" button uses (/api/ai/problem-score).
+  const handleScoreRefinedProblem = async () => {
+    const statement = aiRootCause?.refined_problem_statement;
+    if (!statement?.trim() || isRefinedScoreLoading) return;
+    setIsRefinedScoreLoading(true);
+    setRefinedScoreError("");
+    try {
+      const result = await scoreProblemWithAi(statement);
+      setRefinedScore(result);
+    } catch (err) {
+      setRefinedScoreError(err.message);
+    } finally {
+      setIsRefinedScoreLoading(false);
     }
   };
 
@@ -479,27 +510,108 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
 
             <ScoreIndicator label="Depth of analysis" score={whysScore.score} tips={whysScore.tips} />
 
-            <button
-              type="button"
-              className="ai-feedback-button"
-              onClick={handleGetAiRootCause}
-              disabled={!problem.trim() || isAiRootCauseLoading}
-            >
-              {isAiRootCauseLoading
-                ? "Asking AI..."
-                : whys.some((why) => why.trim())
-                  ? "✦ Continue My Whys with AI"
-                  : "✦ Get AI Root Cause Suggestions"}
-            </button>
+            <div className="ai-button-row">
+              <button
+                type="button"
+                className="ai-feedback-button"
+                onClick={() => handleGetAiRootCause(false)}
+                disabled={!problem.trim() || isAiRootCauseLoading || !whys[0].trim()}
+                title={!whys[0].trim() ? "Type your first Why and the AI will continue it." : undefined}
+              >
+                {isAiRootCauseLoading && aiRootCauseMode === "continue" ? "Asking AI..." : "✦ Continue My Whys with AI"}
+              </button>
+
+              <button
+                type="button"
+                className="ai-feedback-button"
+                onClick={() => handleGetAiRootCause(true)}
+                disabled={!problem.trim() || isAiRootCauseLoading}
+              >
+                {isAiRootCauseLoading && aiRootCauseMode === "scratch" ? "Asking AI..." : "✦ Generate All 5 Whys with AI"}
+              </button>
+            </div>
 
             {aiRootCauseError && <p className="error-message">{aiRootCauseError}</p>}
 
             {aiRootCause && (
               <div className="ai-feedback-box">
-                <p><strong>AI-synthesized root cause:</strong> {aiRootCause.synthesized_root_cause}</p>
-                {aiRootCause.five_whys?.length > 0 && (
-                  <ul>{aiRootCause.five_whys.map((why, i) => <li key={i}>{why}</li>)}</ul>
+                {aiRootCause.refined_problem_statement && (
+                  <div className="refined-problem">
+                    <span>Refined problem</span>
+                    {aiRootCause.refined_problem_statement}
+                  </div>
                 )}
+
+                {aiRootCause.refined_problem_statement && (
+                  <button
+                    type="button"
+                    className="ai-feedback-button"
+                    onClick={handleScoreRefinedProblem}
+                    disabled={isRefinedScoreLoading}
+                  >
+                    {isRefinedScoreLoading ? "Scoring..." : "✦ Score this problem"}
+                  </button>
+                )}
+
+                {refinedScoreError && <p className="error-message">{refinedScoreError}</p>}
+
+                {refinedScore && (
+                  <div className="refined-score">
+                    <p className="ai-feedback-score">AI overall score: {refinedScore.overall_score}%</p>
+                    <div className="refined-score-metrics">
+                      {[
+                        ["Clarity", refinedScore.clarity],
+                        ["Specificity", refinedScore.specificity],
+                        ["Actionability", refinedScore.actionability],
+                      ].map(([label, metric]) => (
+                        <div className="refined-score-metric" key={label}>
+                          <strong>{label}: {metric?.score}%</strong>
+                          <span>{metric?.reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {refinedScore.suggestions?.length > 0 && (
+                      <ul>
+                        {refinedScore.suggestions.map((tip, i) => <li key={i}>{tip}</li>)}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                <ol className="why-chain">
+                  <li className="why-chain-node why-chain-start">
+                    <span>Problem</span>
+                    {problem}
+                  </li>
+                  {(aiRootCause.five_whys || []).map((why, i) => (
+                    <li className="why-chain-node" key={i}>
+                      <span>Why {i + 1}</span>
+                      {why}
+                    </li>
+                  ))}
+                  <li className="why-chain-node why-chain-root">
+                    <span>Root cause</span>
+                    {aiRootCause.synthesized_root_cause}
+                  </li>
+                </ol>
+
+                <div className="insight-grid">
+                  {[
+                    ["Hidden variables", aiRootCause.hidden_variables],
+                    ["Stakeholders", aiRootCause.stakeholders],
+                    ["Market gaps", aiRootCause.market_gaps],
+                    ["Trends", aiRootCause.trend_insights],
+                  ].map(([title, items]) =>
+                    items?.length > 0 ? (
+                      <div className="insight-card" key={title}>
+                        <h5>{title}</h5>
+                        <ul>
+                          {items.map((item, i) => <li key={i}>{item}</li>)}
+                        </ul>
+                      </div>
+                    ) : null
+                  )}
+                </div>
                 <button
                   type="button"
                   className="use-ai-suggestion-button"

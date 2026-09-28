@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./IdeationBoard.css";
 import AiIdeaDrawer from "./AiIdeaDrawer";
-import AiMentorDrawer from "./AiMentorDrawer";
 import { useAuth } from "../../context/AuthContext";
 import { listNotes, createNote, updateNote, deleteNote } from "../../api/ideationClient";
 import { completeWorkspaceStep, advanceStage } from "../../api/challengesClient";
@@ -528,11 +527,7 @@ function IdeationBoard({ challengeId, onStageAdvance, onReward }) {
       </main>
 
       <AiIdeaDrawer notes={notes} onAddNoteFromIdea={(text) => handleAddNote(text)} />
-      <AiMentorDrawer
-        currentStage="ideation"
-        workspaceContext={{ notesCount: notes.length }}
-        workspaceId={challengeId ? String(challengeId) : "default"}
-      />
+     
 
     </div>
   );

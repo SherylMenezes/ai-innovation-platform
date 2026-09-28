@@ -15,9 +15,22 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { getUserStats } from "./api/gamificationClient";
 import { CHALLENGE_LEVELS, badgeIcon, pageForStage, unlockedLevelForStage } from "./utils/progression";
 import LandingPage from "./pages/landing/LandingPage";
+// [AI MENTOR] mounted once below so it's available on every page
+import AiMentorDrawer from "./pages/ideation/AiMentorDrawer";
 
 const WORKFLOW_TABS = new Set(["canvas", "ideation", "evaluation", "submission"]);
 const TOAST_DURATION_MS = 4000;
+
+// [AI MENTOR] Stage names the mentor's coaching rules (llm_service.py) are
+// keyed on. Only used outside a challenge — inside one, the backend reads
+// the real stage from the saved workspace.
+const MENTOR_STAGE_LABELS = {
+  canvas: "Problem Framing",
+  ideation: "Ideation",
+  evaluation: "Evaluation",
+  submission: "Submission",
+  summary: "Project Summary",
+};
 
 function AppShell() {
   const [page, setPage] = useState("dashboard");
@@ -135,6 +148,12 @@ function AppShell() {
   // Authenticated workspace shell
   const unlockedLevel = challengeStage ? unlockedLevelForStage(challengeStage) : CHALLENGE_LEVELS.length;
   const showLevelBar = challengeId && (WORKFLOW_TABS.has(page) || page === "summary");
+
+  // [AI MENTOR] Inside a challenge's Levels the mentor uses that challenge's
+  // thread (one conversation carried across Levels, with the backend loading
+  // the real saved workspace as context). On Dashboard / Challenges /
+  // My Progress it's a general mentor on the shared "default" thread.
+  const mentorWorkspaceId = showLevelBar ? String(challengeId) : "default";
 
   return (
     <div className="app-shell">
@@ -264,6 +283,13 @@ function AppShell() {
         {page === "summary" && <ProjectSummary challengeId={challengeId} />}
         {page === "progress" && <GamificationPanel key={progressKey} onReward={handleReward} />}
       </main>
+
+      {/* [AI MENTOR] available on every page */}
+      <AiMentorDrawer
+        currentStage={MENTOR_STAGE_LABELS[page] || "Exploring the platform"}
+        workspaceContext={{ page }}
+        workspaceId={mentorWorkspaceId}
+      />
 
       <div className="toast-container">
         {toasts.map((toast) => (
