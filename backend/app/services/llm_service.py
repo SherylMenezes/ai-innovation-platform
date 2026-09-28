@@ -9,6 +9,7 @@ from google.genai.errors import ServerError, APIError, ClientError
 
 from app.schemas.ai import (
     ProblemRefineResponse,
+    WhyStep,
     ProblemCanvasScoreResponse,
     HMWGenerateResponse,
     ProblemScoreResponse,
@@ -161,139 +162,52 @@ Also fill in these fields. Keep every list item to one concise sentence, and be 
 
 async def refine_problem_statement(
     problem_statement: str,
-    previous_answers: list[str] | None = None,
-    current_step: int = 0,
-    current_answer: str = "",
-    help_me_answer: bool = False,
-    previous_questions: list[str] | None = None,
-    current_question: str = "",
+    answers: list[str] | None = None,
+    active_index: int = 0,
 ) -> ProblemRefineResponse:
-    """
-    Sequential AI-assisted 5-Whys coaching. Exactly one of four modes runs
-    per call, chosen from the inputs:
+    answers = [answer.strip() for answer in (answers or [])][:5]
 
-    1. ASK        — no answer yet: generate the Why question for current_step
-                    (Why 1 comes from the primary problem) + thinking prompts.
-    2. ANALYSE    — the student answered current_step (Why 1-4): give feedback
-                    on that answer, then generate the NEXT Why from the whole
-                    chain so far + thinking prompts for that next Why.
-    3. HELP       — the student clicked "Help me answer": generate a possible
-                    answer to the current question from the problem, every
-                    previous question + answer, and the current question.
-    4. FINAL      — Why 5 answered: analyse the whole chain (not just answer
-                    5) into the root cause, a suggested HMW and insight cards.
-    """
-    previous_answers = [
-        answer.strip()
-        for answer in (previous_answers or [])
-        if answer and answer.strip()
-    ]
-    previous_questions = [(q or "").strip() for q in (previous_questions or [])]
-    current_answer = (current_answer or "").strip()
-    current_question = (current_question or "").strip()
-    current_step = max(0, min(current_step, 4))
+    chain_parts = [f"Answer {i + 1}: {ans}" for i, ans in enumerate(answers) if ans]
+    existing_chain = "\n".join(chain_parts)
+    next_index = min(active_index, 4)
+    previous_answer = answers[-1] if answers else ""
+    all_answered = len(answers) == 5 and all(answers)
 
-    if help_me_answer:
-        mode = "HELP"
-    elif current_answer and current_step == 4:
-        mode = "FINAL"
-    elif current_answer:
-        mode = "ANALYSE"
-    else:
-        mode = "ASK"
-
-    # The full chain the AI reasons over: every question with its answer.
-    chain_parts = []
-    for index, answer in enumerate(previous_answers):
-        question = previous_questions[index] if index < len(previous_questions) else ""
-        chain_parts.append(
-            f"WHY {index + 1}\n"
-            f"Question: {question or '(question not recorded)'}\n"
-            f"Answer: {answer}"
-        )
-    chain_context = "\n\n".join(chain_parts) if chain_parts else "No completed Whys yet."
-
-    current_block = (
-        f"WHY {current_step + 1}\n"
-        f"Question: {current_question or '(not generated yet)'}\n"
-        f"Answer: {current_answer or '(the student has not answered yet)'}"
-    )
-
-    next_why_number = current_step + 2  # only meaningful in ANALYSE mode
-
-    mode_rules = {
-        "ASK": f"""
-TASK (ASK): Generate the question for Why {current_step + 1}.
-- next_question: one specific, contextual Why question. For Why 1, ask why
-  the primary problem happens. Otherwise ask about the cause behind the most
-  recent answer in the chain. Never use generic filler like "Why does this
-  problem exist?".
-- thinking_prompts: exactly 3 short brainstorming angles for answering that
-  question (people, processes, systems, incentives, resources, environment,
-  behaviour...). They are possible directions, NOT facts.
-- answer_feedback, generated_answer and all final-analysis fields: empty.""",
-        "ANALYSE": f"""
-TASK (ANALYSE): The student has just answered Why {current_step + 1}.
-- answer_feedback: 1-2 sentences analysing that answer in the context of the
-  whole chain — is it a genuine cause (not a restatement of the question or
-  the previous answer)? Is it specific enough to dig deeper? If it is vague,
-  say what to clarify. Be encouraging and concrete.
-- next_question: the Why {next_why_number} question. It must investigate the
-  cause behind the Why {current_step + 1} answer, informed by the entire
-  chain (Why {next_why_number} builds on answers 1 to {current_step + 1}).
-- thinking_prompts: exactly 3 short brainstorming angles for answering the
-  NEW Why {next_why_number} question. Possible directions, NOT facts.
-- generated_answer and all final-analysis fields: empty.""",
-        "HELP": f"""
-TASK (HELP): The student is stuck on Why {current_step + 1} and explicitly
-asked for a possible answer.
-- generated_answer: one concise, plausible answer to the CURRENT question,
-  based only on the primary problem and every previous question and answer.
-  Word it as a possibility ("may", "might", "could"), not a confirmed fact,
-  and keep it short enough to edit in a text box.
-- thinking_prompts: exactly 3 short angles for this same question.
-- next_question: empty (the question does not change).
-- answer_feedback and all final-analysis fields: empty.""",
-        "FINAL": """
-TASK (FINAL): All five Whys are answered. Analyse the COMPLETE chain, not
-just answer 5.
-- answer_feedback: 1-2 sentences on the Why 5 answer.
-- synthesized_root_cause: one concise, fundamental root cause supported by
-  the whole chain.
-- suggested_hmw: one "How might we ...?" question that turns that root cause
-  into an open-ended opportunity (no solution baked in).
-- refined_problem_statement: a specific, actionable restatement.
-- hidden_variables: exactly 3 plausible factors that may also matter.
-- stakeholders: 3 to 5 relevant people/groups and their stake.
-- market_gaps: 2 to 3 relevant gaps in existing approaches.
-- trend_insights: 2 to 3 relevant technology, policy or behaviour trends.
-- next_question, thinking_prompts and generated_answer: empty.
-Do not invent facts; phrase uncertain insights as possibilities.""",
-    }[mode]
-
-    system_instruction = (
-        "You are an expert Socratic product-design mentor helping a student "
-        "perform a rigorous 5-Whys analysis. You generate the Why questions, "
-        "offer thinking prompts that are possibilities rather than facts, and "
-        "only write an answer for the student when they explicitly ask for help."
-    )
+    system_instruction = """
+You are an expert design-thinking and root-cause-analysis mentor helping students perform a rigorous 5 Whys analysis.
+Your job is NOT to solve the problem for the student.
+You must:
+1. Ask contextual Why questions based on previous answers.
+2. Never fabricate the student's answer.
+3. Provide short thinking hints/suggestions alongside the answer field.
+4. Encourage reasoning about systems, processes, people, tech, policies, and constraints.
+5. The 5th answer must lead toward a fundamental and actionable root cause.
+"""
 
     prompt = f"""
-You are guiding a student through a sequential 5-Whys root-cause analysis.
-Each Why investigates the cause behind the previous answer.
+We are conducting an interactive 5 Whys root-cause analysis.
 
 PRIMARY PROBLEM:
-{problem_statement}
+"{problem_statement}"
 
-COMPLETED WHYS (question + student answer):
-{chain_context}
+STUDENT'S ANSWERS SO FAR:
+{existing_chain if existing_chain else "(No answers yet.)"}
 
-CURRENT WHY:
-{current_block}
-{mode_rules}
+LATEST STUDENT ANSWER:
+"{previous_answer if previous_answer else "(No answer yet.)"}"
 
-Support the student's reasoning rather than doing the exercise for them.
-Return only the structured response.
+CURRENT WHY INDEX:
+{next_index + 1}
+
+Your task:
+Generate the next contextual Why question and 3 short thinking hints (suggestions).
+
+IMPORTANT RULES:
+1. If Why 1: Base question directly on the problem.
+2. If Why 2-5: Base question on the student's latest answer. Dig deeper into root causality.
+3. Output exactly 3 short answer suggestions (thinking hints, NOT complete answers).
+4. If 5 answers exist, synthesize the final root cause, refined problem statement, hidden variables, stakeholders, market gaps, and trend insights.
+{"5. All 5 answers exist: do NOT ask a new question; focus on the synthesis." if all_answered else ""}
 """
 
     try:
@@ -304,36 +218,45 @@ Return only the structured response.
         )
         parsed = ProblemRefineResponse.model_validate_json(response.text)
 
-        # Blank out anything that doesn't belong to this mode, so the
-        # frontend can rely on exactly which fields each call fills.
-        # five_whys stays empty (legacy field) so AI questions never
-        # replace the student's answers.
-        cleared = {"five_whys": []}
-        if mode != "FINAL":
-            cleared.update(
+        # The model may return just the one new step, or number it
+        # differently — so the generated question is always placed at the
+        # active Why (not at whichever list position it came back in).
+        # Other steps carry no question, so the frontend never overwrites
+        # questions the student has already answered.
+        generated = next(
+            (s for s in parsed.five_whys if s.index == next_index and s.question.strip()),
+            next((s for s in reversed(parsed.five_whys) if s.question.strip()), None),
+        )
+
+        # Protect student's actual answers from being overwritten by LLM
+        protected_steps = []
+        for index in range(5):
+            is_active = index == next_index and generated is not None and not all_answered
+            protected_steps.append(
+                WhyStep(
+                    index=index,
+                    question=generated.question if is_active else "",
+                    answer=answers[index] if index < len(answers) else "",
+                    suggestions=generated.suggestions[:3] if is_active else [],
+                )
+            )
+
+        update = {"five_whys": protected_steps}
+        # Rule 4: the synthesis only belongs to a complete 5-answer chain.
+        if not all_answered:
+            update.update(
                 synthesized_root_cause="",
-                suggested_hmw="",
                 refined_problem_statement="",
                 hidden_variables=[],
                 stakeholders=[],
                 market_gaps=[],
                 trend_insights=[],
             )
-        if mode in ("HELP", "FINAL"):
-            cleared["next_question"] = ""
-        if mode != "HELP":
-            cleared["generated_answer"] = ""
-        if mode in ("ASK", "HELP"):
-            cleared["answer_feedback"] = ""
-        if mode == "FINAL":
-            cleared["thinking_prompts"] = []
-        return parsed.model_copy(update=cleared)
+        return parsed.model_copy(update=update)
+
     except Exception as e:
-        logger.error(
-            f"Gemini API Error in refine_problem_statement: {e}",
-            exc_info=True,
-        )
-        raise e
+        logger.error(f"Gemini API Error in interactive 5 Whys: {e}", exc_info=True)
+        raise
 
 
 async def generate_hmw_statements(root_cause: str) -> HMWGenerateResponse:

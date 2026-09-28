@@ -1,5 +1,187 @@
-/* Root-cause chain + insight cards shown under "Continue My Whys with AI".
-   Separate file so ProblemCanvas.css (and any team edits to it) is untouched. */
+/* =========================================================
+   INTERACTIVE 5 WHYS — Problem card, then one step per Why:
+   AI question card + student answer card with AI thinking hints.
+   ========================================================= */
+
+.why-interactive-chain {
+  position: relative;
+  margin: 18px 0;
+  padding-left: 22px;
+
+  text-align: left;
+  border-left: 2px solid #bfdbfe;
+}
+
+.why-problem-card,
+.why-chain-step {
+  position: relative;
+  margin: 0 0 16px;
+}
+
+/* Timeline dot on the chain line */
+.why-problem-card::before,
+.why-chain-step::before {
+  content: "";
+  position: absolute;
+  left: -30px;
+  top: 16px;
+
+  width: 12px;
+  height: 12px;
+
+  background: #2563eb;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+}
+
+.why-problem-card::before {
+  background: #94a3b8;
+}
+
+.why-problem-card {
+  padding: 14px 16px;
+
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.why-problem-card > span,
+.why-question-card > span {
+  display: block;
+  margin-bottom: 4px;
+
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.why-problem-card > span {
+  color: #64748b;
+}
+
+.why-problem-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #0f172a;
+}
+
+.why-question-card {
+  padding: 12px 16px;
+
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px 12px 0 0;
+}
+
+.why-question-card > span {
+  color: #2563eb;
+}
+
+.why-question-card p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #0f172a;
+}
+
+.why-answer-card {
+  padding: 14px 16px;
+
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+}
+
+.why-answer-card > label {
+  display: block;
+  margin-bottom: 6px;
+
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.why-answer-card textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0f172a;
+
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  resize: vertical;
+}
+
+.why-answer-card textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.why-answer-card .ai-feedback-button {
+  margin-top: 12px;
+}
+
+.answer-suggestions {
+  margin-top: 10px;
+}
+
+.answer-suggestions > span {
+  display: block;
+  margin-bottom: 6px;
+
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.answer-suggestions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.answer-suggestion {
+  padding: 7px 12px;
+
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: #1e3a8a;
+
+  background: #f8fbff;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.answer-suggestion:hover {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+@media (max-width: 640px) {
+  .why-interactive-chain {
+    padding-left: 14px;
+  }
+
+  .why-problem-card::before,
+  .why-chain-step::before {
+    left: -21px;
+  }
+}
+
+/* =========================================================
+   Root cause, insight cards, refined-problem and canvas scores
+   ========================================================= */
 
 .refined-problem {
   margin: 0 0 14px;
@@ -24,180 +206,6 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: #6d28d9;
-}
-
-/* Vertical causal chain: Problem -> Why 1..5 -> Root cause */
-.why-chain {
-  list-style: none;
-  margin: 14px 0;
-  padding: 0 0 0 18px;
-
-  text-align: left;
-  border-left: 2px solid #bfdbfe;
-}
-
-.why-chain-node {
-  position: relative;
-  margin: 0 0 12px;
-  padding: 10px 14px;
-
-  background: #ffffff;
-  border: 1px solid #e0eaff;
-  border-radius: 10px;
-
-  font-size: 14px;
-  line-height: 1.5;
-  color: #0f172a;
-}
-
-.why-chain-node::before {
-  content: "";
-  position: absolute;
-  left: -27px;
-  top: 16px;
-
-  width: 12px;
-  height: 12px;
-
-  background: #2563eb;
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-}
-
-.why-chain-node > span {
-  display: block;
-  margin-bottom: 2px;
-
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #2563eb;
-}
-
-.why-chain-start::before {
-  background: #94a3b8;
-}
-
-.why-chain-start > span {
-  color: #64748b;
-}
-
-.why-chain-root {
-  background: #eff6ff;
-  border-color: #93c5fd;
-}
-
-.why-chain-root::before {
-  background: #7c3aed;
-}
-
-.why-chain-root > span {
-  color: #6d28d9;
-}
-
-/* Live causal chain (5 Whys screen): question + answer per level,
-   indented one step deeper each Why via the --depth custom property. */
-.causal-chain {
-  margin: 20px 0;
-  padding: 18px 20px;
-
-  text-align: left;
-  background: #f8fbff;
-  border: 1px solid #dbe5f3;
-  border-radius: 14px;
-}
-
-.causal-chain-heading > span {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #2563eb;
-}
-
-.causal-chain-heading > p {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: #64748b;
-}
-
-.causal-step {
-  margin-left: calc(var(--depth, 0) * 16px);
-}
-
-.causal-question {
-  margin: 2px 0 6px;
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.causal-answer {
-  margin: 0;
-  padding-left: 10px;
-  border-left: 3px solid #bfdbfe;
-  color: #334155;
-}
-
-.causal-answer strong {
-  color: #2563eb;
-}
-
-.causal-step-pending {
-  opacity: 0.6;
-  border-style: dashed;
-}
-
-.causal-step-pending .causal-answer {
-  font-style: italic;
-}
-
-@media (max-width: 640px) {
-  .causal-step {
-    margin-left: calc(var(--depth, 0) * 6px);
-  }
-}
-
-/* "🤖 AI-generated question" tag above each Why question */
-.why-question-tag {
-  display: inline-block;
-  margin-bottom: 4px;
-  padding: 2px 8px;
-
-  font-size: 11px;
-  font-weight: 700;
-  color: #1d4ed8;
-  background: #eff6ff;
-  border-radius: 999px;
-}
-
-/* AI-suggested HMW shown right after the root cause */
-.suggested-hmw-card {
-  margin: 14px 0;
-  padding: 16px 18px;
-
-  text-align: left;
-  background: #fefce8;
-  border: 1px solid #fde68a;
-  border-radius: 12px;
-}
-
-.suggested-hmw-card > span {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #a16207;
-}
-
-.suggested-hmw-card h3 {
-  margin: 6px 0;
-  font-size: 17px;
-  color: #0f172a;
-}
-
-.suggested-hmw-card p {
-  margin: 0 0 10px;
-  font-size: 13px;
-  color: #64748b;
 }
 
 /* Hidden variables / stakeholders / market gaps / trends */
@@ -281,213 +289,6 @@
   font-size: 13.5px;
   line-height: 1.5;
   color: #475569;
-}
-
-/* Side-by-side "Continue My Whys" / "Generate All 5 Whys" buttons */
-.ai-button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-/* =========================================================
-   AI-ASSISTED SEQUENTIAL 5 WHYS
-   Added without changing the existing insight/scoring styles.
-========================================================= */
-
-.why-item-locked {
-  opacity: 0.5;
-}
-
-.why-answer-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.8fr);
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.why-answer-panel,
-.why-prompts-panel {
-  padding: 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-}
-
-.why-answer-panel > label {
-  display: block;
-  margin-bottom: 7px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.why-answer-panel textarea {
-  width: 100%;
-  box-sizing: border-box;
-  resize: vertical;
-  min-height: 125px;
-  padding: 11px 12px;
-  border: 1px solid #cbd5e1;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #0f172a;
-  font: inherit;
-  line-height: 1.5;
-  outline: none;
-}
-
-.why-answer-panel textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.why-ai-feedback {
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-left: 3px solid #2563eb;
-  background: #eff6ff;
-  border-radius: 0 8px 8px 0;
-  color: #334155;
-}
-
-.why-ai-feedback strong {
-  font-size: 12px;
-  color: #1d4ed8;
-}
-
-.why-ai-feedback p {
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.ai-generated-answer {
-  margin-top: 10px;
-  padding: 12px;
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
-  border-radius: 10px;
-}
-
-.ai-generated-answer-header {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.ai-generated-answer-header strong {
-  font-size: 13px;
-  color: #6d28d9;
-}
-
-.ai-generated-answer-header span {
-  font-size: 11px;
-  color: #64748b;
-}
-
-.ai-generated-answer > p {
-  margin: 9px 0;
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: #334155;
-}
-
-.ai-generated-answer-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.use-ai-suggestion-button.secondary {
-  background: #ffffff;
-  color: #475569;
-  border-color: #cbd5e1;
-}
-
-.ai-help-button {
-  width: 100%;
-  margin-top: 10px;
-  padding: 9px 12px;
-  border: 1px solid #c4b5fd;
-  border-radius: 9px;
-  background: #faf5ff;
-  color: #6d28d9;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.ai-help-button:hover:not(:disabled) {
-  background: #f3e8ff;
-}
-
-.ai-help-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-
-.why-prompts-title span {
-  display: block;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #7c3aed;
-}
-
-.why-prompts-title h4 {
-  margin: 4px 0 0;
-  font-size: 15px;
-  color: #334155;
-}
-
-.why-prompts-panel > p {
-  margin: 7px 0 12px;
-  font-size: 12px;
-  line-height: 1.45;
-  color: #64748b;
-}
-
-.why-prompt-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.why-prompt-card {
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px;
-  text-align: left;
-  border: 1px solid #e2e8f0;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #334155;
-  font-size: 12.5px;
-  line-height: 1.4;
-  cursor: pointer;
-  transition: border-color 0.15s ease, transform 0.15s ease;
-}
-
-.why-prompt-card:hover {
-  border-color: #c4b5fd;
-  transform: translateY(-1px);
-}
-
-.why-prompt-empty {
-  padding: 11px;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #94a3b8;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.why-step-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
 }
 
 .root-cause-highlight {
@@ -632,7 +433,6 @@
 }
 
 @media (max-width: 760px) {
-  .why-answer-layout,
   .canvas-score-metrics {
     grid-template-columns: 1fr;
   }

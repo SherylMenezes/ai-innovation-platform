@@ -82,26 +82,14 @@ export function remixIdeas(ideaIds, ideaDescriptions) {
 }
 
 // POST /api/ai/problem-refine — ProblemRefineRequest -> ProblemRefineResponse
-// The AI generates the next Why question from the completed answer chain,
-// provides thinking prompts, and can generate a possible answer only when
-// the student explicitly asks for help.
-export function refineProblem(
-  problemStatement,
-  previousAnswers = [],
-  currentStep = 0,
-  currentAnswer = "",
-  helpMeAnswer = false,
-  previousQuestions = [],
-  currentQuestion = ""
-) {
+// Interactive 5 Whys: the AI returns the next contextual Why question plus
+// 3 thinking hints for activeIndex, reasoning from the student's answers so
+// far. Once all 5 answers are sent, it returns the root-cause synthesis.
+export function refineProblem(problemStatement, answers = [], activeIndex = 0) {
   return postJson("/api/ai/problem-refine", {
     problem_statement: problemStatement,
-    previous_answers: previousAnswers,
-    current_step: currentStep,
-    current_answer: currentAnswer,
-    help_me_answer: helpMeAnswer,
-    previous_questions: previousQuestions,
-    current_question: currentQuestion,
+    answers,
+    active_index: activeIndex,
   });
 }
 
