@@ -82,13 +82,37 @@ export function remixIdeas(ideaIds, ideaDescriptions) {
 }
 
 // POST /api/ai/problem-refine — ProblemRefineRequest -> ProblemRefineResponse
-// existingWhys (optional): whys the user has already typed, in order. When
-// given, the backend continues that exact chain instead of generating all
-// 5 from scratch — see ProblemCanvas.jsx's handleGetAiRootCause.
-export function refineProblem(problemStatement, existingWhys) {
+// The AI generates the next Why question from the completed answer chain,
+// provides thinking prompts, and can generate a possible answer only when
+// the student explicitly asks for help.
+export function refineProblem(
+  problemStatement,
+  previousAnswers = [],
+  currentStep = 0,
+  currentAnswer = "",
+  helpMeAnswer = false
+) {
   return postJson("/api/ai/problem-refine", {
     problem_statement: problemStatement,
-    existing_whys: existingWhys && existingWhys.length > 0 ? existingWhys : undefined,
+    previous_answers: previousAnswers,
+    current_step: currentStep,
+    current_answer: currentAnswer,
+    help_me_answer: helpMeAnswer,
+  });
+}
+
+// POST /api/ai/problem-canvas-score — ProblemCanvasScoreRequest -> ProblemCanvasScoreResponse
+export function scoreProblemCanvas({
+  problemStatement,
+  whyAnswers,
+  rootCause = "",
+  refinedProblemStatement = "",
+}) {
+  return postJson("/api/ai/problem-canvas-score", {
+    problem_statement: problemStatement,
+    why_answers: whyAnswers,
+    root_cause: rootCause,
+    refined_problem_statement: refinedProblemStatement,
   });
 }
 

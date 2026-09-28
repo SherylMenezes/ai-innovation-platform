@@ -6,13 +6,33 @@ from pydantic import BaseModel, Field
 
 class ProblemRefineRequest(BaseModel):
     problem_statement: str = Field(..., min_length=3, description="Initial problem statement to refine")
-    # When the user has already typed one or more Whys themselves, the
-    # service continues that exact chain instead of generating all 5 from
-    # scratch. Sequential/contiguous — the caller stops at the first
-    # blank Why (see ProblemCanvas.jsx's handleGetAiRootCause).
+
+    # New sequential 5-Whys flow. previous_answers contains the student's
+    # completed answers before the current Why step.
+    previous_answers: List[str] = Field(
+        default_factory=list,
+        description="Completed Why answers before the current step, in order.",
+    )
+    current_step: int = Field(
+        default=0,
+        ge=0,
+        le=4,
+        description="Zero-based current Why step. 0 = Why 1 and 4 = Why 5.",
+    )
+    current_answer: str = Field(
+        default="",
+        description="The student's answer for the current Why step, if entered.",
+    )
+    help_me_answer: bool = Field(
+        default=False,
+        description="True only when the student explicitly asks AI to generate a possible answer.",
+    )
+
+    # Kept for compatibility with the previous frontend/backend contract.
+    # New code should use previous_answers/current_step/current_answer.
     existing_whys: Optional[List[str]] = Field(
         default=None,
-        description="Whys the user has already answered, in order. When provided, the AI continues this chain instead of generating all 5 from scratch.",
+        description="Legacy field retained for backward compatibility.",
     )
 
 
@@ -101,18 +121,42 @@ class MentorStreamRequest(BaseModel):
 # --- Response Schemas ---
 
 class ProblemRefineResponse(BaseModel):
-    # The "Why" questions in order — the student's own, followed by any the
-    # AI continued the chain with.
-    five_whys: List[str]
-    synthesized_root_cause: str
-    # Feed the root-cause tree's insight cards. Required (no defaults) so
-    # Gemini's structured output always fills them; the frontend still
-    # guards with ?. in case it ever gets a response without them.
-    refined_problem_statement: str
-    hidden_variables: List[str]
-    stakeholders: List[str]
-    market_gaps: List[str]
-    trend_insights: List[str]
+    # Legacy field retained so existing consumers do not break. In the new
+    # flow the frontend uses next_question instead.
+    five_whys: List[str] = Field(default_factory=list)
+
+    # Sequential 5-Whys guidance.
+    next_question: str = ""
+    thinking_prompts: List[str] = Field(default_factory=list)
+    generated_answer: str = ""
+    answer_feedback: str = ""
+
+    synthesized_root_cause: str = ""
+    refined_problem_statement: str = ""
+    hidden_variables: List[str] = Field(default_factory=list)
+    stakeholders: List[str] = Field(default_factory=list)
+    market_gaps: List[str] = Field(default_factory=list)
+    trend_insights: List[str] = Field(default_factory=list)
+
+
+class ProblemCanvasScoreRequest(BaseModel):
+    problem_statement: str = Field(..., min_length=3, description="Original challenge problem statement")
+    why_answers: List[str] = Field(..., min_length=1, max_length=5, description="Completed 5-Whys answers in order")
+    root_cause: str = ""
+    refined_problem_statement: str = ""
+
+
+class CanvasMetric(BaseModel):
+    score: int = Field(..., ge=0, le=100)
+    explanation: str = ""
+
+
+class ProblemCanvasScoreResponse(BaseModel):
+    problem_clarity: CanvasMetric
+    impact: CanvasMetric
+    feasibility: CanvasMetric
+    overall_score: int = Field(..., ge=0, le=100)
+    improvement_suggestions: List[str] = Field(default_factory=list)
 
 
 class HMWItem(BaseModel):

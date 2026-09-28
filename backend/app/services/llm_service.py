@@ -9,6 +9,7 @@ from google.genai.errors import ServerError, APIError, ClientError
 
 from app.schemas.ai import (
     ProblemRefineResponse,
+    ProblemCanvasScoreResponse,
     HMWGenerateResponse,
     ProblemScoreResponse,
     ScamperPromptResponse,
@@ -134,107 +135,113 @@ Also fill in these fields. Keep every list item to one concise sentence, and be 
 
 async def refine_problem_statement(
     problem_statement: str,
-    existing_whys: list[str] | None = None,
+    previous_answers: list[str] | None = None,
+    current_step: int = 0,
+    current_answer: str = "",
+    help_me_answer: bool = False,
 ) -> ProblemRefineResponse:
     """
-    Generates the "Why" QUESTIONS of a 5 Whys analysis — the questions that
-    narrow a broad problem down to a specific one — plus a refined problem
-    statement and insight cards (hidden variables, stakeholders, market
-    gaps, trends). Never the answers to the Whys. Three modes, chosen by
-    how much of the chain the student has already written themselves:
+    Sequential AI-assisted 5-Whys coaching.
 
-    1. Nothing typed yet (existing_whys empty/None) — generate all 5
-       questions from scratch.
-    2. Some typed, some remaining — continue the student's own line of
-       inquiry with only the remaining questions. five_whys is spliced
-       together in Python (existing_whys + only the new ones) so the
-       student's own wording is never swapped for the model's paraphrase.
-    3. All 5 already typed — nothing left to generate; only the refined
-       problem statement and insights are produced.
+    The AI generates one contextual Why question at a time from the
+    student's previous answers. It also provides three thinking prompts.
+    A possible answer is generated only when the student explicitly asks
+    for help. After Why 5, the complete chain is analysed to produce the
+    root cause and the existing insight cards.
     """
-    existing_whys = [w.strip() for w in (existing_whys or []) if w and w.strip()]
-    remaining = max(0, 5 - len(existing_whys))
+    previous_answers = [
+        answer.strip()
+        for answer in (previous_answers or [])
+        if answer and answer.strip()
+    ]
+    current_answer = (current_answer or "").strip()
+    current_step = max(0, min(current_step, 4))
+
+    # The old field was named existing_whys, but in the actual canvas these
+    # values are student responses. Keep the semantic model consistent here.
+    chain_parts = []
+    for index, answer in enumerate(previous_answers, start=1):
+        chain_parts.append(f"Why {index} answer: {answer}")
+    if current_answer:
+        chain_parts.append(f"Why {current_step + 1} answer: {current_answer}")
+
+    chain_context = "\n".join(chain_parts) if chain_parts else "No completed answers yet."
+    final_step = current_step == 4
 
     system_instruction = (
-        "You are an elite product strategy mentor. Help students narrow a broad "
-        "problem down to a specific, addressable one by asking sharp, well-aimed "
-        "'Why' questions. You write questions, never answers."
+        "You are an expert Socratic product-design mentor helping a student "
+        "perform a rigorous 5-Whys analysis. Generate contextual questions, "
+        "help the student think without presenting guesses as facts, and "
+        "only generate a possible answer when explicitly requested."
     )
 
-    # --- Mode 1: blank start ---
-    if not existing_whys:
-        prompt = f"""
-You are an expert product design and engineering coach specializing in rigorous root cause analysis.
-
-Problem statement:
-"{problem_statement}"
-
-Generate the five 'Why' questions of a 5 Whys analysis for this problem. Do NOT answer them — the student will investigate the answers themselves.
-
-Instructions:
-1. Write exactly 5 sequential 'Why' questions in five_whys. The first asks why the problem happens at all; each next question digs one level deeper into the most likely underlying cause implied by the question before it.
-2. Every question must be specific and must narrow the focus toward a particular, addressable problem — not a broad restatement of the one before.
-3. Write each as a single question sentence: no answers, explanations, or numbering.
-{_REFINE_EXTRAS}
-"""
-        try:
-            response = await _generate_with_fallback(
-                prompt=prompt,
-                response_schema=ProblemRefineResponse,
-                system_instruction=system_instruction,
-            )
-            return ProblemRefineResponse.model_validate_json(response.text)
-        except Exception as e:
-            logger.error(f"Gemini API Error in refine_problem_statement: {e}", exc_info=True)
-            raise e
-
-    numbered_existing = "\n".join(f"{i + 1}. {w}" for i, w in enumerate(existing_whys))
-
-    # --- Mode 3: all five already written — insights only ---
-    if remaining == 0:
-        prompt = f"""
-You are an expert product design and engineering coach specializing in rigorous root cause analysis.
-
-Problem statement:
-"{problem_statement}"
-
-The student has written all five 'Why' questions of their 5 Whys analysis:
-{numbered_existing}
-
-Do not add, remove, or rephrase any of them. Return the same {len(existing_whys)} questions in five_whys, unchanged.
-{_REFINE_EXTRAS}
-Base every field on the student's line of questioning above.
-"""
-        try:
-            response = await _generate_with_fallback(
-                prompt=prompt,
-                response_schema=ProblemRefineResponse,
-                system_instruction=system_instruction,
-            )
-            parsed = ProblemRefineResponse.model_validate_json(response.text)
-            # existing_whys, not parsed.five_whys, is authoritative — the
-            # student's own words are never replaced by the model's echo.
-            return parsed.model_copy(update={"five_whys": existing_whys})
-        except Exception as e:
-            logger.error(f"Gemini API Error in refine_problem_statement (insights-only): {e}", exc_info=True)
-            raise e
-
-    # --- Mode 2: continue the student's line of questioning ---
     prompt = f"""
-You are an expert product design and engineering coach specializing in rigorous root cause analysis.
+You are guiding a student through a sequential 5-Whys root-cause analysis.
 
-Problem statement:
-"{problem_statement}"
+PRIMARY PROBLEM:
+{problem_statement}
 
-The student has already written the first {len(existing_whys)} 'Why' question(s) of a 5 Whys analysis themselves:
-{numbered_existing}
+CURRENT STEP:
+Why {current_step + 1}
 
-Continue this exact line of inquiry. Do not restate or rephrase what the student wrote, and do NOT answer any question. In five_whys, write exactly {remaining} more sequential 'Why' question(s). Each one digs a level deeper into the most likely underlying cause implied by the question before it, narrowing toward a specific, addressable problem. Do not include the student's own questions in five_whys.
+COMPLETED ANSWERS:
+{chain_context}
 
-Write each as a single question sentence: no answers, explanations, or numbering.
-{_REFINE_EXTRAS}
-Base every field on the full line of questioning — the student's questions plus yours.
+CURRENT ANSWER:
+{current_answer or "The student has not answered this Why yet."}
+
+DID THE STUDENT EXPLICITLY ASK AI TO HELP ANSWER?
+{"YES" if help_me_answer else "NO"}
+
+Your response must support the student's reasoning rather than simply doing
+all of the exercise for them.
+
+RULES FOR next_question:
+- Generate a single contextual Why question.
+- If the current answer exists and this is not Why 5, the next question must
+  investigate the cause behind the current answer.
+- If this is Why 1 and there is no answer yet, generate Why 1 from the primary
+  problem.
+- Never use generic filler such as "Why does this problem exist?" when a more
+  specific question can be asked.
+- If this is Why 5, next_question must be an empty string.
+
+RULES FOR thinking_prompts:
+- Generate exactly 3 concise prompts when useful.
+- They are brainstorming directions, not verified facts.
+- They should help the student think about people, processes, systems,
+  incentives, resources, environment, behaviour, or other plausible causes.
+- Do not fabricate statistics or claim an unverified cause is definitely true.
+
+RULES FOR generated_answer:
+- Only generate it when the student explicitly requested help.
+- It must be a plausible candidate answer based only on the problem and chain.
+- Make it clear through the wording that it is a possible explanation, not a
+  confirmed fact.
+- Keep it concise enough to edit in a student text box.
+- If help_me_answer is NO, return an empty string.
+
+RULES FOR answer_feedback:
+- If current_answer exists, briefly explain whether it is specific enough to
+  continue the causal chain and what the student could clarify.
+- If there is no current answer, return an empty string.
+
+FINAL WHY RULES:
+When current_step is Why 5 and current_answer exists, analyse the complete
+chain. Return:
+- synthesized_root_cause: one concise fundamental cause supported by the chain
+- refined_problem_statement: a specific, actionable restatement
+- hidden_variables: exactly 3 plausible factors that may also matter
+- stakeholders: 3 to 5 relevant people/groups and their stake
+- market_gaps: 2 to 3 relevant gaps in existing approaches
+- trend_insights: 2 to 3 relevant technology, policy, or behaviour trends
+Do not invent facts; phrase uncertain insights as possibilities.
+
+For non-final steps, those final-analysis fields may be empty.
+
+Return only the structured response.
 """
+
     try:
         response = await _generate_with_fallback(
             prompt=prompt,
@@ -242,10 +249,15 @@ Base every field on the full line of questioning — the student's questions plu
             system_instruction=system_instruction,
         )
         parsed = ProblemRefineResponse.model_validate_json(response.text)
-        continuation = list(parsed.five_whys)[:remaining]
-        return parsed.model_copy(update={"five_whys": existing_whys + continuation})
+
+        # Keep the legacy five_whys field useful to any old consumer without
+        # replacing the student's answers with AI-generated questions.
+        return parsed.model_copy(update={"five_whys": []})
     except Exception as e:
-        logger.error(f"Gemini API Error in refine_problem_statement (continuation): {e}", exc_info=True)
+        logger.error(
+            f"Gemini API Error in refine_problem_statement: {e}",
+            exc_info=True,
+        )
         raise e
 
 
@@ -285,6 +297,68 @@ Provide constructive, specific justification for your scoring along with actiona
         system_instruction="You are a strict technical evaluator. Assess problem statements with high precision and unbiased metrics."
     )
     return ProblemScoreResponse.model_validate_json(response.text)
+
+
+async def score_problem_canvas(
+    problem_statement: str,
+    why_answers: list[str],
+    root_cause: str = "",
+    refined_problem_statement: str = "",
+) -> ProblemCanvasScoreResponse:
+    """Score the complete problem + 5-Whys chain for the Problem Canvas."""
+    chain = "\n".join(
+        f"Why {index}: {answer}"
+        for index, answer in enumerate(why_answers, start=1)
+    )
+
+    prompt = f"""
+Evaluate the student's complete Problem Framing Canvas.
+
+ORIGINAL PROBLEM:
+{problem_statement}
+
+5-WHYS ANSWERS:
+{chain}
+
+ROOT CAUSE:
+{root_cause or "Not separately provided."}
+
+REFINED PROBLEM STATEMENT:
+{refined_problem_statement or "Not separately provided."}
+
+Score the complete causal chain from 0 to 100 for:
+
+1. problem_clarity
+How clearly and specifically does the complete chain explain the problem?
+
+2. impact
+How significant is the identified problem/root cause if the student's
+reasoning is correct?
+
+3. feasibility
+How realistically can the identified problem be explored or addressed by
+potential solutions?
+
+Also provide 2 to 4 concise improvement suggestions.
+
+IMPORTANT:
+- Base the evaluation on the entire chain, not just the original sentence.
+- Do not invent statistics or external facts.
+- Distinguish reasonable hypotheses from confirmed facts.
+- Evaluate the quality of the problem framing, not the student's grammar.
+
+Return only the structured response.
+"""
+
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=ProblemCanvasScoreResponse,
+        system_instruction=(
+            "You are a rigorous but constructive design-thinking evaluator. "
+            "Score the complete causal reasoning objectively."
+        ),
+    )
+    return ProblemCanvasScoreResponse.model_validate_json(response.text)
 
 
 async def generate_scamper_prompts(hmw_statement: str) -> ScamperPromptResponse:

@@ -185,3 +185,355 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+/* =========================================================
+   AI-ASSISTED SEQUENTIAL 5 WHYS
+   Added without changing the existing insight/scoring styles.
+========================================================= */
+
+.why-item-locked {
+  opacity: 0.5;
+}
+
+.why-answer-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, 0.8fr);
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.why-answer-panel,
+.why-prompts-panel {
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.why-answer-panel > label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.why-answer-panel textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 125px;
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #0f172a;
+  font: inherit;
+  line-height: 1.5;
+  outline: none;
+}
+
+.why-answer-panel textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.why-ai-feedback {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid #2563eb;
+  background: #eff6ff;
+  border-radius: 0 8px 8px 0;
+  color: #334155;
+}
+
+.why-ai-feedback strong {
+  font-size: 12px;
+  color: #1d4ed8;
+}
+
+.why-ai-feedback p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ai-generated-answer {
+  margin-top: 10px;
+  padding: 12px;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+}
+
+.ai-generated-answer-header {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ai-generated-answer-header strong {
+  font-size: 13px;
+  color: #6d28d9;
+}
+
+.ai-generated-answer-header span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ai-generated-answer > p {
+  margin: 9px 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.ai-generated-answer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.use-ai-suggestion-button.secondary {
+  background: #ffffff;
+  color: #475569;
+  border-color: #cbd5e1;
+}
+
+.ai-help-button {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid #c4b5fd;
+  border-radius: 9px;
+  background: #faf5ff;
+  color: #6d28d9;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-help-button:hover:not(:disabled) {
+  background: #f3e8ff;
+}
+
+.ai-help-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.why-prompts-title span {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #7c3aed;
+}
+
+.why-prompts-title h4 {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: #334155;
+}
+
+.why-prompts-panel > p {
+  margin: 7px 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.why-prompt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.why-prompt-card {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  text-align: left;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12.5px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.why-prompt-card:hover {
+  border-color: #c4b5fd;
+  transform: translateY(-1px);
+}
+
+.why-prompt-empty {
+  padding: 11px;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.why-step-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.root-cause-highlight {
+  display: flex;
+  gap: 14px;
+  margin: 16px 0;
+  padding: 16px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 12px;
+}
+
+.root-cause-highlight-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.root-cause-highlight span {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #2563eb;
+}
+
+.root-cause-highlight h3 {
+  margin: 5px 0 5px;
+  color: #1e3a8a;
+  font-size: 17px;
+  line-height: 1.45;
+}
+
+.root-cause-highlight p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.canvas-ai-score-card {
+  margin: 18px 0 14px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e0eaff;
+  border-radius: 12px;
+}
+
+.canvas-ai-score-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.canvas-ai-score-header > div:first-child > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #2563eb;
+}
+
+.canvas-ai-score-header h3 {
+  margin: 4px 0;
+  color: #0f172a;
+}
+
+.canvas-ai-score-header p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.canvas-overall-score {
+  min-width: 82px;
+  text-align: center;
+}
+
+.canvas-overall-score strong {
+  display: block;
+  font-size: 32px;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.canvas-overall-score span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.canvas-score-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.canvas-score-metric {
+  padding: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+}
+
+.canvas-score-metric > span {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.canvas-score-metric strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 25px;
+  color: #0f172a;
+}
+
+.canvas-score-metric p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.canvas-score-suggestions {
+  margin-top: 14px;
+}
+
+.canvas-score-suggestions h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.canvas-score-suggestions ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .why-answer-layout,
+  .canvas-score-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .canvas-ai-score-header {
+    align-items: flex-start;
+  }
+}

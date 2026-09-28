@@ -1,25 +1,31 @@
-// Mirrors backend/app/services/xp_rules.py CHALLENGE_LEVELS — the four
-// Levels of a challenge, and the App page each one lives on.
-export const CHALLENGE_LEVELS = [
+// Mirrors backend/app/services/xp_rules.py CHALLENGE_PHASES — the four
+// Phases of a challenge, and the App page each one lives on.
+export const CHALLENGE_PHASES = [
   { number: 1, stage: "canvas", name: "Problem Canvas", page: "canvas" },
   { number: 2, stage: "ideation", name: "Ideate", page: "ideation" },
   { number: 3, stage: "evaluation", name: "Idea Evaluation", page: "evaluation" },
   { number: 4, stage: "submission", name: "Submit Project", page: "submission" },
 ];
 
+// Backward-compatible alias for any components still referencing CHALLENGE_LEVELS
+export const CHALLENGE_LEVELS = CHALLENGE_PHASES;
+
 // Enrollment.current_stage -> App page. "submission" and "completed"
 // don't share their page's name, so setPage(stage) alone would land on a
 // blank page.
 export function pageForStage(stage) {
   if (stage === "completed") return "summary";
-  return CHALLENGE_LEVELS.find((level) => level.stage === stage)?.page || "canvas";
+  return CHALLENGE_PHASES.find((phase) => phase.stage === stage)?.page || "canvas";
 }
 
-// Highest Level number the student has unlocked for a stage.
-export function unlockedLevelForStage(stage) {
-  if (stage === "completed") return CHALLENGE_LEVELS.length;
-  return CHALLENGE_LEVELS.find((level) => level.stage === stage)?.number || 1;
+// Highest Phase number the student has unlocked for a stage.
+export function unlockedPhaseForStage(stage) {
+  if (stage === "completed") return CHALLENGE_PHASES.length;
+  return CHALLENGE_PHASES.find((phase) => phase.stage === stage)?.number || 1;
 }
+
+// Backward-compatible alias for unlockedLevelForStage
+export const unlockedLevelForStage = unlockedPhaseForStage;
 
 export const BADGES = {
   challenge_completer: { icon: "🏁", name: "Challenge Completer", hint: "Complete any challenge" },
@@ -52,8 +58,9 @@ export function describeXpEvent(item) {
   switch (item.source_event) {
     case "WORKSPACE_STEP_COMPLETED":
       return stepLabel(metadata.step);
+    case "PHASE_CLEARED":
     case "LEVEL_CLEARED":
-      return `Level ${metadata.level} cleared`;
+      return `Phase ${metadata.phase || metadata.level} cleared`;
     case "CHALLENGE_SUBMITTED":
       return "Project submitted";
     case "CHALLENGE_EVALUATED":
