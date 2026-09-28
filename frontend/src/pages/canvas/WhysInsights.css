@@ -96,6 +96,67 @@
   color: #6d28d9;
 }
 
+/* Live causal chain (5 Whys screen): question + answer per level,
+   indented one step deeper each Why via the --depth custom property. */
+.causal-chain {
+  margin: 20px 0;
+  padding: 18px 20px;
+
+  text-align: left;
+  background: #f8fbff;
+  border: 1px solid #dbe5f3;
+  border-radius: 14px;
+}
+
+.causal-chain-heading > span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #2563eb;
+}
+
+.causal-chain-heading > p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.causal-step {
+  margin-left: calc(var(--depth, 0) * 16px);
+}
+
+.causal-question {
+  margin: 2px 0 6px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.causal-answer {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 3px solid #bfdbfe;
+  color: #334155;
+}
+
+.causal-answer strong {
+  color: #2563eb;
+}
+
+.causal-step-pending {
+  opacity: 0.6;
+  border-style: dashed;
+}
+
+.causal-step-pending .causal-answer {
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .causal-step {
+    margin-left: calc(var(--depth, 0) * 6px);
+  }
+}
+
 /* Hidden variables / stakeholders / market gaps / trends */
 .insight-grid {
   display: grid;

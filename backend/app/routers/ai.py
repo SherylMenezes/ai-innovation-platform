@@ -30,6 +30,8 @@ from app.schemas.ai import (
     IdeaScoreResponse,
     SwotScoreRequest,
     SwotScoreResponse,
+    RankIdeasRequest,
+    RankIdeasResponse,
     RiskAnalysisResponse,
     SWOTAnalysisRequest,
     SWOTAnalysisResponse,
@@ -49,6 +51,7 @@ from app.services.llm_service import (
     remix_ideas,
     calculate_idea_score,
     score_idea_from_swot,
+    rank_alternative_ideas,
     analyze_idea_risks,
     generate_swot_analysis,
     run_mentor_coach,
@@ -135,6 +138,16 @@ async def score_idea_with_swot(payload: SwotScoreRequest):
         payload.weaknesses,
         payload.opportunities,
         payload.threats,
+    )
+
+@router.post("/rank-ideas", response_model=RankIdeasResponse)
+async def rank_ideas(payload: RankIdeasRequest):
+    return await rank_alternative_ideas(
+        payload.context,
+        payload.current_title,
+        payload.current_description,
+        payload.current_scores,
+        payload.ideas,
     )
 
 @router.get("/risk-analysis", response_model=RiskAnalysisResponse)

@@ -70,6 +70,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from app.services.llm_service import AIServiceUnavailableError
+
+
+# Gemini overloaded / out of quota on every model: answer with a 503 and a
+# readable reason (shown by the frontend) instead of a bare 500. Handled
+# responses also keep their CORS headers, unlike unhandled 500s.
+@app.exception_handler(AIServiceUnavailableError)
+async def ai_unavailable_handler(request: Request, exc: AIServiceUnavailableError):
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
 from app.routers import leaderboard
 app.include_router(leaderboard.router)
 

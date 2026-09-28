@@ -1519,6 +1519,81 @@
   background: #2563eb;
   color: white;
 }
+
+/* =========================================
+   IDEATE — YOUR OWN IDEA
+   ========================================= */
+
+.own-idea-card {
+  margin-top: 24px;
+  padding: 22px;
+  background: #ffffff;
+  border: 1px dashed #93c5fd;
+  border-radius: 14px;
+}
+
+.own-idea-card.selected-idea {
+  border: 2px solid #2563eb;
+}
+
+.own-idea-card h3 {
+  margin: 6px 0;
+  font-size: 17px;
+  color: #0f172a;
+}
+
+.own-idea-hint {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+.own-idea-card label {
+  display: block;
+  margin: 12px 0 7px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.own-idea-card input,
+.own-idea-card textarea {
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #0f172a;
+  background: #f8fbff;
+  border: 1px solid #dbe5f3;
+  border-radius: 10px;
+}
+
+.own-idea-card textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.own-idea-card input:focus,
+.own-idea-card textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.own-idea-card .explore-idea-button {
+  margin-top: 16px;
+}
+
+.own-idea-card .explore-idea-button:disabled {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
 /* =========================================================
    DAY 5 — FINAL RESPONSIVE & UX POLISH
    ========================================================= */

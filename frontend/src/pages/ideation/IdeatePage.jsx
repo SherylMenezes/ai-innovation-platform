@@ -97,6 +97,9 @@ function IdeatePage({ challengeId, onStageAdvance, onReward, onBack }) {
   // Selected AI idea
   const [selectedIdea, setSelectedIdea] = useState(null);
 
+  // The student's own idea, as an alternative to the AI suggestions.
+  const [ownIdea, setOwnIdea] = useState({ title: "", description: "" });
+
   // AI-generated ideas
   const [aiIdeas, setAiIdeas] = useState([]);
   const [isAiIdeasLoading, setIsAiIdeasLoading] = useState(false);
@@ -136,6 +139,13 @@ function IdeatePage({ challengeId, onStageAdvance, onReward, onBack }) {
 
         if (saved.selected_idea) {
           setSelectedIdea(saved.selected_idea);
+
+          if (saved.selected_idea.source === "own") {
+            setOwnIdea({
+              title: saved.selected_idea.title || "",
+              description: saved.selected_idea.description || "",
+            });
+          }
         }
       })
       .catch((err) => setWorkspaceError(err.message))
@@ -174,6 +184,38 @@ function IdeatePage({ challengeId, onStageAdvance, onReward, onBack }) {
     updatedIdeas[index] = value;
 
     setMindMapIdeas(updatedIdeas);
+
+    setError("");
+  };
+
+  // ---------------------------------------------------------
+  // OWN IDEA
+  // ---------------------------------------------------------
+
+  const isOwnIdeaSelected = selectedIdea?.source === "own";
+  const canUseOwnIdea = ownIdea.title.trim() !== "" && ownIdea.description.trim() !== "";
+
+  const handleOwnIdeaChange = (field, value) => {
+    setOwnIdea((prev) => ({ ...prev, [field]: value }));
+
+    // Editing a selected own idea deselects it, so what gets saved is
+    // always exactly what the student confirmed with "Use my idea".
+    if (isOwnIdeaSelected) setSelectedIdea(null);
+
+    setError("");
+  };
+
+  const handleSelectOwnIdea = () => {
+    if (!canUseOwnIdea) {
+      setError("Give your idea a title and a short description first.");
+      return;
+    }
+
+    setSelectedIdea({
+      title: ownIdea.title.trim(),
+      description: ownIdea.description.trim(),
+      source: "own",
+    });
 
     setError("");
   };
@@ -248,6 +290,12 @@ Generate practical and innovative solution directions based on the student's ide
         scamper_answers: scamperAnswers,
         mindmap_ideas: mindMapIdeas,
         selected_idea: selectedIdea,
+        // Every idea the student saw, so Idea Evaluation can rank the
+        // chosen one against them and offer a switch.
+        idea_options:
+          aiIdeas.length > 0
+            ? aiIdeas.map(({ title, description }) => ({ title, description }))
+            : savedCanvas.idea_options || [],
       };
 
       const result = await saveCanvasState(
@@ -658,7 +706,7 @@ Generate practical and innovative solution directions based on the student's ide
 
                   <div
                     className={
-                      selectedIdea?.title === idea.title
+                      !isOwnIdeaSelected && selectedIdea?.title === idea.title
                         ? "idea-card selected-idea"
                         : "idea-card"
                     }
@@ -688,7 +736,7 @@ Generate practical and innovative solution directions based on the student's ide
                         setError("");
                       }}
                     >
-                      {selectedIdea?.title === idea.title
+                      {!isOwnIdeaSelected && selectedIdea?.title === idea.title
                         ? "✓ Selected"
                         : "Explore this idea →"}
                     </button>
@@ -711,6 +759,55 @@ Generate practical and innovative solution directions based on the student's ide
                   </p>
                 </div>
               )}
+
+          </div>
+
+          {/* OWN IDEA */}
+          <div className={isOwnIdeaSelected ? "own-idea-card selected-idea" : "own-idea-card"}>
+
+            <p className="idea-placeholder-label">
+              ✎ YOUR OWN IDEA
+            </p>
+
+            <h3>
+              Have a different solution in mind?
+            </h3>
+
+            <p className="own-idea-hint">
+              You don't have to use an AI suggestion — describe your own idea
+              and carry it forward to Idea Evaluation instead.
+            </p>
+
+            <label htmlFor="own-idea-title">
+              Idea title
+            </label>
+            <input
+              id="own-idea-title"
+              type="text"
+              value={ownIdea.title}
+              onChange={(e) => handleOwnIdeaChange("title", e.target.value)}
+              placeholder="e.g. Offline voice-first triage assistant"
+              maxLength={120}
+            />
+
+            <label htmlFor="own-idea-description">
+              Description
+            </label>
+            <textarea
+              id="own-idea-description"
+              value={ownIdea.description}
+              onChange={(e) => handleOwnIdeaChange("description", e.target.value)}
+              placeholder="What does your idea do, who is it for, and how does it address your How Might We statement?"
+            />
+
+            <button
+              type="button"
+              className="explore-idea-button"
+              onClick={handleSelectOwnIdea}
+              disabled={!canUseOwnIdea}
+            >
+              {isOwnIdeaSelected ? "✓ Selected" : "Use my idea →"}
+            </button>
 
           </div>
 

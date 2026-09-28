@@ -19,6 +19,7 @@ from app.schemas.ai import (
     RemixIdeasResponse,
     IdeaScoreResponse,
     SwotScoreResponse,
+    RankIdeasResponse,
     RiskAnalysisResponse,
     SWOTAnalysisResponse,
     MentorCoachResponse,
@@ -64,10 +65,29 @@ MODEL_TIMEOUT_SECONDS = 25
 TOTAL_TIMEOUT_SECONDS = 75
 
 
+class AIServiceUnavailableError(Exception):
+    """Every Gemini model was overloaded, out of quota, or timed out.
+    main.py turns this into a 503 with a readable message instead of a
+    bare 500 Internal Server Error."""
+
+
+def _unavailable_message(errors: list) -> str:
+    if any(getattr(e, "code", None) == 429 for e in errors):
+        return (
+            "The AI service has used up its free daily quota for this API key. "
+            "It resets once a day - try again later, or enable billing on the Gemini API key."
+        )
+    return (
+        "The AI service is overloaded right now (Google's Gemini servers are busy). "
+        "Please wait a minute and try again."
+    )
+
+
 async def _generate_with_fallback(prompt: str, response_schema=None, system_instruction: str = ""):
     """Helper that retries across supported models if API deprecations, server errors, or timeouts occur."""
     client = _get_client()
     last_exception = None
+    availability_errors = []  # overload / quota / timeout, one per model tried
     deadline = time.monotonic() + TOTAL_TIMEOUT_SECONDS
 
     for model_name in MODEL_CANDIDATES:
@@ -100,6 +120,7 @@ async def _generate_with_fallback(prompt: str, response_schema=None, system_inst
                 f"Attempting fallback to next model..."
             )
             last_exception = TimeoutError(f"Model '{model_name}' did not respond in time.")
+            availability_errors.append(last_exception)
             continue
         except (ServerError, APIError, ClientError) as e:
             logger.warning(
@@ -107,6 +128,8 @@ async def _generate_with_fallback(prompt: str, response_schema=None, system_inst
                 f"Attempting fallback to next model..."
             )
             last_exception = e
+            if isinstance(e, ServerError) or getattr(e, "code", None) == 429:
+                availability_errors.append(e)
             await asyncio.sleep(0.5)
             continue
         except Exception as e:
@@ -114,9 +137,12 @@ async def _generate_with_fallback(prompt: str, response_schema=None, system_inst
             last_exception = e
             continue
 
-    if last_exception:
-        raise last_exception
-    raise TimeoutError("The AI service did not respond in time.")
+    # Only a pure availability failure becomes the friendly 503 — anything
+    # else (bad request, schema problem, bug) is re-raised as-is so it
+    # still shows up clearly in the server logs.
+    if last_exception is None or last_exception in availability_errors:
+        raise AIServiceUnavailableError(_unavailable_message(availability_errors)) from last_exception
+    raise last_exception
 
 
 # Shared by all three modes below, so the insight cards are always built
@@ -536,6 +562,54 @@ Scoring Guidelines:
         )
     )
     return SwotScoreResponse.model_validate_json(response.text)
+
+
+async def rank_alternative_ideas(
+    context: str,
+    current_title: str,
+    current_description: str,
+    current_scores: dict,
+    ideas: list,
+) -> RankIdeasResponse:
+    anchor = ", ".join(f"{key}: {value}/5" for key, value in current_scores.items()) or "not scored"
+    ideas_text = "\n".join(
+        f"- ID: {idea.id} | Title: {idea.title} | Description: {idea.description or ''}"
+        for idea in ideas
+    )
+    prompt = f"""
+A student is evaluating solution ideas for this challenge:
+"{context}"
+
+Their current idea has already been scored in depth using a SWOT analysis:
+Title: {current_title}
+Description: {current_description}
+Scores: {anchor}
+
+Score each of the following alternative ideas on the SAME 1-5 scale and criteria, using the
+current idea's scores as a calibration anchor (an alternative that is clearly more feasible
+than the current idea should score higher on feasibility, and so on):
+{ideas_text}
+
+Criteria:
+- Feasibility: How realistic and practical is the idea to implement?
+- Impact: How much value or positive change could the idea create?
+- Innovation: How original or novel is the solution?
+- Scalability: How easily could the idea grow to more users or use cases?
+
+Rules:
+- Return exactly one entry per alternative, reusing its ID unchanged.
+- Integers 1-5 only. Be honest: alternatives should not all beat or all lose to the current idea.
+- Give a one-sentence reason comparing each alternative to the current idea.
+"""
+    response = await _generate_with_fallback(
+        prompt=prompt,
+        response_schema=RankIdeasResponse,
+        system_instruction=(
+            "You are an impartial innovation-programme judge comparing alternative "
+            "solution ideas on a consistent 1-5 scale."
+        )
+    )
+    return RankIdeasResponse.model_validate_json(response.text)
 
 
 async def analyze_idea_risks(title: str, description: str = "") -> RiskAnalysisResponse:

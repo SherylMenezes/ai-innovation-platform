@@ -95,6 +95,16 @@ class SWOTAnalysisRequest(BaseModel):
     description: str = ""
 
 
+class RankIdeasRequest(BaseModel):
+    context: str = ""
+    current_title: str
+    current_description: str = ""
+    # The current idea's SWOT-based 1-5 scores, used as the anchor the
+    # alternatives are scored against so the ranking compares like with like.
+    current_scores: dict[str, int] = {}
+    ideas: List[IdeaItem]
+
+
 class SwotScoreRequest(BaseModel):
     title: str
     description: str = ""
@@ -257,6 +267,19 @@ class SwotScoreResponse(BaseModel):
     innovation: CriterionScore
     scalability: CriterionScore
     summary: str
+
+
+class RankedIdea(BaseModel):
+    id: str
+    feasibility: int = Field(..., ge=1, le=5)
+    impact: int = Field(..., ge=1, le=5)
+    innovation: int = Field(..., ge=1, le=5)
+    scalability: int = Field(..., ge=1, le=5)
+    reason: str
+
+
+class RankIdeasResponse(BaseModel):
+    ranked_ideas: List[RankedIdea]
 
 
 class RiskCategory(BaseModel):

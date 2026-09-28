@@ -141,6 +141,17 @@ export function scoreIdeaFromSwot(title, description, swot) {
   return postJson("/api/ai/score-swot", { title, description, ...swot });
 }
 
+// POST /api/ai/rank-ideas — RankIdeasRequest -> RankIdeasResponse
+export function rankIdeas({ context, currentTitle, currentDescription, currentScores, ideas }) {
+  return postJson("/api/ai/rank-ideas", {
+    context,
+    current_title: currentTitle,
+    current_description: currentDescription,
+    current_scores: currentScores,
+    ideas,
+  });
+}
+
 // GET /api/ai/risk-analysis — query params -> RiskAnalysisResponse
 export function getRiskAnalysis(title, description) {
   const params = new URLSearchParams({ title, description: description || "" });

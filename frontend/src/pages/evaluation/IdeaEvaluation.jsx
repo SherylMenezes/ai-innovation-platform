@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import "./IdeaEvaluation.css";
-import { getSwotAnalysis, scoreIdeaFromSwot, getRiskAnalysis, mentorCoach } from "../../api/aiClient";
-import { getWorkspace, saveEvaluationState, advanceStage } from "../../api/challengesClient";
+import {
+  getSwotAnalysis,
+  scoreIdeaFromSwot,
+  getRiskAnalysis,
+  mentorCoach,
+  generateIdeas,
+  rankIdeas,
+} from "../../api/aiClient";
+import { getWorkspace, saveEvaluationState, saveCanvasState, advanceStage } from "../../api/challengesClient";
 import { useAuth } from "../../context/AuthContext";
 import { stepLabel } from "../../utils/progression";
 
@@ -51,6 +58,16 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
   const [isRiskLoading, setIsRiskLoading] = useState(false);
   const [riskError, setRiskError] = useState("");
 
+  // Idea ranking: the other ideas from Ideate, AI-scored against the
+  // current one so the student can switch to a higher-ranked idea.
+  const [canvasState, setCanvasState] = useState({});
+  const [candidateIdeas, setCandidateIdeas] = useState([]);
+  const [rankedAlternatives, setRankedAlternatives] = useState(null);
+  const [rankedFor, setRankedFor] = useState("");
+  const [isRankingLoading, setIsRankingLoading] = useState(false);
+  const [rankingError, setRankingError] = useState("");
+  const [isSwitching, setIsSwitching] = useState(false);
+
   const scoringInputKey = (ideaValue, swotValue) => JSON.stringify({ idea: ideaValue, swot: swotValue });
 
   const isSwotComplete = Object.values(swot).every((value) => String(value ?? "").trim());
@@ -83,6 +100,12 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
           if (saved.swot) setLastScoredInput(scoringInputKey(loadedIdea, saved.swot));
         }
         if (saved.risk_analysis) setRiskAnalysis(saved.risk_analysis);
+        setCanvasState(data.canvas_state || {});
+        if (Array.isArray(saved.candidate_ideas)) setCandidateIdeas(saved.candidate_ideas);
+        if (Array.isArray(saved.ranked_alternatives)) {
+          setRankedAlternatives(saved.ranked_alternatives);
+          setRankedFor(saved.ranked_for || "");
+        }
       })
       .catch((err) => setWorkspaceError(err.message))
       .finally(() => setIsLoadingWorkspace(false));
@@ -97,6 +120,9 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
     score_summary: scoreAiSummary,
     score_reasons: scoreReasons,
     risk_analysis: riskAnalysis,
+    candidate_ideas: candidateIdeas,
+    ranked_alternatives: rankedAlternatives,
+    ranked_for: rankedFor,
     ...overrides,
   });
 
@@ -215,6 +241,159 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
         scores.scalability) /
       4
     ).toFixed(1);
+
+  const overallOf = (s) => (s.feasibility + s.impact + s.innovation + s.scalability) / 4;
+
+  // Scores the other Ideate ideas against the current (SWOT-scored) idea.
+  // Falls back to fresh AI ideas for workspaces saved before Ideate kept
+  // its idea list.
+  const handleRankIdeas = async () => {
+    if (isRankingLoading || !hasScores) return;
+    setIsRankingLoading(true);
+    setRankingError("");
+    try {
+      let candidates = candidateIdeas;
+      if (candidates.length === 0) {
+        const options = Array.isArray(canvasState.idea_options) ? canvasState.idea_options : [];
+        if (options.length > 0) {
+          candidates = options;
+        } else {
+          const context = canvasState.hmw || idea.description || idea.title;
+          const generated = await generateIdeas(context, 4);
+          candidates = (generated.ideas || []).map(({ title, description }) => ({ title, description }));
+        }
+      }
+      const currentTitle = idea.title.trim().toLowerCase();
+      candidates = candidates
+        .filter((c) => c?.title && c.title.trim().toLowerCase() !== currentTitle)
+        .slice(0, 6);
+
+      let ranked = [];
+      if (candidates.length > 0) {
+        const result = await rankIdeas({
+          context: canvasState.hmw || "",
+          currentTitle: idea.title,
+          currentDescription: idea.description,
+          currentScores: scores,
+          ideas: candidates.map((c, i) => ({ id: String(i), title: c.title, description: c.description || "" })),
+        });
+        const byId = new Map((result.ranked_ideas || []).map((r) => [r.id, r]));
+        ranked = candidates
+          .map((c, i) => {
+            const r = byId.get(String(i));
+            if (!r) return null;
+            return {
+              title: c.title,
+              description: c.description || "",
+              scores: {
+                feasibility: r.feasibility,
+                impact: r.impact,
+                innovation: r.innovation,
+                scalability: r.scalability,
+              },
+              reason: r.reason,
+            };
+          })
+          .filter(Boolean);
+      }
+
+      setCandidateIdeas(candidates);
+      setRankedAlternatives(ranked);
+      setRankedFor(lastScoredInput);
+      try {
+        await saveEvaluationState(
+          accessToken,
+          challengeId,
+          buildEvaluationState({ candidate_ideas: candidates, ranked_alternatives: ranked, ranked_for: lastScoredInput })
+        );
+      } catch {
+        // Non-fatal — the ranking is shown either way and re-runs next visit.
+      }
+    } catch (err) {
+      setRankingError(err.message);
+    } finally {
+      setIsRankingLoading(false);
+    }
+  };
+
+  const handleOpenRanking = () => {
+    setStep(5);
+    if (rankedAlternatives === null || rankedFor !== lastScoredInput) {
+      handleRankIdeas();
+    }
+  };
+
+  // Swap in a higher-ranked idea and restart the evaluation from SWOT.
+  // The idea being replaced joins the candidate list so it can be ranked
+  // (and switched back to) later.
+  const handleSwitchIdea = async (alternative) => {
+    if (isSwitching) return;
+    const confirmed = window.confirm(
+      `Switch to "${alternative.title}"?\n\nYour current SWOT analysis and scores will be cleared, and you'll restart the evaluation from the SWOT step with this idea.`
+    );
+    if (!confirmed) return;
+
+    setIsSwitching(true);
+    setWorkspaceError("");
+    const nextIdea = { title: alternative.title, description: alternative.description || "" };
+    const nextCandidates = [
+      ...candidateIdeas.filter((c) => c.title !== alternative.title),
+      { title: idea.title, description: idea.description },
+    ];
+    const emptySwot = { strengths: "", weaknesses: "", opportunities: "", threats: "" };
+    const emptyScores = { feasibility: 0, impact: 0, innovation: 0, scalability: 0 };
+
+    try {
+      await saveEvaluationState(accessToken, challengeId, {
+        idea_title: nextIdea.title,
+        idea_description: nextIdea.description,
+        swot: emptySwot,
+        scores: emptyScores,
+        swot_recommendation: "",
+        score_summary: "",
+        score_reasons: null,
+        risk_analysis: null,
+        candidate_ideas: nextCandidates,
+        ranked_alternatives: null,
+        ranked_for: "",
+      });
+      // Keep the project summary's "Selected idea" in step with the switch.
+      const nextCanvas = { ...canvasState, selected_idea: nextIdea };
+      await saveCanvasState(accessToken, challengeId, nextCanvas);
+
+      setCanvasState(nextCanvas);
+      setIdea(nextIdea);
+      setSwot(emptySwot);
+      setScores(emptyScores);
+      setScoreReasons({});
+      setScoreAiSummary("");
+      setScoreAiError("");
+      setSwotAiRecommendation("");
+      setSwotAiError("");
+      setRiskAnalysis(null);
+      setRiskError("");
+      setCandidateIdeas(nextCandidates);
+      setRankedAlternatives(null);
+      setRankedFor("");
+      setLastScoredInput("");
+      setStep(1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setWorkspaceError(err.message);
+    } finally {
+      setIsSwitching(false);
+    }
+  };
+
+  const currentOverall = overallOf(scores);
+  const rankingRows = [
+    { title: idea.title, description: idea.description, scores, isCurrent: true },
+    ...(rankedAlternatives || []),
+  ]
+    .map((row) => ({ ...row, overall: overallOf(row.scores) }))
+    // Ties keep the current idea on top — only a strictly better idea is a reason to switch.
+    .sort((a, b) => b.overall - a.overall || (a.isCurrent ? -1 : b.isCurrent ? 1 : 0));
+  const higherRankedCount = rankingRows.filter((row) => !row.isCurrent && row.overall > currentOverall).length;
 
   const mentorPrompts = [
     "Help me improve my idea",
@@ -812,7 +991,7 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
 
             <button
               className="continue-evaluation-button"
-              onClick={() => setStep(5)}
+              onClick={handleOpenRanking}
             >
               View Idea Rankings →
             </button>
@@ -840,11 +1019,39 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
               </h2>
 
               <p>
-                Compare ideas based on their feasibility,
-                impact, innovation, and scalability scores.
+                Your idea (scored from your SWOT) compared with the other
+                ideas from Ideate, scored by AI on the same four criteria.
+                If another idea ranks higher, you can switch to it and
+                restart the evaluation from SWOT analysis.
               </p>
 
             </div>
+
+            {isRankingLoading && (
+              <p className="ai-recommendation-text">✦ AI is ranking your idea against the alternatives...</p>
+            )}
+
+            {rankingError && (
+              <>
+                <p className="ai-error-text">{rankingError}</p>
+                <button
+                  type="button"
+                  className="ai-autofill-button"
+                  onClick={handleRankIdeas}
+                  disabled={isRankingLoading}
+                >
+                  ↻ Retry ranking
+                </button>
+              </>
+            )}
+
+            {!isRankingLoading && rankedAlternatives && (
+              <p className={`ranking-verdict ${higherRankedCount > 0 ? "ranking-verdict-switch" : "ranking-verdict-top"}`}>
+                {higherRankedCount > 0
+                  ? `${higherRankedCount} idea${higherRankedCount === 1 ? "" : "s"} scored higher than yours. You can switch below — your evaluation will restart from SWOT analysis with the new idea.`
+                  : "Your idea ranks highest. Continue to submission when you're ready."}
+              </p>
+            )}
 
             <div className="ranking-table-container">
 
@@ -859,103 +1066,50 @@ function IdeaEvaluation({ challengeId, onStageAdvance, onReward }) {
                     <th>Innovation</th>
                     <th>Scalability</th>
                     <th>Overall Score</th>
+                    <th></th>
                   </tr>
                 </thead>
 
                 <tbody>
+                  {rankingRows.map((row, index) => (
+                    <tr key={`${row.title}-${index}`} className={row.isCurrent ? "ranking-row-current" : ""}>
+                      <td>
+                        <span className="rank-number">{index + 1}</span>
+                      </td>
 
-                  <tr>
-                    <td>
-                      <span className="rank-number">
-                        1
-                      </span>
-                    </td>
+                      <td className="idea-name">
+                        {row.title || "Your idea"}
+                        {row.isCurrent && <span className="ranking-current-tag">Your idea</span>}
+                        {!row.isCurrent && row.reason && (
+                          <span className="ranking-reason">{row.reason}</span>
+                        )}
+                      </td>
 
-                    <td className="idea-name">
-                      {idea.title || "Your idea"}
-                    </td>
+                      <td>{row.scores.feasibility} / 5</td>
+                      <td>{row.scores.impact} / 5</td>
+                      <td>{row.scores.innovation} / 5</td>
+                      <td>{row.scores.scalability} / 5</td>
 
-                    <td>{scores.feasibility} / 5</td>
-                    <td>{scores.impact} / 5</td>
-                    <td>{scores.innovation} / 5</td>
-                    <td>{scores.scalability} / 5</td>
+                      <td>
+                        <span className="overall-ranking-score">
+                          {row.overall.toFixed(1)} / 5
+                        </span>
+                      </td>
 
-                    <td>
-                      <span className="overall-ranking-score">
-                        {overallScore} / 5
-                      </span>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>
-                      <span className="rank-number">
-                        2
-                      </span>
-                    </td>
-
-                    <td className="idea-name">
-                      AI Customer Support
-                    </td>
-
-                    <td>4 / 5</td>
-                    <td>4 / 5</td>
-                    <td>4 / 5</td>
-                    <td>4 / 5</td>
-
-                    <td>
-                      <span className="overall-ranking-score">
-                        4.0 / 5
-                      </span>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>
-                      <span className="rank-number">
-                        3
-                      </span>
-                    </td>
-
-                    <td className="idea-name">
-                      Automated Inventory Alerts
-                    </td>
-
-                    <td>5 / 5</td>
-                    <td>3 / 5</td>
-                    <td>3 / 5</td>
-                    <td>4 / 5</td>
-
-                    <td>
-                      <span className="overall-ranking-score">
-                        3.8 / 5
-                      </span>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>
-                      <span className="rank-number">
-                        4
-                      </span>
-                    </td>
-
-                    <td className="idea-name">
-                      Predictive Maintenance Assistant
-                    </td>
-
-                    <td>3 / 5</td>
-                    <td>4 / 5</td>
-                    <td>5 / 5</td>
-                    <td>3 / 5</td>
-
-                    <td>
-                      <span className="overall-ranking-score">
-                        3.8 / 5
-                      </span>
-                    </td>
-                  </tr>
-
+                      <td>
+                        {!row.isCurrent && row.overall > currentOverall && (
+                          <button
+                            type="button"
+                            className="ranking-switch-button"
+                            onClick={() => handleSwitchIdea(row)}
+                            disabled={isSwitching}
+                          >
+                            {isSwitching ? "Switching..." : "Switch to this idea"}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
 
               </table>

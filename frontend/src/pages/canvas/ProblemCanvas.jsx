@@ -739,6 +739,55 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
               })}
             </div>
 
+            {/* Live causal chain: every AI-generated Why question with the
+                student's answer beneath it, each level indented one step
+                deeper, ending in the synthesized root cause. */}
+            {whyQuestions[0]?.trim() && (
+              <div className="causal-chain">
+                <div className="causal-chain-heading">
+                  <span>YOUR CAUSAL CHAIN</span>
+                  <p>Each Why digs one level deeper into the answer above it.</p>
+                </div>
+
+                <ol className="why-chain causal-tree">
+                  <li className="why-chain-node why-chain-start">
+                    <span>Problem</span>
+                    {problem}
+                  </li>
+
+                  {whys.map((answer, i) => {
+                    const question = whyQuestions[i]?.trim();
+                    const isAnswered = Boolean(answer?.trim());
+                    if (!question && !isAnswered) return null;
+
+                    return (
+                      <li
+                        className={`why-chain-node causal-step${isAnswered ? "" : " causal-step-pending"}`}
+                        style={{ "--depth": i + 1 }}
+                        key={i}
+                      >
+                        <span>Why {i + 1}</span>
+                        <p className="causal-question">
+                          {question || "AI will generate this Why..."}
+                        </p>
+                        <p className="causal-answer">
+                          <strong>Answer:</strong>{" "}
+                          {isAnswered ? answer : "Waiting for your answer..."}
+                        </p>
+                      </li>
+                    );
+                  })}
+
+                  {aiRootCause?.synthesized_root_cause && (
+                    <li className="why-chain-node why-chain-root causal-step" style={{ "--depth": 6 }}>
+                      <span>Root cause</span>
+                      {aiRootCause.synthesized_root_cause}
+                    </li>
+                  )}
+                </ol>
+              </div>
+            )}
+
             <ScoreIndicator
               label="Depth of analysis"
               score={whysScore.score}
@@ -805,23 +854,6 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
                     </p>
                   </div>
                 </div>
-
-                <ol className="why-chain">
-                  <li className="why-chain-node why-chain-start">
-                    <span>Problem</span>
-                    {problem}
-                  </li>
-                  {whys.map((answer, i) => (
-                    <li className="why-chain-node" key={i}>
-                      <span>Why {i + 1} — Answer</span>
-                      {answer}
-                    </li>
-                  ))}
-                  <li className="why-chain-node why-chain-root">
-                    <span>Root cause</span>
-                    {aiRootCause.synthesized_root_cause}
-                  </li>
-                </ol>
 
                 <div className="insight-grid">
                   {[
