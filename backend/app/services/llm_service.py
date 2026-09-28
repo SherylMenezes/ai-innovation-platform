@@ -41,6 +41,7 @@ logger = logging.getLogger("uvicorn.error")
     #"gemini-flash-lite-latest",
 #]
 MODEL_CANDIDATES = [
+    "gemini-2.5-flash-lite",
     "gemini-3.1-flash-lite",
 ]
 # No function/tool calling happens anywhere in this module (no `tools=`
