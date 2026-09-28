@@ -27,6 +27,16 @@ class ProblemRefineRequest(BaseModel):
         default=False,
         description="True only when the student explicitly asks AI to generate a possible answer.",
     )
+    # The AI-generated Why questions, so the AI reasons over the full
+    # question + answer chain rather than the answers alone.
+    previous_questions: List[str] = Field(
+        default_factory=list,
+        description="The Why questions for previous_answers, in the same order.",
+    )
+    current_question: str = Field(
+        default="",
+        description="The Why question the student is currently answering, if already generated.",
+    )
 
     # Kept for compatibility with the previous frontend/backend contract.
     # New code should use previous_answers/current_step/current_answer.
@@ -142,6 +152,8 @@ class ProblemRefineResponse(BaseModel):
     answer_feedback: str = ""
 
     synthesized_root_cause: str = ""
+    # After Why 5: a How Might We statement framed from the root cause.
+    suggested_hmw: str = ""
     refined_problem_statement: str = ""
     hidden_variables: List[str] = Field(default_factory=list)
     stakeholders: List[str] = Field(default_factory=list)

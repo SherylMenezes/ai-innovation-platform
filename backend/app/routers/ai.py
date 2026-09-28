@@ -81,6 +81,8 @@ async def refine_problem(payload: ProblemRefineRequest):
         current_step=current_step,
         current_answer=current_answer,
         help_me_answer=payload.help_me_answer,
+        previous_questions=payload.previous_questions,
+        current_question=payload.current_question,
     )
 
 @router.post("/problem-canvas-score", response_model=ProblemCanvasScoreResponse)

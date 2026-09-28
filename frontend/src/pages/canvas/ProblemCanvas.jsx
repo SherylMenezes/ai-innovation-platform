@@ -81,6 +81,9 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
   const [activeAiStep, setActiveAiStep] = useState(null);
   const [isWhyAiLoading, setIsWhyAiLoading] = useState(false);
 
+  // HMW the AI frames from the root cause once all 5 Whys are analysed.
+  const [aiSuggestedHmw, setAiSuggestedHmw] = useState("");
+
   // AI score of the complete problem + 5-Whys chain.
   const [canvasAiScore, setCanvasAiScore] = useState(null);
   const [canvasAiScoreError, setCanvasAiScoreError] = useState("");
@@ -143,6 +146,8 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
         setSavedCanvas(saved);
         if (saved.whys) setWhys(saved.whys);
         if (saved.why_questions) setWhyQuestions(saved.why_questions);
+        if (Array.isArray(saved.why_prompts)) setWhyPrompts(saved.why_prompts);
+        if (Array.isArray(saved.why_feedback)) setWhyFeedback(saved.why_feedback);
         if (saved.root_cause) setRootCause(saved.root_cause);
         if (saved.hmw) setHmw(saved.hmw);
         if (saved.whys) setWhysScore(scoreWhyAnswers(saved.whys));
@@ -161,6 +166,8 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
     step,
     whys,
     why_questions: whyQuestions,
+    why_prompts: whyPrompts,
+    why_feedback: whyFeedback,
     root_cause: rootCause,
     hmw,
     ...overrides,
@@ -205,62 +212,80 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
   }) => {
     if (!problem.trim() || isWhyAiLoading) return null;
 
+    // Same mode rules as /problem-refine:
+    //   ASK     — no answer: generate the question for stepIndex
+    //   ANALYSE — Why 1-4 answered: feedback on it + the NEXT Why + its prompts
+    //   HELP    — "Help me answer": a possible answer to the current question
+    //   FINAL   — Why 5 answered: root cause + HMW from the whole chain
+    const trimmedAnswer = answer.trim();
+    const isFinal = !helpMeAnswer && Boolean(trimmedAnswer) && stepIndex === 4;
+    const isAnalyse = !helpMeAnswer && Boolean(trimmedAnswer) && stepIndex < 4;
+
     setIsWhyAiLoading(true);
     setActiveAiStep(stepIndex);
     setAiRootCauseError("");
     setCanvasAiScoreError("");
 
     try {
-      const previousAnswers = whys
-        .slice(0, stepIndex)
-        .map((value) => value.trim());
-
       const result = await refineProblem(
         problem,
-        previousAnswers,
+        whys.slice(0, stepIndex).map((value) => value.trim()),
         stepIndex,
-        answer,
-        helpMeAnswer
+        trimmedAnswer,
+        helpMeAnswer,
+        whyQuestions.slice(0, stepIndex).map((value) => (value || "").trim()),
+        (whyQuestions[stepIndex] || "").trim()
       );
 
-      // The current step's question is already stored at this index.
-      // If the backend returns a next question, it belongs to the current
-      // requested step index.
-      if (result.next_question) {
-        setWhyQuestions((previous) => {
-          const updated = [...previous];
-          updated[stepIndex] = result.next_question;
-          return updated;
-        });
+      const nextQuestions = [...whyQuestions];
+      const nextPrompts = [...whyPrompts];
+      const nextFeedback = [...whyFeedback];
+      const saveOverrides = {};
+
+      if (helpMeAnswer) {
+        if (result.generated_answer) {
+          setAiGeneratedAnswers((previous) => {
+            const updated = [...previous];
+            updated[stepIndex] = result.generated_answer;
+            return updated;
+          });
+        }
+        if (result.thinking_prompts?.length) nextPrompts[stepIndex] = result.thinking_prompts;
+      } else if (isAnalyse) {
+        // Feedback belongs to the answer just analysed; the new question
+        // and its prompts belong to the next Why.
+        nextFeedback[stepIndex] = result.answer_feedback || "";
+        if (result.next_question) nextQuestions[stepIndex + 1] = result.next_question;
+        nextPrompts[stepIndex + 1] = result.thinking_prompts || [];
+      } else if (isFinal) {
+        nextFeedback[stepIndex] = result.answer_feedback || "";
+        setAiRootCause(result);
+        if (result.synthesized_root_cause) {
+          setRootCause(result.synthesized_root_cause);
+          saveOverrides.root_cause = result.synthesized_root_cause;
+        }
+        setAiSuggestedHmw(result.suggested_hmw || "");
+      } else {
+        if (result.next_question) nextQuestions[stepIndex] = result.next_question;
+        nextPrompts[stepIndex] = result.thinking_prompts || [];
       }
 
-      setWhyPrompts((previous) => {
-        const updated = [...previous];
-        updated[stepIndex] = result.thinking_prompts || [];
-        return updated;
-      });
+      setWhyQuestions(nextQuestions);
+      setWhyPrompts(nextPrompts);
+      setWhyFeedback(nextFeedback);
 
-      setWhyFeedback((previous) => {
-        const updated = [...previous];
-        updated[stepIndex] = result.answer_feedback || "";
-        return updated;
-      });
-
-      if (result.generated_answer) {
-        setAiGeneratedAnswers((previous) => {
-          const updated = [...previous];
-          updated[stepIndex] = result.generated_answer;
-          return updated;
-        });
-      }
-
-      // Keep the existing AI insight-card feature. The backend fills these
-      // once the fifth Why has been analysed.
-      setAiRootCause(result);
-
-      if (result.synthesized_root_cause) {
-        setRootCause(result.synthesized_root_cause);
-      }
+      // Quietly keep the chain saved, so a reload doesn't lose the AI's
+      // questions or the student's answers mid-way through the 5 Whys.
+      saveCanvasState(
+        accessToken,
+        challengeId,
+        buildCanvasState({
+          why_questions: nextQuestions,
+          why_prompts: nextPrompts,
+          why_feedback: nextFeedback,
+          ...saveOverrides,
+        })
+      ).catch(() => {});
 
       return result;
     } catch (err) {
@@ -317,10 +342,12 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
 
     setError("");
 
+    // Why 1-4: the AI analyses this answer (feedback shown under it), then
+    // generates the next Why from the whole chain so far.
     if (index < 4) {
       await requestWhyGuidance({
-        stepIndex: index + 1,
-        answer: "",
+        stepIndex: index,
+        answer,
         helpMeAnswer: false,
       });
       return;
@@ -366,7 +393,9 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
     });
   };
 
-  const useGeneratedAnswer = (index) => {
+  // "Use this answer" and "Edit" both put the AI's possible answer into the
+  // student's own answer box; "Edit" also moves the cursor there to change it.
+  const applyGeneratedAnswer = (index, { edit = false } = {}) => {
     const generated = aiGeneratedAnswers[index];
     if (!generated) return;
 
@@ -382,9 +411,17 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
     });
 
     setError("");
+
+    if (edit) {
+      requestAnimationFrame(() => {
+        const box = document.getElementById(`why-${index}`);
+        box?.focus();
+        box?.setSelectionRange(box.value.length, box.value.length);
+      });
+    }
   };
 
-  const useThinkingPrompt = (index, prompt) => {
+  const applyThinkingPrompt = (index, prompt) => {
     const currentAnswer = whys[index]?.trim() || "";
     const updatedAnswer = currentAnswer
       ? `${currentAnswer} ${prompt}`
@@ -608,6 +645,9 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
                     <div className="why-heading">
                       <span className="why-number">WHY {index + 1}</span>
                       <div>
+                        {question && (
+                          <span className="why-question-tag">🤖 AI-generated question</span>
+                        )}
                         <label htmlFor={`why-${index}`}>
                           {question || (
                             isLoading
@@ -638,7 +678,7 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
 
                           {feedback && (
                             <div className="why-ai-feedback">
-                              <strong>✦ AI feedback</strong>
+                              <strong>✦ AI analysis of your answer</strong>
                               <p>{feedback}</p>
                             </div>
                           )}
@@ -646,30 +686,24 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
                           {generatedAnswer && (
                             <div className="ai-generated-answer">
                               <div className="ai-generated-answer-header">
-                                <strong>✨ AI-generated possible answer</strong>
-                                <span>Review it and edit it before using it.</span>
+                                <strong>✨ AI-generated answer</strong>
+                                <span>A possible answer — you decide whether to use it.</span>
                               </div>
                               <p>{generatedAnswer}</p>
                               <div className="ai-generated-answer-actions">
                                 <button
                                   type="button"
                                   className="use-ai-suggestion-button"
-                                  onClick={() => useGeneratedAnswer(index)}
+                                  onClick={() => applyGeneratedAnswer(index)}
                                 >
                                   Use this answer
                                 </button>
                                 <button
                                   type="button"
                                   className="use-ai-suggestion-button secondary"
-                                  onClick={() => {
-                                    setAiGeneratedAnswers((previous) => {
-                                      const updated = [...previous];
-                                      updated[index] = "";
-                                      return updated;
-                                    });
-                                  }}
+                                  onClick={() => applyGeneratedAnswer(index, { edit: true })}
                                 >
-                                  Dismiss
+                                  Edit
                                 </button>
                               </div>
                             </div>
@@ -688,11 +722,12 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
                         <div className="why-prompts-panel">
                           <div className="why-prompts-title">
                             <span>AI SUPPORT</span>
-                            <h4>Thinking prompts</h4>
+                            <h4>💡 AI thinking prompts</h4>
                           </div>
                           <p>
-                            These are possible directions to help you think.
-                            They are not confirmed facts.
+                            Possible angles, not facts the AI knows are true.
+                            Ignore them, or click one to add it to your answer
+                            and then edit it.
                           </p>
 
                           <div className="why-prompt-list">
@@ -702,7 +737,7 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
                                   type="button"
                                   className="why-prompt-card"
                                   key={promptIndex}
-                                  onClick={() => useThinkingPrompt(index, prompt)}
+                                  onClick={() => applyThinkingPrompt(index, prompt)}
                                 >
                                   <span>💡</span>
                                   <span>{prompt}</span>
@@ -854,6 +889,28 @@ function ProblemCanvas({ challengeId, onStageAdvance, onReward }) {
                     </p>
                   </div>
                 </div>
+
+                {aiSuggestedHmw && (
+                  <div className="suggested-hmw-card">
+                    <span>💡 HOW MIGHT WE</span>
+                    <h3>{aiSuggestedHmw}</h3>
+                    <p>
+                      A starting point for the Reframe step — use it as-is or
+                      rewrite it in your own words there.
+                    </p>
+                    <button
+                      type="button"
+                      className="use-ai-suggestion-button"
+                      onClick={() => {
+                        setHmw(aiSuggestedHmw);
+                        setHmwScore(scoreHMW(aiSuggestedHmw));
+                      }}
+                      disabled={hmw === aiSuggestedHmw}
+                    >
+                      {hmw === aiSuggestedHmw ? "✓ Using this HMW" : "Use this HMW"}
+                    </button>
+                  </div>
+                )}
 
                 <div className="insight-grid">
                   {[

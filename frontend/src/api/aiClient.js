@@ -90,7 +90,9 @@ export function refineProblem(
   previousAnswers = [],
   currentStep = 0,
   currentAnswer = "",
-  helpMeAnswer = false
+  helpMeAnswer = false,
+  previousQuestions = [],
+  currentQuestion = ""
 ) {
   return postJson("/api/ai/problem-refine", {
     problem_statement: problemStatement,
@@ -98,6 +100,8 @@ export function refineProblem(
     current_step: currentStep,
     current_answer: currentAnswer,
     help_me_answer: helpMeAnswer,
+    previous_questions: previousQuestions,
+    current_question: currentQuestion,
   });
 }
 
