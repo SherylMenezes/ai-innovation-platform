@@ -3,6 +3,7 @@ import "./GamificationPanel.css";
 import { getUserStats, checkIn, getBadges, getLeaderboard, getXpHistory } from "../../api/gamificationClient";
 import { useAuth } from "../../context/AuthContext";
 import { BADGES, badgeIcon, describeXpEvent } from "../../utils/progression";
+import { getLevelTitle, calculateLevelFromXp } from "../../utils/levelTitles";
 
 function GamificationPanel({ onReward }) {
   const { accessToken } = useAuth();
@@ -127,19 +128,13 @@ function GamificationPanel({ onReward }) {
           icon: badgeIcon(def.slug) || def.icon,
         }));
 
-  const userLevel = stats?.level || stats?.rank || {
-    level: 1,
-    title: "Explorer",
-    xp_into_level: 0,
-    xp_for_next_level: 100,
-    progress_percent: 0,
-  };
-
-  const levelNum = userLevel.level || userLevel.rank || 1;
-  const levelTitle = userLevel.title || "Explorer";
+  // Resolve user level and title with getLevelTitle
+  const userLevel = stats?.level || stats?.rank || {};
+  const levelNum = Number(userLevel.level || userLevel.rank || 1);
+  const levelTitle = getLevelTitle(levelNum);
   const xpInto = userLevel.xp_into_level ?? userLevel.xp_into_rank ?? 0;
   const xpForNext = userLevel.xp_for_next_level ?? userLevel.xp_for_next_rank ?? 100;
-  const progressPercent = userLevel.progress_percent ?? 0;
+  const progressPercent = userLevel.progress_percent ?? Math.min(100, Math.round((xpInto / (xpForNext || 1)) * 100));
 
   return (
     <div className="gami-panel">
@@ -238,69 +233,100 @@ function GamificationPanel({ onReward }) {
         )}
       </div>
 
-      {/* 2-Column Split: Leaderboard & Recent Activity */}
-      <div className="gami-split-grid">
-        {/* Left: Leaderboard */}
-        <div className="gami-card gami-leaderboard-card">
-          <div className="gami-card-header">
-            <div>
-              <h3 className="gami-card-title">Leaderboard</h3>
-              <p className="gami-card-subtitle">Top learners and teammates</p>
-            </div>
-            <div className="gami-leaderboard-scopes">
-              {["global", "institution", "class"].map((scope) => (
-                <button
-                  key={scope}
-                  type="button"
-                  className={`gami-scope-chip${leaderboardScope === scope ? " active" : ""}`}
-                  onClick={() => setLeaderboardScope(scope)}
-                >
-                  {scope}
-                </button>
-              ))}
-            </div>
-          </div>
+{/* 2-Column Split: Leaderboard & Recent Activity */}
+<div className="gami-split-grid">
+  {/* Left: Leaderboard */}
+  <div className="gami-card gami-leaderboard-card">
+    <div className="gami-card-header">
+      <div>
+        <h3 className="gami-card-title">Leaderboard</h3>
+        <p className="gami-card-subtitle">Top learners and teammates</p>
+      </div>
+      <div className="gami-leaderboard-scopes">
+        {["global", "institution", "class"].map((scope) => (
+          <button
+            key={scope}
+            type="button"
+            className={`gami-scope-chip${leaderboardScope === scope ? " active" : ""}`}
+            onClick={() => setLeaderboardScope(scope)}
+          >
+            {scope}
+          </button>
+        ))}
+      </div>
+    </div>
 
-          {leaderboardError ? (
-            <p className="gami-error">{leaderboardError}</p>
-          ) : !leaderboard ? (
-            <p className="gami-empty">Loading leaderboard...</p>
-          ) : leaderboard.entries.length === 0 ? (
-            <p className="gami-empty">No ranked users yet for this scope.</p>
-          ) : (
-            <div className="gami-table-wrapper">
-              <table className="gami-leaderboard-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Name</th>
-                    <th>Level</th>
-                    <th style={{ textAlign: "right" }}>XP</th>
-                    <th style={{ textAlign: "right" }}>Streak</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.entries.map((entry) => (
-                    <tr
-                      key={entry.user_id}
-                      className={entry.is_current_user ? "gami-leaderboard-you" : ""}
+    {leaderboardError ? (
+      <p className="gami-error">{leaderboardError}</p>
+    ) : !leaderboard ? (
+      <p className="gami-empty">Loading leaderboard...</p>
+    ) : leaderboard.entries.length === 0 ? (
+      <p className="gami-empty">No ranked users yet for this scope.</p>
+    ) : (
+      <div className="gami-table-wrapper">
+        <table className="gami-leaderboard-table">
+          <thead>
+            <tr>
+              <th style={{ textAlign: "center" }}>Rank</th>
+              <th style={{ textAlign: "center" }}>Name</th>
+              <th style={{ textAlign: "center" }}>Level</th>
+              <th style={{ textAlign: "center" }}>Title</th>
+              <th style={{ textAlign: "right" }}>XP</th>
+              <th style={{ textAlign: "right" }}>Streak</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leaderboard.entries.map((entry) => {
+              // 1. Check all common backend properties, or derive from entry.xp
+              const entryLevelNum = Number(
+                entry.level ??
+                entry.user_level ??
+                entry.rank_level ??
+                entry.stats?.level ??
+                entry.user?.level ??
+                calculateLevelFromXp(entry.xp)
+              );
+
+              // 2. Resolve title from our shared utility
+              const entryLevelTitle = getLevelTitle(entryLevelNum);
+
+              return (
+                <tr
+                  key={entry.user_id || entry.id}
+                  className={entry.is_current_user ? "gami-leaderboard-you" : ""}
+                >
+                  <td>
+                    <span className={`rank-badge rank-${entry.rank}`}>
+                      {entry.rank === 1 ? "🥇 1" : entry.rank === 2 ? "🥈 2" : entry.rank === 3 ? "🥉 3" : entry.rank}
+                    </span>
+                  </td>
+                  <td className="user-name-cell">
+                    {entry.name || entry.username || "Anonymous Innovator"}
+                  </td>
+                  <td>
+                    <span className="entry-level-badge">Level {entryLevelNum}</span>
+                    </td><td>
+                    <span
+                      className="entry-level-title"
+                      style={{
+                        marginLeft: "6px",
+                        color: "var(--text-muted, #64748b)",
+                        fontSize: "0.85rem"
+                      }}
                     >
-                      <td>
-                        <span className={`rank-badge rank-${entry.rank}`}>
-                          {entry.rank === 1 ? "🥇 1" : entry.rank === 2 ? "🥈 2" : entry.rank === 3 ? "🥉 3" : entry.rank}
-                        </span>
-                      </td>
-                      <td className="user-name-cell">{entry.name}</td>
-                      <td>{entry.rank_title || `Level ${entry.level || 1}`}</td>
-                      <td style={{ textAlign: "right", fontWeight: 700 }}>{entry.xp}</td>
-                      <td style={{ textAlign: "right" }}>{entry.current_streak} 🔥</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                      {entryLevelTitle}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "right", fontWeight: 700 }}>{entry.xp ?? 0}</td>
+                  <td style={{ textAlign: "right" }}>{entry.current_streak ?? 0} 🔥</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
 
         {/* Right: Recent XP Activity */}
         <div className="gami-card gami-history-card">
