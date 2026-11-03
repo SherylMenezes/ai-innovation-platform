@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
+import InstitutePanel from "./pages/institute/InstitutePanel";
 import ChallengeCatalog from "./pages/challenges/ChallengeCatalog";
 import ProblemCanvas from "./pages/canvas/ProblemCanvas";
 import IdeatePage from "./pages/ideation/IdeatePage";
@@ -34,6 +35,7 @@ const MENTOR_STAGE_LABELS = {
   summary: "Project Summary",
 };
 
+
 function AppShell() {
   const [page, setPage] = useState("dashboard");
   const [challengeId, setChallengeId] = useState(null);
@@ -42,6 +44,8 @@ function AppShell() {
   const [progressKey, setProgressKey] = useState(0);
   const [toasts, setToasts] = useState([]);
   const [showAuthScreen, setShowAuthScreen] = useState(false);
+  const canSeeInstitute = true; // TEMP: preview institute panel
+
 
   const levelRef = useRef(null);
   const toastSeq = useRef(0);
@@ -140,6 +144,11 @@ function AppShell() {
     setPage(tab);
   };
 
+  // TEMP: open the institute panel with sample data, no login needed (/?institute)
+  if (new URLSearchParams(window.location.search).has("institute")) {
+    return <InstitutePanel />;
+  }
+
   if (isLoading) {
     return <div className="app-loading">Loading...</div>;
   }
@@ -229,6 +238,15 @@ function AppShell() {
         >
           My Progress
         </button>
+        {canSeeInstitute && (
+          <button
+            type="button"
+            className={page === "institute" ? "active-tab" : ""}
+            onClick={() => goToTab("institute")}
+          >
+            Institute Panel
+          </button>
+        )}
 
         <div className="app-nav-spacer" />
 
@@ -297,6 +315,7 @@ function AppShell() {
           )}
           {page === "summary" && <ProjectSummary challengeId={challengeId} />}
           {page === "progress" && <GamificationPanel key={progressKey} onReward={handleReward} />}
+          {page === "institute" && <InstitutePanel />}
         </ErrorBoundary>
       </main>
 

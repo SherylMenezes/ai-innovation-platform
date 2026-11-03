@@ -1,0 +1,1271 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+
+.inst-panel {
+  --inst-navy: #030B60;
+  --inst-ink: #14112B;
+  --inst-ink-soft: #242543;
+  --inst-text-2: #55526E;
+  --inst-text-3: #6B6880;
+  /* Palette accents */
+  --inst-pink: #EF1C61;          /* primary hot pink: CTAs, active nav, key numbers */
+  --inst-pink-strong: #EF1C61;
+  --inst-pink-hover: #F32264;
+  --inst-pink-soft: #FF72A6;     /* secondary buttons, hover */
+  --inst-pink-soft-hover: #FF5E99;
+  --inst-pink-tile: #FDB8CD;
+  --inst-yellow-bar: #FECD66;    /* amber */
+  --inst-purple: #B09FE6;
+  --inst-lavender: #D2C6F8;
+  --inst-green: #BED4B0;
+  --inst-yellow: #FFEEC0;        /* pale yellow */
+
+  /* Tints and inks derived from the palette for text, surfaces and lines */
+  --inst-pink-text: #C2134F;     /* hot pink darkened so small link text stays readable */
+  --inst-pink-ink: #A30F43;
+  --inst-lavender-ink: #3B2E8C;
+  --inst-lavender-soft: #EEE9FD;
+  --inst-green-ink: #2F5A1E;
+  --inst-yellow-ink: #7A4A00;
+  --inst-blush: #FFE3EE;
+  --inst-blush-2: #FFE3EC;
+  --inst-base: #FFF5F8;
+  --inst-card: #FEFEFE;
+  --inst-line: #E9E8F3;
+  --inst-line-soft: #F1F0F7;
+
+  /* Blues to balance the pinks: navy for numbers, mid blue for controls, light blue surfaces */
+  --inst-blue: #4F6BED;
+  --inst-blue-ink: #1E3A8A;
+  --inst-blue-tile: #D6E2FF;
+  --inst-blue-line: #CCD8FB;
+  /* --inst-peach is the light surface tint (table header, pills, hovers); now a pale blue */
+  --inst-peach: #F1F4FF;
+  --inst-shadow: 0 1px 2px rgba(20, 17, 43, 0.04), 0 4px 16px rgba(20, 17, 43, 0.04);
+
+  /* --inst-top is set from JS to the height of the app's sticky top bar (0 when standalone). */
+  --inst-top: 0px;
+  --inst-sidebar-w: 248px;
+  --inst-rail-w: 68px;
+  --inst-ease: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  box-sizing: border-box;
+  width: 100%;
+  min-height: calc(100vh - var(--inst-top));
+  margin: 0;
+  padding: 0;
+  background: var(--inst-base);
+  display: grid;
+  grid-template-columns: var(--inst-sidebar-w) minmax(0, 1fr);
+  align-items: start;
+  transition: grid-template-columns var(--inst-ease);
+  font-family: "Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--inst-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.inst-panel button,
+.inst-panel select {
+  font: inherit;
+}
+
+.inst-panel :focus-visible {
+  outline: 2px solid var(--inst-navy);
+  outline-offset: 2px;
+}
+
+/* Sidebar: full-height column pinned to the left edge; collapses to an icon rail (.is-rail). */
+.inst-panel.is-rail {
+  grid-template-columns: var(--inst-rail-w) minmax(0, 1fr);
+}
+
+.inst-sidebar {
+  grid-column: 1;
+  grid-row: 1;
+  position: sticky;
+  top: var(--inst-top);
+  z-index: 900;
+  box-sizing: border-box;
+  height: calc(100vh - var(--inst-top));
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--inst-card);
+  border-right: 1px solid var(--inst-line);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scrollbar-width: thin;
+}
+
+/* The brand block doubles as the expand/collapse toggle. */
+.inst-sidebar-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px;
+  border-radius: 10px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.inst-sidebar-brand:hover {
+  background: var(--inst-peach);
+}
+
+.inst-sidebar-brand > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  transition: opacity var(--inst-ease);
+}
+
+/* Sidebar icon on the right of the brand while expanded. */
+.inst-sidebar-brand::after {
+  content: "";
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+  flex-shrink: 0;
+  background: var(--inst-text-3);
+  -webkit-mask: var(--inst-toggle-icon) center / contain no-repeat;
+  mask: var(--inst-toggle-icon) center / contain no-repeat;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.inst-sidebar-brand:hover::after {
+  opacity: 1;
+}
+
+.inst-sidebar {
+  --inst-toggle-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='3'/%3E%3Cpath d='M9 4v16'/%3E%3C/svg%3E");
+}
+
+.inst-sidebar-logo {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--inst-pink);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.inst-sidebar-title {
+  font-weight: 800;
+  color: var(--inst-navy);
+}
+
+.inst-sidebar-sub {
+  font-size: 12px;
+  color: var(--inst-text-3);
+}
+
+.inst-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inst-nav-heading {
+  max-height: 24px;
+  overflow: hidden;
+  padding: 0 13px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--inst-text-3);
+  transition: opacity var(--inst-ease), max-height var(--inst-ease), padding var(--inst-ease);
+}
+
+.inst-nav-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--inst-line-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Icons sit 13px in so they stay put (centred in the 44px rail item) while labels clip away. */
+.inst-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 13px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--inst-ink-soft);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, gap var(--inst-ease);
+}
+
+.inst-nav-item svg {
+  flex-shrink: 0;
+}
+
+.inst-nav-item:hover {
+  background: var(--inst-peach);
+  color: var(--inst-blue-ink);
+}
+
+.inst-nav-item.is-active {
+  background: var(--inst-pink);
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(239, 28, 97, 0.25);
+}
+
+.inst-nav-item.is-active:hover {
+  background: var(--inst-pink-hover);
+  color: #FFFFFF;
+}
+
+/* Rail (collapsed) state */
+.is-rail .inst-sidebar-brand > div {
+  opacity: 0;
+}
+
+.is-rail .inst-sidebar-brand::after {
+  display: none;
+}
+
+/* In the rail, hovering the logo swaps it for the "open sidebar" icon. */
+.is-rail .inst-sidebar-brand:hover .inst-sidebar-logo {
+  color: transparent;
+}
+
+.is-rail .inst-sidebar-brand:hover .inst-sidebar-logo::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  background: #FFFFFF;
+  -webkit-mask: var(--inst-toggle-icon) center / contain no-repeat;
+  mask: var(--inst-toggle-icon) center / contain no-repeat;
+}
+
+.is-rail .inst-nav-heading {
+  max-height: 0;
+  padding-bottom: 0;
+  opacity: 0;
+}
+
+.is-rail .inst-nav-item {
+  gap: 30px;
+}
+
+/* Main column: re-centres itself as the sidebar column resizes. Pinned to column 2 so it
+   doesn't slide left when the mobile sidebar leaves the grid as a fixed overlay. */
+.inst-main {
+  grid-column: 2;
+  grid-row: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 32px 48px;
+}
+
+.inst-main,
+.inst-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Header bar: a tall banner with a dark pink ombré and bold white text. */
+/* Name takes the full first line (wrapping if long); the label, subtitle and buttons sit in a row below. */
+.inst-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  min-height: 168px;
+  box-sizing: border-box;
+  padding: 34px 32px;
+  border-radius: 18px;
+  /* Left end stays deep enough for the white title and subtitle to read clearly. */
+  background: linear-gradient(120deg, #C2185B 0%, #DB2C6C 40%, #F0507F 75%, #FB7BA0 100%);
+  box-shadow: 0 10px 28px rgba(219, 44, 108, 0.25);
+}
+
+.inst-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* The label/subtitle block shrinks (subtitle wraps) before the buttons drop to their own line. */
+.inst-header-row > div:first-child {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.inst-header .inst-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #FFFFFF;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+/* School name leads the banner; "Institute Panel" sits under it as a smaller label. */
+.inst-header .inst-header-name {
+  width: 100%;
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.inst-header-label {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.inst-header .inst-subtitle {
+  margin-top: 6px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.inst-header .inst-filter {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.inst-header .inst-filter select {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.inst-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--inst-navy);
+}
+
+.inst-subtitle {
+  margin: 4px 0 0;
+  color: var(--inst-text-2);
+}
+
+.inst-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.inst-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--inst-text-2);
+}
+
+.inst-filter select {
+  height: 40px;
+  min-width: 160px;
+  padding: 0 12px;
+  border: 1px solid #F2D3DF;
+  border-radius: 10px;
+  background: var(--inst-card);
+  color: var(--inst-ink);
+}
+
+.inst-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.inst-btn--primary {
+  border: 0;
+  background: var(--inst-pink-strong);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(239, 28, 97, 0.25);
+}
+
+.inst-btn--primary:hover {
+  background: var(--inst-pink-hover);
+}
+
+/* Secondary: light blue so hot pink stays reserved for the main action. */
+.inst-btn--outline {
+  border: 1px solid var(--inst-blue-line);
+  background: var(--inst-peach);
+  color: var(--inst-blue-ink);
+}
+
+.inst-btn--outline:hover {
+  border-color: var(--inst-blue);
+  background: var(--inst-blue-tile);
+}
+
+/* Header buttons (Invite code, Add section, Assign challenge): dark blue with glowing white text. */
+.inst-header .inst-btn--outline,
+.inst-header .inst-btn--primary {
+  border-color: #2743C9;
+  background: #2743C9;
+  color: #FFFFFF;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(79, 107, 237, 0.35), 0 4px 16px rgba(39, 67, 201, 0.45);
+  transition: background-color 0.15s ease, box-shadow 0.2s ease;
+}
+
+.inst-header .inst-btn--outline:hover,
+.inst-header .inst-btn--primary:hover {
+  border-color: #1E35A8;
+  background: #1E35A8;
+  box-shadow: 0 0 0 1px rgba(79, 107, 237, 0.5), 0 6px 22px rgba(39, 67, 201, 0.6);
+}
+
+/* Stat cards */
+.inst-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.inst-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  background: var(--inst-card);
+  border: 1px solid var(--inst-line);
+  border-radius: 16px;
+  box-shadow: var(--inst-shadow);
+}
+
+.inst-stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inst-stat-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inst-stat-icon--lavender { background: var(--inst-lavender); color: var(--inst-lavender-ink); }
+.inst-stat-icon--blue { background: var(--inst-blue-tile); color: var(--inst-blue-ink); }
+.inst-stat-icon--yellow { background: var(--inst-yellow); color: var(--inst-yellow-ink); }
+.inst-stat-icon--green { background: var(--inst-green); color: var(--inst-green-ink); }
+.inst-stat-icon--pink { background: var(--inst-pink-tile); color: var(--inst-pink-ink); }
+
+.inst-stat-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--inst-text-2);
+}
+
+.inst-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--inst-navy);
+}
+
+.inst-stat-suffix {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--inst-text-3);
+}
+
+.inst-stat-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--inst-text-2);
+}
+
+.inst-stat-note--good { color: var(--inst-green-ink); }
+.inst-stat-note--warn { color: var(--inst-yellow-ink); }
+
+.inst-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #4C8A2F;
+}
+
+/* Cards */
+.inst-card {
+  box-sizing: border-box;
+  background: var(--inst-card);
+  border: 1px solid var(--inst-line);
+  border-radius: 16px;
+  box-shadow: var(--inst-shadow);
+  padding: 22px;
+}
+
+.inst-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.inst-card-head--stack {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.inst-card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--inst-navy);
+}
+
+.inst-card-title--spaced {
+  margin-bottom: 8px;
+}
+
+.inst-card-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--inst-text-2);
+}
+
+/* Performance by class */
+.inst-perf {
+  padding: 22px 0 8px;
+}
+
+.inst-perf .inst-card-head,
+.inst-perf-meta {
+  padding: 0 22px;
+}
+
+.inst-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--inst-line);
+  border-radius: 12px;
+  background: var(--inst-peach);
+}
+
+.inst-segmented button {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--inst-ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inst-segmented button.is-on {
+  background: var(--inst-blue);
+  color: #FFFFFF;
+}
+
+/* Stays on one line at every drill-down level so the card height doesn't change. */
+.inst-perf-meta {
+  display: flex;
+  flex-wrap: nowrap;
+  min-height: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.inst-crumbs {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.inst-crumbs button {
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--inst-pink-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inst-crumbs button:hover {
+  text-decoration: underline;
+}
+
+.inst-crumb-sep {
+  margin-left: 6px;
+  color: #9A97AD;
+}
+
+.inst-crumb-current {
+  font-weight: 700;
+  color: var(--inst-navy);
+}
+
+.inst-perf-summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--inst-peach);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--inst-text-2);
+}
+
+.inst-table-scroll {
+  overflow-x: auto;
+}
+
+.inst-table {
+  min-width: 480px;
+}
+
+/* Fixed height for the header plus exactly 5 rows, whatever level is shown, so the card
+   (and the funnel beside it) never changes size. Extra rows scroll under the sticky header. */
+.inst-table-body {
+  --inst-head-h: 40px;
+  --inst-row-h: 54px;
+  height: calc(var(--inst-head-h) + 5 * var(--inst-row-h));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #F4C9D9 transparent;
+}
+
+.inst-table-body .inst-row {
+  min-height: var(--inst-row-h);
+}
+
+.inst-table-body .inst-row--head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: var(--inst-head-h);
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.inst-table-body .inst-row:last-child {
+  border-bottom: 0;
+}
+
+.inst-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) minmax(90px, 1.4fr) 56px 68px 16px;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  min-height: 54px;
+  box-sizing: border-box;
+  padding: 10px 22px;
+  border: 0;
+  border-bottom: 1px solid var(--inst-line-soft);
+  background: transparent;
+  color: var(--inst-ink);
+  text-align: left;
+}
+
+.inst-row--head {
+  min-height: 0;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  background: var(--inst-peach);
+  border-top: 1px solid var(--inst-line);
+  border-bottom: 1px solid var(--inst-line);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--inst-text-2);
+}
+
+.inst-row--click {
+  cursor: pointer;
+  color: var(--inst-ink);
+}
+
+.inst-row--click:hover {
+  background: var(--inst-peach);
+}
+
+.inst-row--click svg {
+  color: var(--inst-text-3);
+}
+
+.inst-row-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--inst-navy);
+}
+
+.inst-bar-track {
+  display: block;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--inst-blush-2);
+}
+
+.inst-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--inst-pink);
+  transition: width 0.3s ease;
+}
+
+.inst-bar-fill.is-low {
+  background: var(--inst-yellow-bar);
+}
+
+.inst-tag {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.inst-tag--top { background: var(--inst-green); color: var(--inst-green-ink); }
+.inst-tag--low { background: var(--inst-yellow); color: var(--inst-yellow-ink); }
+
+.inst-num { text-align: right; }
+.inst-strong { font-weight: 700; color: var(--inst-navy); }
+.inst-muted { color: var(--inst-text-2); font-size: 13px; }
+
+/* Bottom row */
+/* Two cards side by side; the --wide variant gives the class table more room than the funnel. */
+.inst-row-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.inst-row-split--wide {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.inst-row-split > .inst-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.inst-row-split .inst-funnel {
+  flex: 1;
+  justify-content: space-evenly;
+}
+
+.inst-card-head .inst-link-btn {
+  min-height: 32px;
+  margin-right: -8px;
+}
+
+.inst-funnel {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Label, bar and count share one row: the label/strong pair is split around the track. */
+.inst-funnel li {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 12px;
+}
+
+.inst-funnel-label {
+  display: contents;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--inst-ink-soft);
+}
+
+.inst-funnel-label strong {
+  grid-column: 3;
+  text-align: right;
+  color: var(--inst-navy);
+}
+
+.inst-funnel-track {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.inst-funnel-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--inst-peach);
+}
+
+.inst-funnel-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--inst-blue);
+}
+
+.inst-funnel-fill.is-drop {
+  background: var(--inst-pink);
+}
+
+.inst-callout {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--inst-blush);
+  color: #8E0D3A;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.inst-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inst-attn-item,
+.inst-top-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--inst-line-soft);
+}
+
+.inst-attn-item:last-child,
+.inst-top-item:last-child {
+  border-bottom: 0;
+}
+
+.inst-attn-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.inst-attn-text .inst-strong {
+  font-weight: 600;
+  color: var(--inst-ink);
+}
+
+.inst-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.inst-dot--high { background: var(--inst-pink); }
+.inst-dot--medium { background: #FECD66; }
+.inst-dot--info { background: var(--inst-blue); }
+
+.inst-link-btn {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--inst-pink-text);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inst-link-btn:hover {
+  background: var(--inst-blush);
+}
+
+.inst-pill-btn {
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--inst-blue-line);
+  border-radius: 8px;
+  background: var(--inst-card);
+  color: var(--inst-blue-ink);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.inst-pill-btn:hover {
+  border-color: var(--inst-blue);
+  background: var(--inst-peach);
+}
+
+.inst-rank {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.inst-rank--1 { background: var(--inst-yellow); color: var(--inst-yellow-ink); }
+.inst-rank--2 { background: var(--inst-blue-tile); color: var(--inst-blue-ink); }
+.inst-rank--3 { background: var(--inst-pink-tile); color: var(--inst-pink-ink); }
+.inst-rank--rest { background: var(--inst-peach); color: var(--inst-text-2); }
+
+.inst-xp {
+  font-weight: 700;
+  color: var(--inst-navy);
+  white-space: nowrap;
+}
+
+/* States */
+.inst-skeleton {
+  border-radius: 16px;
+  background: linear-gradient(90deg, var(--inst-peach), var(--inst-blush-2), var(--inst-peach));
+  background-size: 200% 100%;
+  animation: inst-shimmer 1.4s ease-in-out infinite;
+}
+
+.inst-table .inst-skeleton {
+  margin: 12px 22px;
+}
+
+@keyframes inst-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+.inst-error {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--inst-blush);
+  color: #8E0D3A;
+}
+
+.inst-table .inst-error,
+.inst-table .inst-empty {
+  margin: 12px 22px;
+}
+
+.inst-empty {
+  margin: 0;
+  color: var(--inst-text-2);
+}
+
+.inst-coming {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 40px;
+}
+
+/* Invite dialog */
+.inst-dialog {
+  box-sizing: border-box;
+  width: min(460px, calc(100vw - 32px));
+  padding: 26px;
+  border: 1px solid var(--inst-line);
+  border-radius: 16px;
+  background: var(--inst-card);
+  color: var(--inst-ink);
+  box-shadow: 0 24px 64px rgba(20, 17, 43, 0.22);
+  font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  font-size: 14px;
+  text-align: left;
+}
+
+.inst-dialog[open] {
+  animation: inst-dialog-in 0.18s ease-out;
+}
+
+@keyframes inst-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+}
+
+.inst-dialog::backdrop {
+  background: rgba(3, 11, 96, 0.35);
+}
+
+.inst-dialog button,
+.inst-dialog select {
+  font: inherit;
+}
+
+.inst-invite-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0 16px;
+}
+
+.inst-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--inst-text-2);
+}
+
+.inst-field select {
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid #F2D3DF;
+  border-radius: 10px;
+  background: var(--inst-card);
+  color: var(--inst-ink);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.inst-field input {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #F2D3DF;
+  border-radius: 10px;
+  background: var(--inst-card);
+  color: var(--inst-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.inst-field input::placeholder {
+  color: #A9A5B8;
+}
+
+.inst-field select:focus-visible,
+.inst-field input:focus-visible {
+  outline: 2px solid var(--inst-navy);
+  outline-offset: 1px;
+}
+
+.inst-field--full {
+  grid-column: 1 / -1;
+}
+
+.inst-field select:disabled {
+  opacity: 0.6;
+}
+
+.inst-form-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--inst-text-2);
+}
+
+.inst-form-error {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--inst-blush);
+  color: #8E0D3A;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.inst-invite-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 14px 14px 18px;
+  border: 1px dashed #F4C9D9;
+  border-radius: 12px;
+  background: var(--inst-peach);
+}
+
+.inst-invite-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inst-invite-for {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--inst-text-2);
+}
+
+.inst-invite-code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--inst-navy);
+}
+
+.inst-copy-btn {
+  flex-shrink: 0;
+  min-width: 92px;
+  justify-content: center;
+}
+
+.inst-copy-btn.is-copied {
+  border-color: var(--inst-green-ink);
+  background: var(--inst-green);
+  color: var(--inst-green-ink);
+}
+
+.inst-copy-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inst-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.inst-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .inst-invite-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inst-skeleton { animation: none; }
+  .inst-bar-fill { transition: none; }
+
+  .inst-dialog[open] {
+    animation: none;
+  }
+
+  .inst-panel,
+  .inst-sidebar,
+  .inst-sidebar-brand > div,
+  .inst-nav-heading,
+  .inst-nav-item {
+    transition: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .inst-row-split,
+  .inst-row-split--wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Mobile: the rail stays in the layout; opening slides the full sidebar over the content. */
+@media (max-width: 860px) {
+  .inst-panel,
+  .inst-panel.is-rail {
+    grid-template-columns: var(--inst-rail-w) minmax(0, 1fr);
+  }
+
+  .inst-sidebar {
+    width: var(--inst-rail-w);
+    transition: width var(--inst-ease), box-shadow var(--inst-ease);
+  }
+
+  .inst-panel.is-mobile-open .inst-sidebar {
+    position: fixed;
+    left: 0;
+    width: min(280px, 85vw);
+    box-shadow: 8px 0 32px rgba(20, 17, 43, 0.18);
+  }
+
+  .inst-panel.is-mobile-open::after {
+    content: "";
+    position: fixed;
+    inset: var(--inst-top) 0 0 0;
+    z-index: 899;
+    background: rgba(20, 17, 43, 0.35);
+    animation: inst-fade-in var(--inst-ease);
+  }
+
+  .inst-main {
+    padding: 20px 16px 40px;
+  }
+}
+
+@keyframes inst-fade-in {
+  from { opacity: 0; }
+}
