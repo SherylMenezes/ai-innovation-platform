@@ -35,7 +35,8 @@ function groupRow(id) {
   if (!node.children) return leafRow(id);
   const leaves = node.children.map(leafRow);
   const students = leaves.reduce((sum, r) => sum + r.student_count, 0);
-  const avg = (key) => leaves.reduce((sum, r) => sum + r[key] * r.student_count, 0) / students;
+  // A grade with no students yet (e.g. just created) averages to zero rather than NaN.
+  const avg = (key) => (students ? leaves.reduce((sum, r) => sum + r[key] * r.student_count, 0) / students : 0);
   return {
     id,
     name: node.name,
@@ -67,6 +68,25 @@ export function addSampleSection(gradeId, name, studentCount) {
   grade.children.push(id);
   sampleDashboard.stats.total_students += studentCount;
   return id;
+}
+
+const gradeNumber = (name) => Number(name.match(/\d+/)?.[0] ?? Infinity);
+
+// Adds an empty grade in memory, kept in numeric order ("Grade 7" lands before "Grade 8").
+export function addSampleGrade(name) {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "grade";
+  let id = `g-${slug}`;
+  for (let n = 2; SECTIONS[id]; n++) id = `g-${slug}-${n}`;
+  SECTIONS[id] = { name, children: [] };
+  const at = TOP_LEVEL.findIndex((g) => gradeNumber(SECTIONS[g].name) > gradeNumber(name));
+  TOP_LEVEL.splice(at === -1 ? TOP_LEVEL.length : at, 0, id);
+  return id;
+}
+
+// Keeps section sizes in step when students move between sections (the total is unchanged).
+export function adjustSampleSectionCount(sectionId, delta) {
+  const node = SECTIONS[sectionId];
+  if (node?.stats) node.stats[0] = Math.max(0, node.stats[0] + delta);
 }
 
 export function sampleGroupSummary(parentId) {

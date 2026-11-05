@@ -6,6 +6,7 @@ import PerformanceByClass from "./PerformanceByClass";
 import { addSampleSection, getSampleGroupOptions, sampleDashboard, sampleFunnel } from "./sampleData";
 import AddSectionDialog from "./AddSectionDialog";
 import Icon from "./InstituteIcons";
+import explorerArt from "../../assets/institute-explorer.webp";
 
 function StatCard({ icon, tone, label, value, suffix, note, noteTone }) {
   return (
@@ -186,37 +187,40 @@ export default function InstituteDashboard({ onNavigate, onShowInvite }) {
   return (
     <div className="inst-dashboard">
       <div className="inst-header">
-        <h1 className="inst-title inst-header-name">{data?.institute_name || "Institute Panel"}</h1>
-        <div className="inst-header-row">
-          <div>
-            {data?.institute_name && <p className="inst-header-label">Institute Panel</p>}
-            <p className="inst-subtitle">How your students are doing across every active challenge.</p>
-          </div>
-          <div className="inst-actions">
-            <label className="inst-filter">
-              <span>Class</span>
-              <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-                <option value="">All classes</option>
-                {groupOptions.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {"\u00A0\u00A0".repeat(g.depth)}{g.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" className="inst-btn inst-btn--outline" onClick={() => onShowInvite(data?.invite_code, groupOptions)}>
-              Invite code
-            </button>
-            <button type="button" className="inst-btn inst-btn--outline" onClick={() => setAddSectionOpens((n) => n + 1)}>
-              <Icon name="plus" size={16} strokeWidth={2.4} />
-              Add section
-            </button>
-            <button type="button" className="inst-btn inst-btn--primary" onClick={() => onNavigate("assignments")}>
-              <Icon name="plus" size={18} strokeWidth={2.4} />
-              Assign challenge
-            </button>
+        <div className="inst-header-main">
+          <h1 className="inst-title inst-header-name">{data?.institute_name || "Institute Panel"}</h1>
+          <div className="inst-header-row">
+            <div>
+              {data?.institute_name && <p className="inst-header-label">Institute Panel</p>}
+              <p className="inst-subtitle">How your students are doing across every active challenge.</p>
+            </div>
+            <div className="inst-actions">
+              <label className="inst-filter">
+                <span>Class</span>
+                <select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+                  <option value="">All classes</option>
+                  {groupOptions.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {"\u00A0\u00A0".repeat(g.depth)}{g.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" className="inst-btn inst-btn--outline" onClick={() => onShowInvite(data?.invite_code, groupOptions)}>
+                Invite code
+              </button>
+              <button type="button" className="inst-btn inst-btn--outline" onClick={() => setAddSectionOpens((n) => n + 1)}>
+                <Icon name="plus" size={16} strokeWidth={2.4} />
+                Add section
+              </button>
+              <button type="button" className="inst-btn inst-btn--primary" onClick={() => onNavigate("assignments")}>
+                <Icon name="plus" size={18} strokeWidth={2.4} />
+                Assign challenge
+              </button>
+            </div>
           </div>
         </div>
+        <img className="inst-header-art" src={explorerArt} alt="" aria-hidden="true" />
       </div>
 
       {error && !data && (

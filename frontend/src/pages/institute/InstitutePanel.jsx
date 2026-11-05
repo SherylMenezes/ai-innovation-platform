@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import InstituteDashboard from "./InstituteDashboard";
 import Icon from "./InstituteIcons";
 import InviteDialog from "./InviteDialog";
+import StudentsPage from "./StudentsPage";
+import GroupsPage from "./GroupsPage";
 import "./InstitutePanel.css";
 
 const NAV_GROUPS = [
@@ -192,6 +194,10 @@ export default function InstitutePanel() {
       <main className="inst-main">
         {section === "dashboard" ? (
           <InstituteDashboard onNavigate={goTo} onShowInvite={showInvite} />
+        ) : section === "students" ? (
+          <StudentsPage />
+        ) : section === "groups" ? (
+          <GroupsPage />
         ) : (
           <ComingSoon label={current.label} onBack={() => goTo("dashboard")} />
         )}

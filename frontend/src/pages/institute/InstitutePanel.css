@@ -293,13 +293,12 @@
   min-width: 0;
 }
 
-/* Header bar: a tall banner with a dark pink ombré and bold white text. */
-/* Name takes the full first line (wrapping if long); the label, subtitle and buttons sit in a row below. */
+/* Header bar: a tall banner with a dark pink ombré and bold white text.
+   Text and buttons fill the left column; the explorer sticker sits on the right. */
 .inst-header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 14px;
+  align-items: center;
+  gap: 24px;
   min-height: 168px;
   box-sizing: border-box;
   padding: 34px 32px;
@@ -307,6 +306,27 @@
   /* Left end stays deep enough for the white title and subtitle to read clearly. */
   background: linear-gradient(120deg, #C2185B 0%, #DB2C6C 40%, #F0507F 75%, #FB7BA0 100%);
   box-shadow: 0 10px 28px rgba(219, 44, 108, 0.25);
+}
+
+/* Name takes the full first line (wrapping if long); the label, subtitle and buttons sit below it. */
+.inst-header-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Decorative; pulled into the bottom padding so it sits on the banner's lower edge. */
+.inst-header-art {
+  flex-shrink: 0;
+  align-self: flex-end;
+  width: auto;
+  height: 190px;
+  margin: -18px -8px -26px 0;
+  filter: drop-shadow(0 10px 18px rgba(90, 10, 45, 0.28));
+  pointer-events: none;
+  user-select: none;
 }
 
 .inst-header-row {
@@ -1230,6 +1250,17 @@
   .inst-row-split,
   .inst-row-split--wide {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inst-header-art {
+    height: 150px;
+  }
+}
+
+/* Too little room beside the text and buttons: drop the sticker. */
+@media (max-width: 700px) {
+  .inst-header-art {
+    display: none;
   }
 }
 
