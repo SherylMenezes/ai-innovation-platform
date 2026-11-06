@@ -1,5 +1,11 @@
 /* Groups page. Builds on Students.css (tiles, drawer, dialogs) and the .inst-panel tokens. */
 
+/* The group scene is wide and busy, so it gets the full banner height for the faces to read. */
+.inst-header-art.stu-hero-art.grp-hero-art {
+  height: 196px;
+  margin: -26px 0 -30px 0;
+}
+
 .grp-tile {
   cursor: default;
 }

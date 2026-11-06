@@ -6,6 +6,7 @@ import PerformanceByClass from "./PerformanceByClass";
 import { addSampleSection, getSampleGroupOptions, sampleDashboard, sampleFunnel } from "./sampleData";
 import AddSectionDialog from "./AddSectionDialog";
 import Icon from "./InstituteIcons";
+import StickerArt from "./StickerArt";
 import explorerArt from "../../assets/institute-explorer.webp";
 
 function StatCard({ icon, tone, label, value, suffix, note, noteTone }) {
@@ -220,7 +221,7 @@ export default function InstituteDashboard({ onNavigate, onShowInvite }) {
             </div>
           </div>
         </div>
-        <img className="inst-header-art" src={explorerArt} alt="" aria-hidden="true" />
+        <StickerArt className="inst-header-art" src={explorerArt} />
       </div>
 
       {error && !data && (

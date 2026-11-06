@@ -11,6 +11,8 @@ import {
 import {
   STATUS_LABELS, avatarTone, formatXp, initials, relativeTime,
 } from "./studentFormat";
+import StickerArt from "./StickerArt";
+import studentsArt from "../../assets/institute-students.webp";
 import "./Students.css";
 
 const PAGE_SIZE = 10;
@@ -199,20 +201,28 @@ export default function StudentsPage() {
 
   return (
     <div className="stu-page">
-      <header className="stu-page-head">
-        <div>
-          <p className="stu-eyebrow">Manage</p>
-          <h1 className="inst-title">Students</h1>
-          <p className="inst-subtitle">Everyone enrolled at {instituteName}: their progress, scores and access.</p>
+      <header className="inst-header stu-hero">
+        <div className="inst-header-main">
+          <div>
+            <p className="stu-hero-eyebrow">Manage · {instituteName}</p>
+            <h1 className="inst-title inst-header-name">Students</h1>
+          </div>
+          <div className="inst-header-row">
+            <div>
+              <p className="inst-header-label">{counts.all} enrolled · {counts.activeWeek} active this week</p>
+              <p className="inst-subtitle">Track progress, scores and access for everyone in your institute.</p>
+            </div>
+            <div className="inst-actions">
+              <button type="button" className="inst-btn inst-btn--outline" onClick={() => setBulkOpen(true)}>
+                <Icon name="upload" size={16} /> Bulk upload
+              </button>
+              <button type="button" className="inst-btn inst-btn--primary" onClick={() => setForm({ mode: "add" })}>
+                <Icon name="plus" size={18} strokeWidth={2.4} /> Add student
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="stu-head-actions">
-          <button type="button" className="inst-btn inst-btn--outline" onClick={() => setBulkOpen(true)}>
-            <Icon name="upload" size={16} /> Bulk upload
-          </button>
-          <button type="button" className="inst-btn inst-btn--primary" onClick={() => setForm({ mode: "add" })}>
-            <Icon name="plus" size={18} strokeWidth={2.4} /> Add student
-          </button>
-        </div>
+        <StickerArt className="inst-header-art stu-hero-art" src={studentsArt} baseRotate={-2} />
       </header>
 
       <div className="stu-tiles" role="group" aria-label="Filter by status">

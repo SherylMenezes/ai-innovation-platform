@@ -317,6 +317,15 @@
   gap: 14px;
 }
 
+/* Animated by StickerArt.jsx: floats, tilts towards the pointer, hops on click. */
+.inst-header-art.inst-sticker {
+  pointer-events: auto;
+  cursor: pointer;
+  transform-origin: 50% 85%;
+  will-change: transform;
+  -webkit-user-drag: none;
+}
+
 /* Decorative; pulled into the bottom padding so it sits on the banner's lower edge. */
 .inst-header-art {
   flex-shrink: 0;

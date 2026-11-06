@@ -25,6 +25,24 @@
   color: var(--inst-blue-ink);
 }
 
+/* Pink banner header (shares .inst-header styling with the dashboard) */
+.stu-hero-eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+/* Banner sticker for the Manage pages; the seated explorer is portrait, so it runs a bit taller. */
+.inst-header-art.stu-hero-art {
+  height: 196px;
+  margin: -26px 8px -30px 0;
+  transform: rotate(-5deg);
+  filter: drop-shadow(0 10px 16px rgba(90, 10, 45, 0.3));
+}
+
 .stu-head-actions {
   display: flex;
   flex-wrap: wrap;

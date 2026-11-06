@@ -5,13 +5,15 @@ import SectionDrawer from "./SectionDrawer";
 import TeamDrawer from "./TeamDrawer";
 import TeamFormDialog from "./TeamFormDialog";
 import { ConfirmDialog, SectionSelect } from "./GroupsShared";
-import { addSampleGrade, addSampleSection } from "./sampleData";
+import { addSampleGrade, addSampleSection, sampleDashboard } from "./sampleData";
 import {
   average, createTeam, deleteTeam, getSectionStaff, listTeams, staffById, teamInitials, teamScope, updateTeam,
 } from "./groupsData";
 import { getClassOptions, listStudents } from "./studentsData";
 import { avatarTone, initials } from "./studentFormat";
 import "./Students.css";
+import StickerArt from "./StickerArt";
+import groupsArt from "../../assets/institute-groups.webp";
 import "./Groups.css";
 
 const TABS = [
@@ -210,6 +212,7 @@ export default function GroupsPage() {
   const grades = getClassOptions();
   const students = listStudents();
   const teams = listTeams();
+  const sectionCount = grades.reduce((sum, g) => sum + g.sections.length, 0);
   const openTeam = teams.find((t) => t.id === openTeamId) ?? null;
 
   useEffect(() => {
@@ -255,28 +258,38 @@ export default function GroupsPage() {
 
   return (
     <div className="stu-page grp-page">
-      <header className="stu-page-head">
-        <div>
-          <p className="stu-eyebrow">Manage</p>
-          <h1 className="inst-title">Groups</h1>
-          <p className="inst-subtitle">Organise students into classes, sections and teams, and choose who mentors each one.</p>
+      <header className="inst-header stu-hero">
+        <div className="inst-header-main">
+          <div>
+            <p className="stu-hero-eyebrow">Manage · {sampleDashboard.institute_name}</p>
+            <h1 className="inst-title inst-header-name">Groups</h1>
+          </div>
+          <div className="inst-header-row">
+            <div>
+              <p className="inst-header-label">
+                {grades.length} grades · {sectionCount} sections · {teams.length} teams
+              </p>
+              <p className="inst-subtitle">Organise students into classes, sections and teams, and choose who mentors each one.</p>
+            </div>
+            <div className="inst-actions">
+              {tab === "classes" ? (
+                <>
+                  <button type="button" className="inst-btn inst-btn--outline" onClick={() => setClassForm({ mode: "section" })}>
+                    <Icon name="plus" size={16} strokeWidth={2.4} /> Add section
+                  </button>
+                  <button type="button" className="inst-btn inst-btn--primary" onClick={() => setClassForm({ mode: "grade" })}>
+                    <Icon name="plus" size={18} strokeWidth={2.4} /> Add grade
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="inst-btn inst-btn--primary" onClick={() => setTeamForm({})}>
+                  <Icon name="plus" size={18} strokeWidth={2.4} /> Create team
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="stu-head-actions">
-          {tab === "classes" ? (
-            <>
-              <button type="button" className="inst-btn inst-btn--outline" onClick={() => setClassForm({ mode: "section" })}>
-                <Icon name="plus" size={16} strokeWidth={2.4} /> Add section
-              </button>
-              <button type="button" className="inst-btn inst-btn--primary" onClick={() => setClassForm({ mode: "grade" })}>
-                <Icon name="plus" size={18} strokeWidth={2.4} /> Add grade
-              </button>
-            </>
-          ) : (
-            <button type="button" className="inst-btn inst-btn--primary" onClick={() => setTeamForm({})}>
-              <Icon name="plus" size={18} strokeWidth={2.4} /> Create team
-            </button>
-          )}
-        </div>
+        <StickerArt className="inst-header-art stu-hero-art grp-hero-art" src={groupsArt} baseRotate={-4} />
       </header>
 
       <div className="grp-tabs" role="tablist" aria-label="Group type">
@@ -296,7 +309,7 @@ export default function GroupsPage() {
           >
             <Icon name={t.icon} size={16} />
             {t.label}
-            <span className="grp-tab-count">{t.key === "classes" ? grades.flatMap((g) => g.sections).length : teams.length}</span>
+            <span className="grp-tab-count">{t.key === "classes" ? sectionCount : teams.length}</span>
           </button>
         ))}
       </div>
