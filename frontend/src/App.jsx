@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import InstitutePanel from "./pages/institute/InstitutePanel";
+import CompanyPanel from "./pages/company/CompanyPanel";
 import ChallengeCatalog from "./pages/challenges/ChallengeCatalog";
 import ProblemCanvas from "./pages/canvas/ProblemCanvas";
 import IdeatePage from "./pages/ideation/IdeatePage";
@@ -147,6 +148,11 @@ function AppShell() {
   // TEMP: open the institute panel with sample data, no login needed (/?institute)
   if (new URLSearchParams(window.location.search).has("institute")) {
     return <InstitutePanel />;
+  }
+
+  // TEMP: open the company panel with sample data, no login needed (/?company)
+  if (new URLSearchParams(window.location.search).has("company")) {
+    return <CompanyPanel />;
   }
 
   if (isLoading) {
