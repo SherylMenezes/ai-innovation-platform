@@ -267,6 +267,11 @@ export function moveStudents(ids, sectionId) {
   return moved;
 }
 
+// Adds XP to a student (used by the live leaderboard to simulate scores coming in).
+export function awardXp(id, amount) {
+  students = listStudents().map((s) => (s.id === id ? { ...s, xp: s.xp + amount } : s));
+}
+
 export function setStudentStatus(id, status) {
   students = listStudents().map((s) => (s.id === id ? { ...s, status } : s));
 }

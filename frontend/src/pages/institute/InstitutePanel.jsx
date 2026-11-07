@@ -1,10 +1,20 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import InstituteDashboard from "./InstituteDashboard";
 import Icon from "./InstituteIcons";
 import InviteDialog from "./InviteDialog";
 import StudentsPage from "./StudentsPage";
-import GroupsPage from "./GroupsPage";
 import "./InstitutePanel.css";
+
+// Sidebar sections with their own page (Dashboard and Students are rendered separately).
+// Loaded on first visit so the rest of the app doesn't download them.
+const PAGES = {
+  groups: lazy(() => import("./GroupsPage")),
+  assignments: lazy(() => import("./AssignmentsPage")),
+  challenges: lazy(() => import("./ChallengesPage")),
+  leaderboard: lazy(() => import("./LeaderboardPage")),
+  reports: lazy(() => import("./ReportsPage")),
+  awards: lazy(() => import("./AwardsPage")),
+};
 
 const NAV_GROUPS = [
   { label: "Overview", items: [{ key: "dashboard", label: "Dashboard" }] },
@@ -50,6 +60,11 @@ function writeStored(key, value) {
   } catch {
     // Not critical: the panel just won't remember this next time.
   }
+}
+
+function LazyPage({ name }) {
+  const Page = PAGES[name];
+  return <Page />;
 }
 
 function ComingSoon({ label, onBack }) {
@@ -196,8 +211,10 @@ export default function InstitutePanel() {
           <InstituteDashboard onNavigate={goTo} onShowInvite={showInvite} />
         ) : section === "students" ? (
           <StudentsPage />
-        ) : section === "groups" ? (
-          <GroupsPage />
+        ) : PAGES[section] ? (
+          <Suspense fallback={<div className="inst-skeleton" style={{ height: 240 }} aria-label="Loading" />}>
+            <LazyPage name={section} />
+          </Suspense>
         ) : (
           <ComingSoon label={current.label} onBack={() => goTo("dashboard")} />
         )}
