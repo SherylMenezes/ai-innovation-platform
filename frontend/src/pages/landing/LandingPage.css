@@ -74,9 +74,10 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-secondary:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
+.landing-nav .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #ffffff;
 }
 
 /* "Get Started" button styled like the dashboard's active indicator */

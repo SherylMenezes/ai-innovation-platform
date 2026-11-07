@@ -1,7 +1,27 @@
-import React from "react";
+import React, { useState } from "react";
+import RoleSelectModal from "../../components/RoleSelectModal";
 import "./LandingPage.css";
 
-export default function LandingPage({ onGetStarted, onLogin }) {
+/**
+ * Props:
+ *   onSelectRole (roleKey, mode) => void
+ *       roleKey: "student" | "institution" | "company" | "admin"
+ *       mode:    "login" | "signup"
+ *   onGetStarted, onLogin  (old props, still called if onSelectRole is not passed)
+ */
+export default function LandingPage({ onSelectRole, onGetStarted, onLogin }) {
+  const [picker, setPicker] = useState({ open: false, mode: "login" });
+
+  const openPicker = (mode) => setPicker({ open: true, mode });
+  const closePicker = () => setPicker((p) => ({ ...p, open: false }));
+
+  const handleSelect = (roleKey, mode) => {
+    closePicker();
+    if (onSelectRole) onSelectRole(roleKey, mode);
+    else if (mode === "signup") onGetStarted?.();
+    else onLogin?.();
+  };
+
   const features = [
     {
       icon: "🎯",
@@ -37,10 +57,10 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           <span>AI Innovation Platform</span>
         </div>
         <div className="landing-nav-actions">
-          <button type="button" className="btn-secondary" onClick={onLogin}>
+          <button type="button" className="btn-secondary" onClick={() => openPicker("login")}>
             Log In
           </button>
-          <button type="button" className="btn-primary" onClick={onGetStarted}>
+          <button type="button" className="btn-primary" onClick={() => openPicker("signup")}>
             Get Started
           </button>
         </div>
@@ -55,15 +75,15 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           Turn Challenges into <span className="landing-title-gradient">Impactful Solutions</span>
         </h1>
         <p className="landing-subtitle">
-          An enterprise-grade innovation playground designed to guide you through ideation, 
+          An enterprise-grade innovation playground designed to guide you through ideation,
           evaluation, and structured execution with AI-powered coaching.
         </p>
 
         <div className="landing-cta-group">
-          <button type="button" className="btn-primary btn-hero-lg" onClick={onGetStarted}>
+          <button type="button" className="btn-primary btn-hero-lg" onClick={() => openPicker("signup")}>
             Explore Challenges →
           </button>
-          <button type="button" className="btn-primary btn-hero-lg" onClick={onLogin}>
+          <button type="button" className="btn-primary btn-hero-lg" onClick={() => openPicker("login")}>
             Sign In to Dashboard
           </button>
         </div>
@@ -81,6 +101,14 @@ export default function LandingPage({ onGetStarted, onLogin }) {
           </div>
         ))}
       </section>
+
+      <RoleSelectModal
+        open={picker.open}
+        mode={picker.mode}
+        onModeChange={(mode) => setPicker((p) => ({ ...p, mode }))}
+        onSelect={handleSelect}
+        onClose={closePicker}
+      />
     </div>
   );
 }

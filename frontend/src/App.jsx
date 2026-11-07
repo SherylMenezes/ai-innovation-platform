@@ -11,6 +11,7 @@ import SubmissionUpload from "./pages/submission/SubmissionUpload";
 import ProjectSummary from "./pages/project/ProjectSummary";
 import GamificationPanel from "./pages/gamification/GamificationPanel";
 import AuthPage from "./pages/auth/AuthPage";
+import RoleAuthPage from "./pages/auth/RoleAuthPage";
 import ChallengePhaseBar from "./components/ChallengePhaseBar";
 import RewardToast from "./components/RewardToast";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -24,6 +25,11 @@ import { getLevelTitle } from "./utils/levelTitles";
 
 const WORKFLOW_TABS = new Set(["canvas", "ideation", "evaluation", "submission"]);
 const TOAST_DURATION_MS = 4000;
+
+// Roles that get their own full-screen panel instead of the student workspace.
+// The backend doesn't create these roles yet; this takes effect once it does.
+const INSTITUTION_ROLES = new Set(["institution", "institution_admin"]);
+const COMPANY_ROLES = new Set(["company", "company_admin"]);
 
 // [AI MENTOR] Stage names the mentor's coaching rules (llm_service.py) are
 // keyed on. Only used outside a challenge — inside one, the backend reads
@@ -44,7 +50,11 @@ function AppShell() {
   const [level, setLevel] = useState(null);
   const [progressKey, setProgressKey] = useState(0);
   const [toasts, setToasts] = useState([]);
-  const [showAuthScreen, setShowAuthScreen] = useState(false);
+  // Logged-out screens: null = landing page, { role, mode } = that role's login / sign-up page.
+  const [authView, setAuthView] = useState(null);
+  // TEMP: the role pages are UI only, so submitting one opens the existing
+  // AuthPage, which still does the real login. Remove once RoleAuthPage calls the API.
+  const [showLegacyAuth, setShowLegacyAuth] = useState(false);
   const canSeeInstitute = true; // TEMP: preview institute panel
 
 
@@ -52,6 +62,21 @@ function AppShell() {
   const toastSeq = useRef(0);
 
   const { user, isAuthenticated, isLoading, logout, accessToken } = useAuth();
+
+  // Clear the logged-out screens once someone signs in, so logging out returns to the landing page.
+  useEffect(() => {
+    if (isAuthenticated) {
+      setAuthView(null);
+      setShowLegacyAuth(false);
+    }
+  }, [isAuthenticated]);
+
+  const handleLogout = () => {
+    setPage("dashboard");
+    setChallengeId(null);
+    setChallengeStage(null);
+    logout();
+  };
 
   const pushToast = useCallback((toast) => {
     toastSeq.current += 1;
@@ -159,17 +184,33 @@ function AppShell() {
     return <div className="app-loading">Loading...</div>;
   }
 
-  // Unauthenticated view
+  // Unauthenticated view: landing page -> role picker -> that role's login / sign-up page
   if (!isAuthenticated) {
-    if (showAuthScreen) {
-      return <AuthPage onBack={() => setShowAuthScreen(false)} />;
+    if (showLegacyAuth) {
+      return <AuthPage onBack={() => setShowLegacyAuth(false)} />;
     }
-    return (
-      <LandingPage
-        onGetStarted={() => setShowAuthScreen(true)}
-        onLogin={() => setShowAuthScreen(true)}
-      />
-    );
+    if (authView) {
+      return (
+        <RoleAuthPage
+          key={`${authView.role}-${authView.mode}`}
+          role={authView.role}
+          mode={authView.mode}
+          onModeChange={(mode) => setAuthView((v) => ({ ...v, mode }))}
+          onChangeRole={() => setAuthView(null)}
+          onBack={() => setAuthView(null)}
+          onSubmit={() => setShowLegacyAuth(true)}
+        />
+      );
+    }
+    return <LandingPage onSelectRole={(role, mode) => setAuthView({ role, mode })} />;
+  }
+
+  // Institution and company accounts land on their own panel.
+  if (INSTITUTION_ROLES.has(user?.role)) {
+    return <InstitutePanel />;
+  }
+  if (COMPANY_ROLES.has(user?.role)) {
+    return <CompanyPanel />;
   }
 
   // Authenticated workspace shell
@@ -271,7 +312,7 @@ function AppShell() {
           </div>
         )}
 
-        <button type="button" className="btn-secondary" onClick={logout}>
+        <button type="button" className="btn-secondary" onClick={handleLogout}>
           Log out
         </button>
       </nav>
