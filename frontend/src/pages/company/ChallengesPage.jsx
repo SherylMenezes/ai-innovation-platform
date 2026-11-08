@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import "./CompanyPanel.css";
-import { mockChallengesData } from "./mockData";
+import { mockCompanyChallenges } from "./mockData";
 
 import StickerArt from "./StickerArt";
 import challengesArt from "../../assets/institute-challenges.webp";
 
 export default function ChallengesPage() {
-  const [challenges, setChallenges] = useState(mockChallengesData);
+  const [challenges, setChallenges] = useState(mockCompanyChallenges);
   const [filterType, setFilterType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);

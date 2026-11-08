@@ -1,33 +1,34 @@
 import React, { useState } from "react";
 import "./CompanyPanel.css";
-import EmployeesPage from "./EmployeesPage";
-import TeamsGroupsPage from "./TeamsGroupsPage";
-import AssignmentsPage from "./AssignmentsPage";
-import ChallengesPage from "./ChallengesPage";
-import LeaderboardPage from "./LeaderboardPage";
-import ReportsAiPage from "./ReportsAiPage";
-import AwardsPage from "./AwardsPage";
-import SettingsPage from "./SettingsPage";
 
 import StickerArt from "./StickerArt";
 import explorerArt from "../../assets/institute-explorer.webp";
 
+// Sub-pages matching BRD & Backlog
+import SubmissionsReviewPage from "./SubmissionsReviewPage";
+import ChallengesPage from "./ChallengesPage";
+import TalentDiscoveryPage from "./TalentDiscoveryPage";
+import TeamsGroupsPage from "./TeamsGroupsPage";
+import LeaderboardPage from "./LeaderboardPage";
+import AnalyticsReportsPage from "./AnalyticsReportsPage";
+import AwardsPage from "./AwardsPage";
+import SettingsPage from "./SettingsPage";
+
 import {
   mockCompany,
-  mockStats,
-  mockDepartments,
-  mockFunnelStages
+  mockDashboardMetrics,
+  mockCompanyChallenges,
+  mockFunnelData,
+  mockInstitutionParticipation
 } from "./mockData";
 
 export default function CompanyPanel() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState("Dashboard");
-  const [selectedMetric, setSelectedMetric] = useState("completion");
-  const [selectedDeptFilter, setSelectedDeptFilter] = useState("all");
 
   return (
     <div className="company-layout">
-      {/* 1. SIDEBAR */}
+      {/* SIDEBAR */}
       <aside className={`company-sidebar ${sidebarCollapsed ? "collapsed" : ""}`}>
         <div className="sidebar-header">
           <div className="sidebar-brand" onClick={() => setActiveTab("Dashboard")}>
@@ -35,7 +36,7 @@ export default function CompanyPanel() {
             {!sidebarCollapsed && (
               <div className="sidebar-title">
                 <h2>Company Panel</h2>
-                <span>Admin workspace</span>
+                <span>Enterprise workspace</span>
               </div>
             )}
           </div>
@@ -70,28 +71,12 @@ export default function CompanyPanel() {
           <div>
             {!sidebarCollapsed && <span className="menu-group-title">Manage</span>}
             <ul className="menu-items">
-              <li className={`menu-item ${activeTab === "Employees" ? "active" : ""}`}>
-                <button onClick={() => setActiveTab("Employees")}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                  </svg>
-                  {!sidebarCollapsed && "Employees"}
-                </button>
-              </li>
-              <li className={`menu-item ${activeTab === "Teams & Groups" ? "active" : ""}`}>
-                <button onClick={() => setActiveTab("Teams & Groups")}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-                  </svg>
-                  {!sidebarCollapsed && "Teams & Groups"}
-                </button>
-              </li>
-              <li className={`menu-item ${activeTab === "Assignments" ? "active" : ""}`}>
-                <button onClick={() => setActiveTab("Assignments")}>
+              <li className={`menu-item ${activeTab === "Submissions" ? "active" : ""}`}>
+                <button onClick={() => setActiveTab("Submissions")}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>
                   </svg>
-                  {!sidebarCollapsed && "Assignments"}
+                  {!sidebarCollapsed && "Submissions & AI"}
                 </button>
               </li>
               <li className={`menu-item ${activeTab === "Challenges" ? "active" : ""}`}>
@@ -100,6 +85,22 @@ export default function CompanyPanel() {
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>
                   </svg>
                   {!sidebarCollapsed && "Challenges"}
+                </button>
+              </li>
+              <li className={`menu-item ${activeTab === "Talent" ? "active" : ""}`}>
+                <button onClick={() => setActiveTab("Talent")}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                  {!sidebarCollapsed && "Talent Discovery"}
+                </button>
+              </li>
+              <li className={`menu-item ${activeTab === "Teams" ? "active" : ""}`}>
+                <button onClick={() => setActiveTab("Teams")}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+                  </svg>
+                  {!sidebarCollapsed && "Squads & Mentors"}
                 </button>
               </li>
             </ul>
@@ -116,12 +117,12 @@ export default function CompanyPanel() {
                   {!sidebarCollapsed && "Leaderboard"}
                 </button>
               </li>
-              <li className={`menu-item ${activeTab === "Reports" ? "active" : ""}`}>
-                <button onClick={() => setActiveTab("Reports")}>
+              <li className={`menu-item ${activeTab === "Analytics" ? "active" : ""}`}>
+                <button onClick={() => setActiveTab("Analytics")}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>
                   </svg>
-                  {!sidebarCollapsed && "Reports"}
+                  {!sidebarCollapsed && "Analytics"}
                 </button>
               </li>
               <li className={`menu-item ${activeTab === "Awards" ? "active" : ""}`}>
@@ -129,7 +130,7 @@ export default function CompanyPanel() {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
                   </svg>
-                  {!sidebarCollapsed && "Awards"}
+                  {!sidebarCollapsed && "Awards & Grants"}
                 </button>
               </li>
             </ul>
@@ -150,211 +151,165 @@ export default function CompanyPanel() {
         </div>
       </aside>
 
-      {/* 2. MAIN VIEW */}
+      {/* MAIN VIEW */}
       <main className="company-main">
-        {activeTab === "Employees" && <EmployeesPage />}
-        {activeTab === "Teams & Groups" && <TeamsGroupsPage />}
-        {activeTab === "Assignments" && <AssignmentsPage />}
+        {activeTab === "Submissions" && <SubmissionsReviewPage />}
         {activeTab === "Challenges" && <ChallengesPage />}
+        {activeTab === "Talent" && <TalentDiscoveryPage />}
+        {activeTab === "Teams" && <TeamsGroupsPage />}
         {activeTab === "Leaderboard" && <LeaderboardPage />}
-        {activeTab === "Reports" && <ReportsAiPage />}
+        {activeTab === "Analytics" && <AnalyticsReportsPage />}
         {activeTab === "Awards" && <AwardsPage />}
         {activeTab === "Settings" && <SettingsPage />}
 
         {activeTab === "Dashboard" && (
           <>
-            {/* HEADER BANNER */}
+            {/* 1. HEADER BANNER */}
             <section className="header-banner">
               <div className="banner-left">
                 <h1 className="banner-title">{mockCompany.name}</h1>
-                <div className="banner-subtitle">Company Panel</div>
-                <p className="banner-desc">How your innovation teams are performing across active challenges.</p>
+                <div className="banner-subtitle">Enterprise Innovation Panel</div>
+                <p className="banner-desc">Crowdsourcing challenges, reviewing AI solutions, and scouting engineering talent.</p>
 
                 <div className="banner-controls">
-                  <span className="banner-filter-label">Dept</span>
-                  <select
-                    className="banner-dropdown"
-                    value={selectedDeptFilter}
-                    onChange={(e) => setSelectedDeptFilter(e.target.value)}
-                  >
-                    <option value="all">All departments</option>
-                    <option value="eng">Engineering & R&D</option>
-                    <option value="pdx">Product Design & UX</option>
-                    <option value="mkt">Growth & Marketing</option>
-                    <option value="ops">Customer Operations</option>
+                  <span className="banner-filter-label">Challenge</span>
+                  <select className="banner-dropdown">
+                    <option value="all">All active challenges (4)</option>
+                    <option value="101">Autonomous Agents in Cold-Chain</option>
+                    <option value="102">Zero-Shot Support Triage</option>
                   </select>
 
-                  <button className="btn-banner-action" onClick={() => navigator.clipboard.writeText(mockCompany.invite_code)}>
-                    Invite code
+                  <button className="btn-banner-action" onClick={() => setActiveTab("Challenges")}>
+                    + Post Challenge
                   </button>
-                  <button className="btn-banner-action" onClick={() => setActiveTab("Teams & Groups")}>
-                    + Add dept
-                  </button>
-                  <button className="btn-banner-action" onClick={() => setActiveTab("Assignments")}>
-                    + Assign challenge
+                  <button className="btn-banner-action" onClick={() => setActiveTab("Submissions")}>
+                    View Submissions ({mockDashboardMetrics.totalSubmissions})
                   </button>
                 </div>
               </div>
-              <StickerArt className="inst-header-art" src={explorerArt} />
+              <StickerArt className="inst-header-art stu-hero-art grp-hero-art" src={explorerArt} baseRotate={-4} />
             </section>
 
-            {/* 4 STAT CARDS */}
+            {/* 2. STAT CARDS */}
             <section className="stats-grid">
-              {/* Total Members */}
               <div className="stat-card">
                 <div className="stat-card-top">
-                  <span className="stat-label">Total employees</span>
+                  <span className="stat-label">Active challenges</span>
                   <div className="stat-tile blue">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>
                     </svg>
                   </div>
                 </div>
-                <div className="stat-value">{mockStats.totalEmployees}</div>
+                <div className="stat-value">{mockDashboardMetrics.activeChallenges}</div>
                 <div className="stat-footnote">
-                  <span className="dot-indicator green" /> 38 active right now
+                  <span className="dot-indicator green" /> Across {mockDashboardMetrics.partnerInstitutions} institutions
                 </div>
               </div>
 
-              {/* Active Assignments */}
               <div className="stat-card">
                 <div className="stat-card-top">
-                  <span className="stat-label">Active assignments</span>
+                  <span className="stat-label">Total submissions</span>
                   <div className="stat-tile yellow">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
                     </svg>
                   </div>
                 </div>
-                <div className="stat-value">{mockStats.activeAssignments}</div>
-                <div className="stat-footnote">3 due this week</div>
+                <div className="stat-value">{mockDashboardMetrics.totalSubmissions}</div>
+                <div className="stat-footnote">42 shortlisted for review</div>
               </div>
 
-              {/* Completion Rate */}
               <div className="stat-card">
                 <div className="stat-card-top">
-                  <span className="stat-label">Completion</span>
+                  <span className="stat-label">Active participants</span>
                   <div className="stat-tile green">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                     </svg>
                   </div>
                 </div>
-                <div className="stat-value">{Math.round(mockStats.completionRate)}%</div>
-                <div className="stat-footnote">Up 4% from last week</div>
+                <div className="stat-value">{mockDashboardMetrics.activeParticipants}</div>
+                <div className="stat-footnote">Student & Graduate innovators</div>
               </div>
 
-              {/* Avg AI Score (Star Icon matching Institute Panel) */}
               <div className="stat-card">
                 <div className="stat-card-top">
-                  <span className="stat-label">Avg AI score</span>
+                  <span className="stat-label">Avg AI Quality</span>
                   <div className="stat-tile star">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
                   </div>
                 </div>
-                <div className="stat-value">{Math.round(mockStats.avgAiScore)}<span>/100</span></div>
-                <div className="stat-footnote">Across all submissions</div>
+                <div className="stat-value">{mockDashboardMetrics.avgAiQualityScore}<span>/100</span></div>
+                <div className="stat-footnote">Gemini Rubric evaluation</div>
               </div>
             </section>
 
-            {/* 5. PERFORMANCE BY DEPARTMENT & WORKFLOW FUNNEL */}
+            {/* 3. PERFORMANCE BREAKDOWN & FUNNEL */}
             <div className="dashboard-grid-2">
-              {/* Department Table */}
               <section className="dashboard-panel">
                 <div className="panel-header-row">
                   <div>
-                    <h3 className="panel-heading">Performance by department</h3>
-                    <p className="panel-subtext">Select a department to view team breakdown.</p>
+                    <h3 className="panel-heading">Active Enterprise Challenges</h3>
+                    <p className="panel-subtext">Click on any challenge to inspect incoming submissions.</p>
                   </div>
-                  <div className="metric-toggles">
-                    {["completion", "avgAiScore", "avgXp"].map((m) => (
-                      <button
-                        key={m}
-                        className={`metric-toggle-btn ${selectedMetric === m ? "active" : ""}`}
-                        onClick={() => setSelectedMetric(m)}
-                      >
-                        {m === "completion" ? "Completion" : m === "avgAiScore" ? "Avg AI score" : "Avg XP"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="summary-bar">
-                  <span className="summary-title">All departments</span>
-                  <span className="summary-pill">268 employees • 67% completion • avg score 74 • avg 1,220 XP</span>
                 </div>
 
                 <table className="perf-table-clean">
                   <thead>
                     <tr>
-                      <th>Department</th>
-                      <th>Distribution</th>
-                      <th>Done</th>
-                      <th>Members</th>
+                      <th>Challenge Brief</th>
+                      <th>Submissions</th>
+                      <th>Avg Score</th>
+                      <th>Time Left</th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mockDepartments.map((dept) => {
-                      const val = dept[selectedMetric];
-                      const displayVal = selectedMetric === "completion" ? `${val}%` : val;
-                      return (
-                        <tr key={dept.id} style={{ cursor: "pointer" }} onClick={() => setActiveTab("Teams & Groups")}>
-                          <td>
-                            <div className="dept-name-cell">
-                              {dept.name}
-                              {dept.statusTag === "Needs help" && <span className="tag-badge needs-help">Needs help</span>}
-                              {dept.statusTag === "Top" && <span className="tag-badge top">Top</span>}
-                            </div>
-                          </td>
-                          <td>
-                            <div className="dist-bar-track">
-                              <div
-                                className={`dist-bar-fill ${dept.statusTag === "Needs help" ? "amber" : ""}`}
-                                style={{ width: `${Math.min(dept.completion, 100)}%` }}
-                              />
-                            </div>
-                          </td>
-                          <td style={{ fontWeight: 800, color: "var(--theme-navy)" }}>{displayVal}</td>
-                          <td style={{ color: "var(--text-secondary)" }}>
-                            {dept.id === 101 ? 74 : dept.id === 102 ? 62 : dept.id === 103 ? 48 : 84}
-                          </td>
-                          <td style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: 700 }}>›</td>
-                        </tr>
-                      );
-                    })}
+                    {mockCompanyChallenges.map((c) => (
+                      <tr key={c.id} style={{ cursor: "pointer" }} onClick={() => setActiveTab("Submissions")}>
+                        <td>
+                          <div style={{ fontWeight: 800, color: "var(--theme-navy)" }}>{c.title}</div>
+                          <span className="code-pill">{c.category}</span>
+                        </td>
+                        <td style={{ fontWeight: 700, color: "var(--theme-navy)" }}>{c.submissions_count}</td>
+                        <td>
+                          <span className="code-pill" style={{ background: "#EFF6FF", color: "#1D58D8" }}>{c.avg_score}/100</span>
+                        </td>
+                        <td style={{ color: "var(--text-secondary)", fontSize: "12px" }}>
+                          {c.days_left > 0 ? `${c.days_left} days left` : "Closed"}
+                        </td>
+                        <td style={{ color: "var(--text-muted)", fontSize: "16px", fontWeight: 700 }}>›</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </section>
 
-              {/* Workflow Funnel */}
               <section className="dashboard-panel">
                 <div className="panel-header-row">
                   <div>
-                    <h3 className="panel-heading">Workflow funnel</h3>
-                    <p className="panel-subtext">Enterprise AI Challenge • All departments • 268 members</p>
+                    <h3 className="panel-heading">Solution Lifecycle Funnel</h3>
+                    <p className="panel-subtext">Aggregated participant progress across all active company briefs.</p>
                   </div>
                 </div>
 
                 <div className="funnel-list">
-                  {mockFunnelStages.map((step) => (
-                    <div key={step.stage} className="funnel-row">
-                      <span className="funnel-label">{step.stage}</span>
+                  {mockFunnelData.map((f, i) => (
+                    <div key={i} className="funnel-row">
+                      <span className="funnel-label">{f.stage}</span>
                       <div className="funnel-track">
-                        <div
-                          className={`funnel-bar ${step.isBiggestDrop ? "drop-bar" : ""}`}
-                          style={{ width: `${step.percentage}%` }}
-                        />
+                        <div className={`funnel-bar ${f.isBottleneck ? "drop-bar" : ""}`} style={{ width: `${f.pct}%` }} />
                       </div>
-                      <span className="funnel-count">{step.count}</span>
+                      <span className="funnel-count">{f.count}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="funnel-alert-box">
-                  <strong>Bottleneck identified:</strong> SCAMPER ideation stage has a 21.6% drop-off. 26 members need mentor feedback.
+                  <strong>Conversion Insight:</strong> 17.7% drop at SCAMPER ideation. Consider offering an interim mentor office hour.
                 </div>
               </section>
             </div>
