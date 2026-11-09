@@ -1,3 +1,4 @@
+import StudentPanel from './pages/student/StudentPanel';
 import { useCallback, useEffect, useRef, useState } from "react";
 import "./App.css";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
@@ -178,6 +179,11 @@ function AppShell() {
   // TEMP: open the company panel with sample data, no login needed (/?company)
   if (new URLSearchParams(window.location.search).has("company")) {
     return <CompanyPanel />;
+  }
+
+  // TEMP: open the student panel with sample data, no login needed (/?student)
+  if (new URLSearchParams(window.location.search).has("student")) {
+    return <StudentPanel />;
   }
 
   if (isLoading) {
