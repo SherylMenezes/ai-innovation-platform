@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import "./StudentPanel.css";
 
+import StickerArt from "./StickerArt";
+import challengeMascotImage from "./institute-challenges.webp";
+
 export default function StudentCatalog() {
   const [filterType, setFilterType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -221,22 +224,47 @@ export default function StudentCatalog() {
         </div>
       )}
 
-      {/* 1. HERO BANNER - PURPLE THEME */}
-      <section className="header-banner" style={{ background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", marginBottom: "24px" }}>
-        <div className="banner-left">
+      {/* 1. HERO BANNER WITH CHALLENGE MASCOT STICKER */}
+      <section 
+        className="header-banner" 
+        style={{ 
+          background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)", 
+          marginBottom: "24px",
+          position: "relative",
+          overflow: "visible",
+          paddingRight: "280px",
+          minHeight: "180px",
+          borderRadius: "18px",
+          padding: "24px 280px 24px 32px",
+          color: "white"
+        }}
+      >
+        <div className="banner-left" style={{ zIndex: 2 }}>
           <div className="banner-subtitle" style={{ fontSize: '11px', fontWeight: '700', opacity: 0.8, marginBottom: '4px' }}>WORKSPACE • CHALLENGE CATALOG</div>
-          <h1 className="banner-title">Challenge Catalog</h1>
-          <div className="banner-subtitle">Explore verified institution assignments, join company-sponsored tracks, or launch your own startup idea.</div>
+          <h1 className="banner-title" style={{ color: '#fff', fontSize: '24px', fontWeight: 700, margin: '0 0 6px 0' }}>Challenge Catalog</h1>
+          <div className="banner-subtitle" style={{ color: '#ede9fe', fontSize: '13.5px', margin: '0 0 14px 0' }}>Explore verified institution assignments, join company-sponsored tracks, or launch your own startup idea.</div>
           <div className="banner-controls" style={{ marginTop: '16px' }}>
             <button 
               className="btn-banner-action" 
               onClick={() => setIsModalOpen(true)}
-              style={{ background: "#ffffff", color: "#7c3aed", fontWeight: 700 }}
+              style={{ background: "#ffffff", color: "#7c3aed", fontWeight: 700, padding: '8px 16px', border: 'none', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
             >
               + Create My Own Idea
             </button>
           </div>
         </div>
+
+        {/* Interactive Challenge Mascot Sticker */}
+        <StickerArt 
+          src={challengeMascotImage} 
+          baseRotate={2} 
+          style={{ 
+            position: 'absolute', 
+            right: '36px', 
+            bottom: '-12px', 
+            width: '220px' 
+          }} 
+        />
       </section>
 
       {/* 2. FILTER TABS */}

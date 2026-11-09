@@ -3,15 +3,23 @@
    ========================================================================== */
 
 :root {
-  --inst-primary: #f97316;
-  --inst-primary-hover: #ea580c;
-  --inst-primary-light: #fff7ed;
+  --inst-primary: #7c3aed;
+  --inst-primary-hover: #6d28d9;
+  --inst-primary-light: #f3e8ff;
   --inst-border: #e2e8f0;
   --inst-bg: #f8fafc;
   --inst-text-dark: #0f172a;
   --inst-text-muted: #64748b;
 }
-
+/* Force purple gradient theme over global banner fallbacks */
+.header-banner.purple-banner,
+.inst-welcome-banner.purple-banner {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%) !important;
+}
+/* Ensure header-banner uses the purple gradient */
+.header-banner {
+  background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%) !important;
+}
 /* Panel Layout Shell */
 .inst-panel {
   display: flex;
@@ -355,4 +363,39 @@
   50% {
     transform: translateY(-6px);
   }
+}
+
+/* Base interactive styles */
+.company-main .header-banner .inst-sticker {
+  pointer-events: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.15));
+  transition: filter 0.2s ease, transform 0.1s ease;
+  z-index: 2;
+}
+
+.company-main .header-banner .inst-sticker img {
+  max-width: none !important; /* Prevents parent containers or global CSS from shrinking the image */
+}
+
+.company-main .header-banner .inst-sticker:hover {
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.25));
+}
+/* Interactive Giggle & Wobble Animation for Mascot Stickers */
+@keyframes stickerGiggle {
+  0% { transform: rotate(0deg) scale(1); }
+  20% { transform: rotate(-6deg) scale(1.04); }
+  40% { transform: rotate(6deg) scale(1.04); }
+  60% { transform: rotate(-4deg) scale(1.02); }
+  80% { transform: rotate(4deg) scale(1.02); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.sticker-art-container {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+}
+
+.sticker-art-container:hover {
+  animation: stickerGiggle 0.6s ease-in-out infinite;
 }

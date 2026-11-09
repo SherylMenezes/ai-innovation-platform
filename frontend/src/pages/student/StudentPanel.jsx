@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import "./StudentPanel.css";
 
-// Import all student sub-pages/sections
+// Import all student sub-pages/sections and shared banner
+import StudentHeaderBanner from "./StudentHeaderBanner";
 import StudentProjects from "./StudentProjects";
 import StudentCatalog from "./StudentCatalog";
 import StudentSubmissions from "./StudentSubmissions";
@@ -168,35 +169,14 @@ export default function StudentPanel() {
 
         {activeTab === "Dashboard" && (
           <>
-            {/* HEADER BANNER WITH SCOUTY */}
-            <section className="header-banner" style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)' }}>
-              <div className="banner-left">
-                <h1 className="banner-title">Sandra</h1>
-                <div className="banner-subtitle">Student Innovation Workspace</div>
-                <p className="banner-desc">Track active challenges, XP progression, AI evaluation feedback, and milestone submissions.</p>
-
-                <div className="banner-controls">
-                  <span className="banner-filter-label">Track</span>
-                  <select
-                    className="banner-dropdown"
-                    value={selectedTrackFilter}
-                    onChange={(e) => setSelectedTrackFilter(e.target.value)}
-                  >
-                    <option value="all">All tracks</option>
-                    <option value="school">Institution Assigned</option>
-                    <option value="company">Company Sponsored</option>
-                    <option value="startup">Personal Startup Idea</option>
-                  </select>
-
-                  <button className="btn-banner-action" onClick={() => setActiveTab("Catalog")}>
-                    Explore catalog
-                  </button>
-                </div>
-              </div>
-              <div style={{ fontSize: '72px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px' }}>
-                🧙‍♂️
-              </div>
-            </section>
+            {/* DASHBOARD HEADER BANNER */}
+            <StudentHeaderBanner 
+              title="Sandra" 
+              subtitle="Student Innovation Workspace • Track active challenges, XP progression, AI evaluation feedback, and milestone submissions."
+              track={selectedTrackFilter}
+              onTrackChange={setSelectedTrackFilter}
+              onExploreCatalog={() => setActiveTab("Catalog")}
+            />
 
             {/* 4 STAT CARDS */}
             <section className="stats-grid">

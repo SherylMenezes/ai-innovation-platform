@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import "./StudentPanel.css";
+import StickerArt from "./StickerArt";
+import studentMascotImage from "./institute-students.webp";
 
 export default function StudentProjects() {
   const [projects, setProjects] = useState([
@@ -70,18 +72,45 @@ export default function StudentProjects() {
 
   return (
     <>
-      {/* 1. HERO BANNER */}
-      <section className="header-banner" style={{ background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)" }}>
-        <div className="banner-left">
-          <div className="banner-subtitle" style={{ fontSize: '11px', fontWeight: '700', opacity: 0.8, marginBottom: '4px' }}>WORKSPACE • ACTIVE PROJECTS & CHALLENGES</div>
-          <h1 className="banner-title">My Projects</h1>
-          <div className="banner-subtitle">{countActive} active workspaces • 1 due this week</div>
-          <p className="banner-desc">Track your institutional assignments, corporate challenges, and self-driven startup ideas across all four progression phases.</p>
+      {/* 1. HERO BANNER WITH STICKER */}
+      <section 
+        className="header-banner purple-banner" 
+        style={{ 
+          background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+          position: "relative",
+          overflow: "visible",
+          padding: "24px 320px 24px 32px",
+          minHeight: "180px",
+          borderRadius: "18px",
+          boxSizing: "border-box",
+          color: "white"
+        }}
+      >
+        <div className="banner-left" style={{ zIndex: 2 }}>
+          <div className="banner-subtitle" style={{ fontSize: '11px', fontWeight: '700', opacity: 0.85, marginBottom: '4px', letterSpacing: '0.5px' }}>
+            WORKSPACE • ACTIVE PROJECTS & CHALLENGES
+          </div>
+          <h1 className="banner-title" style={{ margin: '0 0 6px 0', fontSize: '26px', fontWeight: 800, color: '#ffffff' }}>
+            My Projects
+          </h1>
+          <div className="banner-subtitle" style={{ fontSize: '13.5px', color: '#ede9fe', fontWeight: 600, marginBottom: '6px' }}>
+            {countActive} active workspaces • 1 due this week
+          </div>
+          <p className="banner-desc" style={{ margin: 0, fontSize: '13px', color: '#ede9fe', opacity: 0.9, lineHeight: '1.4', maxWidth: '600px' }}>
+            Track your institutional assignments, corporate challenges, and self-driven startup ideas across all four progression phases.
+          </p>
         </div>
+
+        {/* Mascot Sticker */}
+        <StickerArt 
+          src={studentMascotImage} 
+          baseRotate={2} 
+          style={{ position: 'absolute', right: '36px', bottom: '-12px', width: '180px', zIndex: 1 }} 
+        />
       </section>
 
       {/* 2. STAT CARDS */}
-      <section className="stats-grid">
+      <section className="stats-grid" style={{ marginTop: '24px' }}>
         <div className={`stat-card ${filterStatus === "all" ? "active" : ""}`} onClick={() => setFilterStatus("all")} style={{ cursor: "pointer" }}>
           <div className="stat-card-top">
             <span className="stat-label">Total Projects</span>
@@ -119,9 +148,9 @@ export default function StudentProjects() {
         </div>
       </section>
 
-      {/* 3. TABLE PANEL CARD (Matches dashboard card enclosure) */}
+      {/* 3. TABLE PANEL CARD */}
       <section className="dashboard-panel" style={{ marginTop: '24px' }}>
-        <div className="panel-header-row" style={{ marginBottom: '16px' }}>
+        <div className="panel-header-row" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="search-input-wrapper" style={{ flex: 1, maxWidth: '400px' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
@@ -159,8 +188,8 @@ export default function StudentProjects() {
                     <div className="dept-name-cell" style={{ fontWeight: 800, color: "var(--theme-navy)" }}>
                       {p.challengeTitle}
                     </div>
-                    <div style={{ fontSize: "11.5px", color: "var(--text-secondary)" }}>
-                      XP: {p.xpEarned} • AI Score: {p.aiScore}/100
+                    <div style={{ fontSize: "11.5px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                      XP: +{p.xpEarned} • AI Score: {p.aiScore}/100
                     </div>
                   </td>
                   <td>
